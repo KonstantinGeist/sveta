@@ -10,38 +10,34 @@ import (
 
 const unknownToken = "<unk>"
 const retryCount = 3 // retries several times until the model returns an appropriate non-empty sentence
-const similarityThreshold = 0.95
 
 var ErrFailedToResponse = errors.New("failed to respond")
 
 type ResponseService struct {
-	agentName                  string
-	context                    string
-	responseLanguageModel      LanguageModel
-	summarizationLanguageModel LanguageModel
-	embedder                   Embedder
-	memoryFactory              MemoryFactory
-	promptFormatter            PromptFormatter
-	logger                     common.Logger
+	agentName             string
+	context               string
+	responseLanguageModel LanguageModel
+	embedder              Embedder
+	memoryFactory         MemoryFactory
+	promptFormatter       PromptFormatter
+	logger                common.Logger
 }
 
 func NewResponseService(
 	agentName string,
 	responseLanguageModel LanguageModel,
-	summarizationLanguageModel LanguageModel,
 	embedder Embedder,
 	memoryFactory MemoryFactory,
 	promptFormatter PromptFormatter,
 	logger common.Logger,
 ) *ResponseService {
 	return &ResponseService{
-		agentName:                  agentName,
-		responseLanguageModel:      responseLanguageModel,
-		summarizationLanguageModel: summarizationLanguageModel,
-		embedder:                   embedder,
-		memoryFactory:              memoryFactory,
-		promptFormatter:            promptFormatter,
-		logger:                     logger,
+		agentName:             agentName,
+		responseLanguageModel: responseLanguageModel,
+		embedder:              embedder,
+		memoryFactory:         memoryFactory,
+		promptFormatter:       promptFormatter,
+		logger:                logger,
 	}
 }
 
@@ -49,13 +45,12 @@ func (r *ResponseService) RespondToMemories(memories []*Memory) (string, error) 
 	if len(memories) == 0 {
 		return "", nil
 	}
-	contextWithSummary := r.promptFormatter.FormatSummary(r.context, FilterMemoriesByTypes(memories, []MemoryType{MemoryTypeSummary}))
 	dialogAndActionMemories := FilterMemoriesByTypes(memories, []MemoryType{MemoryTypeDialog, MemoryTypeAction})
 	promptEndMemories := r.generatePromptEndMemories()
 	memoriesAsString := r.promptFormatter.FormatDialog(MergeMemories(dialogAndActionMemories, promptEndMemories...))
 	dialogPrompt := fmt.Sprintf(
 		"%s\n\n%s",
-		contextWithSummary,
+		r.context,
 		memoriesAsString,
 	)
 	return r.complete(dialogPrompt, memories, r.responseLanguageModel)
@@ -66,36 +61,8 @@ func (r *ResponseService) SetContext(context string) error {
 	return nil
 }
 
-func (r *ResponseService) SummarizeMemories(memories []*Memory) (string, error) {
-	if len(memories) == 0 {
-		return "", nil
-	}
-	contextWithSummary := r.promptFormatter.FormatSummary(r.context, FilterMemoriesByTypes(memories, []MemoryType{MemoryTypeSummary}))
-	dialogAndActionMemories := FilterMemoriesByTypes(memories, []MemoryType{MemoryTypeDialog, MemoryTypeAction})
-	promptEndMemories := r.generateSummaryPromptEndMemories(memories)
-	memoriesAsString := r.promptFormatter.FormatDialog(MergeMemories(dialogAndActionMemories, promptEndMemories...))
-	dialogPrompt := fmt.Sprintf(
-		"%s\n\n%s",
-		contextWithSummary,
-		memoriesAsString,
-	)
-	response, err := r.complete(dialogPrompt, memories, r.responseLanguageModel)
-	if err != nil {
-		return "", err
-	}
-	return response, nil
-}
-
 func (r *ResponseService) generatePromptEndMemories() []*Memory {
 	return []*Memory{
-		r.memoryFactory.NewMemory(MemoryTypeDialog, r.agentName, "", ""),
-	}
-}
-
-func (r *ResponseService) generateSummaryPromptEndMemories(memories []*Memory) []*Memory {
-	lastWho := r.getLastWho(memories)
-	return []*Memory{
-		r.memoryFactory.NewMemory(MemoryTypeDialog, lastWho, r.promptFormatter.GetSummaryPrompt(), ""),
 		r.memoryFactory.NewMemory(MemoryTypeDialog, r.agentName, "", ""),
 	}
 }

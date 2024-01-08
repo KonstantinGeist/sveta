@@ -27,10 +27,10 @@ const (
 // and provides a public interface for domain.AIService.
 // This API can be used in various contexts: in an IRC chat, an HTTP server, console input/output etc.
 type API interface {
-	// Reply makes Sveta respond to the given prompt (`what`). Parameter `who` specifies the user (so that Sveta could
+	// Respond makes Sveta respond to the given prompt (`what`). Parameter `who` specifies the user (so that Sveta could
 	// tell between users in a shared chat and could respond intelligently). Parameter `where` specifies a shared virtual "room"
-	// (useful if you want Sveta to not mix )
-	Reply(who string, what string, where string) (string, error)
+	// (useful for isolating conversations from each other).
+	Respond(who string, what string, where string) (string, error)
 	// RememberAction remembers a certain action (not a reply) in the chat: for example, that a certain user entered the chat.
 	// The AI can use this information for enriching the context of the conversation.
 	RememberAction(who string, what string, where string) error
@@ -43,9 +43,6 @@ type API interface {
 	ForgetEverything() error
 	// SetContext resets the context ("system prompt") of the AI. Useful for debugging.
 	SetContext(context string) error
-	// Summarize makes the AI summarize the conversation in the given room (using the recent most working memory).
-	// Useful for debugging to see how the AI internally views the conversation.
-	Summarize(where string) (string, error)
 }
 
 func NewAPI(config *common.Config) API {
@@ -53,7 +50,7 @@ func NewAPI(config *common.Config) API {
 	embedder := embed4all.NewEmbedder()
 	agentName := config.GetStringOrDefault(ConfigKeyAgentName, "Sveta")
 	responseModel := logging.NewLanguageModelDecorator(llama.NewLanguageModel(agentName), logger)
-	promptFormatter := llama.NewPromptFormatter(agentName)
+	promptFormatter := llama.NewPromptFormatter()
 	memoryRepository := inmemory.NewMemoryRepository()
 	memoryFactory := inmemory.NewMemoryFactory(memoryRepository, embedder)
 	return &api{
@@ -63,7 +60,6 @@ func NewAPI(config *common.Config) API {
 			memoryFactory,
 			domain.NewResponseService(
 				agentName,
-				responseModel,
 				responseModel,
 				embedder,
 				memoryFactory,
@@ -77,8 +73,8 @@ func NewAPI(config *common.Config) API {
 	}
 }
 
-func (a *api) Reply(who string, what string, where string) (string, error) {
-	return a.agent.Reply(who, what, where)
+func (a *api) Respond(who string, what string, where string) (string, error) {
+	return a.agent.Respond(who, what, where)
 }
 
 func (a *api) RememberAction(who string, what string, where string) error {
@@ -95,8 +91,4 @@ func (a *api) ForgetEverything() error {
 
 func (a *api) SetContext(context string) error {
 	return a.agent.SetContext(context)
-}
-
-func (a *api) Summarize(where string) (string, error) {
-	return a.agent.Summarize(where)
 }

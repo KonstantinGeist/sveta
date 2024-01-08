@@ -10,7 +10,6 @@ type MemoryType int
 const (
 	MemoryTypeDialog = MemoryType(iota)
 	MemoryTypeAction
-	MemoryTypeSummary
 )
 
 type Memory struct {
@@ -20,7 +19,7 @@ type Memory struct {
 	When      time.Time
 	What      string
 	Where     string
-	Embedding *Embedding
+	Embedding *Embedding // nullable
 }
 
 type MemoryFilter struct {
@@ -28,7 +27,6 @@ type MemoryFilter struct {
 	Who          string
 	Where        string
 	LatestCount  int
-	Embedding    *Embedding
 	NotOlderThan *time.Time
 }
 

@@ -39,7 +39,7 @@ func mainImpl() error {
 	if err != nil {
 		fmt.Println(err)
 	}
-	var myTrigger = hbot.Trigger{
+	var trigger = hbot.Trigger{
 		func(b *hbot.Bot, m *hbot.Message) bool {
 			return true
 		},
@@ -75,21 +75,13 @@ func mainImpl() error {
 				_ = sveta.ForgetEverything()
 				return false
 			}
-			if what == "summary" {
-				summary, err := sveta.Summarize(roomName)
-				if err != nil {
-					fmt.Println(err)
-				}
-				b.Reply(m, m.From+" "+strings.TrimSpace(summary))
-				return true
-			}
 			if strings.HasPrefix(what, "context ") {
 				context := what[len("context "):]
 				_ = sveta.SetContext(context)
 				_ = sveta.ForgetEverything()
 				return false
 			}
-			response, err := sveta.Reply(m.From, what, roomName)
+			response, err := sveta.Respond(m.From, what, roomName)
 			if err != nil {
 				response = err.Error()
 			}
@@ -101,7 +93,7 @@ func mainImpl() error {
 	if err != nil {
 		panic(err)
 	}
-	ircBot.AddTrigger(myTrigger)
+	ircBot.AddTrigger(trigger)
 	ircBot.Channels = []string{"#" + roomName}
 	ircBot.Run()
 	return nil

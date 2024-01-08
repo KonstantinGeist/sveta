@@ -2,9 +2,9 @@ package main
 
 import (
 	"fmt"
-	"github.com/chzyer/readline"
 	"strings"
-	"time"
+
+	"github.com/chzyer/readline"
 
 	"kgeyst.com/sveta/pkg/common"
 	"kgeyst.com/sveta/pkg/sveta/api"
@@ -32,15 +32,17 @@ func mainImpl() error {
 			return err
 		}
 	}
-	err = sveta.LoadMemory("chunks.bin", "Context", roomName, time.Time{})
+	/*err = sveta.LoadMemory("chunks.bin", "Context", roomName, time.Time{})
 	if err != nil {
 		fmt.Println(err)
-	}
+	}*/
 	rl, err := readline.New("> ")
 	if err != nil {
 		return err
 	}
-	defer rl.Close()
+	defer func() {
+		_ = rl.Close()
+	}()
 	for {
 		line, err := rl.Readline()
 		if err != nil { // io.EOF
@@ -53,7 +55,7 @@ func mainImpl() error {
 				fmt.Println(err)
 			}
 		} else {
-			response, err := sveta.Reply(userName, line, roomName)
+			response, err := sveta.Respond(userName, line, roomName)
 			if err != nil {
 				fmt.Println(err)
 			}
