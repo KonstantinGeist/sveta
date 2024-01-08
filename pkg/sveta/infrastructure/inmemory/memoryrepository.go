@@ -3,6 +3,7 @@ package inmemory
 import (
 	"sort"
 
+	"kgeyst.com/sveta/pkg/common"
 	"kgeyst.com/sveta/pkg/sveta/domain"
 
 	"github.com/google/uuid"
@@ -56,16 +57,10 @@ func (r *memoryRepository) FindByEmbedding(filter domain.EmbeddingFilter) ([]*do
 		Similarity float64
 	}
 	for index, memory := range r.memories {
-		if len(filter.Types) > 0 && !domain.IsMemoryTypeInSlice(memory.Type, filter.Types) {
-			continue
-		}
-		if filter.Where != "" && memory.Where != filter.Where {
+		if !embeddingFilterAppliesWithoutEmbedding(filter, memory) {
 			continue
 		}
 		if memory.Embedding == nil {
-			continue
-		}
-		if isStringInSlice(memory.ID, filter.ExcludedIDs) {
 			continue
 		}
 		similarity := memory.Embedding.GetSimilarityTo(filter.Embedding)
@@ -99,26 +94,12 @@ func (r *memoryRepository) FindByEmbedding(filter domain.EmbeddingFilter) ([]*do
 			result = append(result, r.memories[finalIndex])
 		}
 	}
-	return uniqueMemories(result), nil
+	return domain.UniqueMemories(result), nil
 }
 
 func (r *memoryRepository) RemoveAll() error {
 	r.memories = nil
 	return nil
-}
-
-func uniqueMemories(memories []*domain.Memory) []*domain.Memory {
-	uniqueSet := make(map[string]struct{})
-	result := make([]*domain.Memory, 0, len(memories))
-	for _, memory := range memories {
-		_, exists := uniqueSet[memory.ID]
-		if exists {
-			continue
-		}
-		uniqueSet[memory.ID] = struct{}{}
-		result = append(result, memory)
-	}
-	return result
 }
 
 func memoryFilterApplies(filter domain.MemoryFilter, memory *domain.Memory) bool {
@@ -137,11 +118,15 @@ func memoryFilterApplies(filter domain.MemoryFilter, memory *domain.Memory) bool
 	return true
 }
 
-func isStringInSlice(str string, slice []string) bool {
-	for _, s := range slice {
-		if str == s {
-			return true
-		}
+func embeddingFilterAppliesWithoutEmbedding(filter domain.EmbeddingFilter, memory *domain.Memory) bool {
+	if len(filter.Types) > 0 && !domain.IsMemoryTypeInSlice(memory.Type, filter.Types) {
+		return false
 	}
-	return false
+	if filter.Where != "" && memory.Where != filter.Where {
+		return false
+	}
+	if common.IsStringInSlice(memory.ID, filter.ExcludedIDs) {
+		return false
+	}
+	return true
 }

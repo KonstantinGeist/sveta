@@ -113,3 +113,17 @@ func GetMemoryIDs(memories []*Memory) []string {
 	}
 	return ids
 }
+
+func UniqueMemories(memories []*Memory) []*Memory {
+	uniqueSet := make(map[string]struct{})
+	result := make([]*Memory, 0, len(memories))
+	for _, memory := range memories {
+		_, exists := uniqueSet[memory.ID]
+		if exists {
+			continue
+		}
+		uniqueSet[memory.ID] = struct{}{}
+		result = append(result, memory)
+	}
+	return result
+}

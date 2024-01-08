@@ -19,10 +19,10 @@ func NewMemoryFactory(memoryRepository domain.MemoryRepository, embedder domain.
 }
 
 func (m *memoryFactory) NewMemory(typ domain.MemoryType, who string, what string, where string) *domain.Memory {
-	return domain.NewMemory(m.memoryRepository.NextID(), typ, who, time.Now(), what, where, m.getSentenceEmbedding(what))
+	return domain.NewMemory(m.memoryRepository.NextID(), typ, who, time.Now(), what, where, m.getEmbedding(what))
 }
 
-func (m *memoryFactory) getSentenceEmbedding(sentence string) *domain.Embedding {
+func (m *memoryFactory) getEmbedding(sentence string) *domain.Embedding {
 	if sentence == "" {
 		return nil
 	}
