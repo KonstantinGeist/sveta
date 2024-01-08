@@ -81,11 +81,11 @@ func mainImpl() error {
 				_ = sveta.ForgetEverything()
 				return false
 			}
-			response, err := sveta.Respond(m.From, what, roomName)
+			response, err := sveta.Respond(strings.TrimSpace(m.From), what, roomName)
 			if err != nil {
 				response = err.Error()
 			}
-			b.Reply(m, m.From+" "+strings.TrimSpace(response))
+			b.Reply(m, m.From+" "+response)
 			return true
 		},
 	}

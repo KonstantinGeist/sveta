@@ -104,7 +104,7 @@ func (r *ResponseService) cleanResponse(response string, participants []string) 
 	for _, participant := range participants {
 		participantPrefix := participant + ":"
 		foundIndex := strings.Index(response, participantPrefix)
-		if foundIndex > 0 { // in the middle/at the end, when it wants to keep generating the conversation
+		if foundIndex > 0 { // in the middle/at the end, when it wants to keep generating the dialog
 			response = response[0:foundIndex]
 		} else if foundIndex == 0 { // in the beginning, like: "User: "
 			response = response[len(participantPrefix):]

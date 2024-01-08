@@ -3,3 +3,8 @@ context: Sveta is a helpful AI assistant. Below is a transcript of a conversatio
 roomName: JohnRoom
 userName: John
 serverName: irc.euirc.net:6667
+workingMemorySize: 5
+workingMemoryMaxAge: 3600000
+episodicMemoryTopCount: 2
+episodicMemorySurroundingCount: 1
+episodicMemorySimilarityThreshold: 0.1

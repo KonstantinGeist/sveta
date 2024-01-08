@@ -17,10 +17,9 @@ type api struct {
 
 // See domain/config.go
 const (
-	ConfigKeyAgentName         = domain.ConfigKeyAgentName
-	ConfigKeyContext           = domain.ConfigKeyContext
-	ConfigKeyLogPath           = domain.ConfigKeyLogPath
-	ConfigKeyWorkingMemorySize = domain.ConfigKeyWorkingMemorySize
+	ConfigKeyAgentName = domain.ConfigKeyAgentName
+	ConfigKeyContext   = domain.ConfigKeyContext
+	ConfigKeyLogPath   = domain.ConfigKeyLogPath
 )
 
 // API is the entrypoint to Sveta. It shouldn't contain any logic of its own; it glues all the components together
@@ -29,10 +28,10 @@ const (
 type API interface {
 	// Respond makes Sveta respond to the given prompt (`what`). Parameter `who` specifies the user (so that Sveta could
 	// tell between users in a shared chat and could respond intelligently). Parameter `where` specifies a shared virtual "room"
-	// (useful for isolating conversations from each other).
+	// (useful for isolating dialogs from each other).
 	Respond(who string, what string, where string) (string, error)
 	// RememberAction remembers a certain action (not a reply) in the chat: for example, that a certain user entered the chat.
-	// The AI can use this information for enriching the context of the conversation.
+	// The AI can use this information for enriching the context of the dialog.
 	RememberAction(who string, what string, where string) error
 	// LoadMemory loads a precomputed vector store of a document (specified by `path`) so that the AI could use RAG
 	// ("retrieval-augmented generation") to answer to questions not found in the original model.

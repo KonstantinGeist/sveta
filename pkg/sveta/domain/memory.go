@@ -105,3 +105,11 @@ func MergeMemories(a []*Memory, b ...*Memory) []*Memory {
 	})
 	return result
 }
+
+func GetMemoryIDs(memories []*Memory) []string {
+	ids := make([]string, 0, len(memories))
+	for _, memory := range memories {
+		ids = append(ids, memory.ID)
+	}
+	return ids
+}

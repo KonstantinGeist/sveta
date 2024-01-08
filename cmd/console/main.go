@@ -48,6 +48,7 @@ func mainImpl() error {
 		if err != nil { // io.EOF
 			break
 		}
+		line = strings.TrimSpace(line)
 		if strings.HasPrefix(line, ":") {
 			line = line[1:]
 			err := sveta.RememberAction(userName, line, roomName)

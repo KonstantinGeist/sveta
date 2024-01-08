@@ -2,7 +2,7 @@ package common
 
 import (
 	"os"
-	"strconv"
+	"time"
 
 	"gopkg.in/yaml.v3"
 )
@@ -53,13 +53,37 @@ func (c *Config) GetStringOrDefault(key, defaultValue string) string {
 // GetIntOrDefault returns an integer-typed parameter. If nothing is found, or if the value cannot be parsed as an integer,
 // returns `defaultValue`.
 func (c *Config) GetIntOrDefault(key string, defaultValue int) int {
-	strValue := c.GetString(key)
-	if strValue == "" {
+	value, ok := c.values[key]
+	if !ok {
 		return defaultValue
 	}
-	intValue, err := strconv.Atoi(strValue)
-	if err != nil {
+	intValue, ok := value.(int)
+	if !ok {
 		return defaultValue
 	}
 	return intValue
+}
+
+// GetFloatOrDefault returns a float-typed parameter. If nothing is found, or if the value cannot be parsed as a float,
+// returns `defaultValue`.
+func (c *Config) GetFloatOrDefault(key string, defaultValue float64) float64 {
+	value, ok := c.values[key]
+	if !ok {
+		return defaultValue
+	}
+	floatValue, ok := value.(float64)
+	if !ok {
+		return defaultValue
+	}
+	return floatValue
+}
+
+// GetDurationOrDefault returns a duration-typed parameter. If nothing is found, or if the value cannot be parsed as a duration
+// (i.e. an integer which specifies milliseconds), returns `defaultValue`.
+func (c *Config) GetDurationOrDefault(key string, defaultValue time.Duration) time.Duration {
+	intValue := c.GetIntOrDefault(key, -1)
+	if intValue < 0 {
+		return defaultValue
+	}
+	return time.Duration(intValue) * time.Millisecond
 }
