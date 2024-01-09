@@ -48,7 +48,7 @@ func NewAPI(config *common.Config) API {
 	logger := common.NewFileLogger(config.GetStringOrDefault(ConfigKeyLogPath, "log.txt"))
 	embedder := embed4all.NewEmbedder()
 	agentName := config.GetStringOrDefault(ConfigKeyAgentName, "Sveta")
-	responseModel := logging.NewLanguageModelDecorator(llama.NewLanguageModel(agentName), logger)
+	responseModel := logging.NewLanguageModelDecorator(llama.NewLanguageModel(agentName, config), logger)
 	promptFormatter := llama.NewPromptFormatter()
 	memoryRepository := inmemory.NewMemoryRepository()
 	memoryFactory := inmemory.NewMemoryFactory(memoryRepository, embedder)
@@ -63,6 +63,7 @@ func NewAPI(config *common.Config) API {
 				embedder,
 				memoryFactory,
 				promptFormatter,
+				config,
 				logger,
 			),
 			promptFormatter,

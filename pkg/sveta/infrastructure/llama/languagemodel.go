@@ -16,16 +16,38 @@ import (
 	"kgeyst.com/sveta/pkg/sveta/domain"
 )
 
+var errUnexpectedModelOutput = errors.New("unexpected model output")
+
+const (
+	ConfigKeyLLMTemperature    = "llmTemperature"
+	ConfigKeyLLMContextSize    = "llmContextSize"
+	ConfigKeyLLMCPUThreadCount = "llmCPUThreadCount"
+	ConfigKeyLLMGPULayerCount  = "llmGPULayerCount"
+	ConfigKeyLLMGRepeatPenalty = "llmRepeatPenalty"
+)
+
 type languageModel struct {
-	mutex        sync.Mutex
-	httpClient   http.Client
-	logger       common.Logger
-	agentName    string
-	inferCommand string
+	mutex          sync.Mutex
+	httpClient     http.Client
+	logger         common.Logger
+	agentName      string
+	inferCommand   string
+	temperature    float64
+	contextSize    int
+	gpuLayerCount  int
+	cpuThreadCount int
+	repeatPenalty  float64
 }
 
-func NewLanguageModel(agentName string) domain.LanguageModel {
-	return &languageModel{agentName: agentName}
+func NewLanguageModel(agentName string, config *common.Config) domain.LanguageModel {
+	return &languageModel{
+		agentName:      agentName,
+		temperature:    config.GetFloatOrDefault(ConfigKeyLLMTemperature, 0.7),
+		contextSize:    config.GetIntOrDefault(ConfigKeyLLMContextSize, 4096),
+		gpuLayerCount:  config.GetIntOrDefault(ConfigKeyLLMGPULayerCount, 40),
+		cpuThreadCount: config.GetIntOrDefault(ConfigKeyLLMCPUThreadCount, 6),
+		repeatPenalty:  config.GetFloatOrDefault(ConfigKeyLLMGRepeatPenalty, 1.1),
+	}
 }
 
 func (l *languageModel) Complete(prompt string) (string, error) {
@@ -64,7 +86,7 @@ func (l *languageModel) Complete(prompt string) (string, error) {
 	}
 	output := buf.String()
 	if len(output) < len(prompt)+1 {
-		return "", errors.New("unexpected model output")
+		return "", errUnexpectedModelOutput
 	}
 	// The model repeats what was said before, so we remove it from the response.
 	return strings.TrimSpace(output[len(prompt)+1:]), nil
@@ -74,9 +96,15 @@ func (l *languageModel) buildInferCommand() (string, error) {
 	if l.inferCommand != "" {
 		return l.inferCommand, nil
 	}
-	// Requires a performant GPU (tested on GeForce RTX 3060).
-	// 40 layers of the model are so far hardcoded to happen on GPU.
-	const shellTemplate = "%s/infer -t 6 -ngl 40 -m %s/model.bin --color -c 4096 --temp 0.7 --repeat_penalty 1.1 -n -1 -p " // TODO support setting it in a config
+	shellTemplate := "%s/infer -m %s/model.bin "
+	shellTemplate += fmt.Sprintf(
+		"-t %d -ngl %d --color -c %d --temp %f --repeat_penalty %f -n -1 -p ",
+		l.cpuThreadCount,
+		l.gpuLayerCount,
+		l.contextSize,
+		l.temperature,
+		l.repeatPenalty,
+	)
 	workingDirectory, err := os.Getwd()
 	if err != nil {
 		return "", err
@@ -93,7 +121,7 @@ func (l *languageModel) getAgentNameWithDelimiter() string {
 // processLineFunc(..) signals it should stop with false as the returned value.
 func runInferCommand(cmdstr, prompt string, processLineFunc func(s string) bool) error {
 	args := strings.Fields(cmdstr)
-	args = append(args, "\""+prompt+"\"")
+	args = append(args, prompt)
 	ctx, cancelFunc := context.WithDeadline(context.Background(), time.Now().Add(time.Minute))
 	defer cancelFunc()
 	cmd := exec.CommandContext(ctx, args[0], args[1:]...) // TODO shell injections?

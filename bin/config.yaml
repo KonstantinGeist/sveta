@@ -8,3 +8,9 @@ workingMemoryMaxAge: 3600000
 episodicMemoryTopCount: 2
 episodicMemorySurroundingCount: 1
 episodicMemorySimilarityThreshold: 0.1
+responseRetryCount: 3
+llmTemperature: 0.7
+llmContextSize: 4096
+llmGPULayerCount: 40
+llmCPUThreadCount: 6
+llmRepeatPenalty: 1.1
