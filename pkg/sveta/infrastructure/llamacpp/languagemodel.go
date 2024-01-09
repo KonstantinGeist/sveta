@@ -33,32 +33,32 @@ const (
 )
 
 type languageModel struct {
-	mutex           sync.Mutex
-	logger          common.Logger
-	agentName       string
-	modelPath       string
-	inferCommand    string
-	temperature     float64
-	contextSize     int
-	gpuLayerCount   int
-	cpuThreadCount  int
-	repeatPenalty   float64
-	responseTimeout time.Duration
+	mutex                  sync.Mutex
+	logger                 common.Logger
+	modelPath              string
+	inferCommand           string
+	agentNameWithDelimiter string
+	temperature            float64
+	contextSize            int
+	gpuLayerCount          int
+	cpuThreadCount         int
+	repeatPenalty          float64
+	responseTimeout        time.Duration
 }
 
 // NewLanguageModel Creates a language model as implemented by llama2.cpp
 // `modelPath` specifies the path to the target model relative to the bin folder (llama2.cpp supports many models: Llama 2, Mistral, etc.)
 // `config` contains parameters specific to the current GPU (see the constant above)
-func NewLanguageModel(agentName string, modelPath string, config *common.Config) domain.LanguageModel {
+func NewLanguageModel(agentName string, modelPath string, promptFormatter domain.PromptFormatter, config *common.Config) domain.LanguageModel {
 	return &languageModel{
-		agentName:       agentName,
-		modelPath:       modelPath,
-		temperature:     config.GetFloatOrDefault(ConfigKeyLLMTemperature, 0.7),
-		contextSize:     config.GetIntOrDefault(ConfigKeyLLMContextSize, 4096),
-		gpuLayerCount:   config.GetIntOrDefault(ConfigKeyLLMGPULayerCount, 40),
-		cpuThreadCount:  config.GetIntOrDefault(ConfigKeyLLMCPUThreadCount, 6),
-		repeatPenalty:   config.GetFloatOrDefault(ConfigKeyLLMGRepeatPenalty, 1.1),
-		responseTimeout: config.GetDurationOrDefault(ConfigKeyLLResponseTimeout, time.Minute),
+		modelPath:              modelPath,
+		agentNameWithDelimiter: getAgentNameWithDelimiter(agentName, promptFormatter),
+		temperature:            config.GetFloatOrDefault(ConfigKeyLLMTemperature, 0.7),
+		contextSize:            config.GetIntOrDefault(ConfigKeyLLMContextSize, 4096),
+		gpuLayerCount:          config.GetIntOrDefault(ConfigKeyLLMGPULayerCount, 40),
+		cpuThreadCount:         config.GetIntOrDefault(ConfigKeyLLMCPUThreadCount, 6),
+		repeatPenalty:          config.GetFloatOrDefault(ConfigKeyLLMGRepeatPenalty, 1.1),
+		responseTimeout:        config.GetDurationOrDefault(ConfigKeyLLResponseTimeout, time.Minute),
 	}
 }
 
@@ -74,12 +74,12 @@ func (l *languageModel) Complete(prompt string) (string, error) {
 	var buf strings.Builder
 	// We keep track of how many times the agent name with the delimiter was found in the output, to understand
 	// when we should stop token generation because otherwise the model tries to continue the dialog forever, and we want
-	// to stop as soon as possible. Note that further the caller will remove unnecessary continuations, too.
-	agentNameCount := strings.Count(prompt, l.getAgentNameWithDelimiter())
+	// to stop as soon as possible. Note that the caller will remove unnecessary continuations further, too.
+	agentNameCount := strings.Count(prompt, l.agentNameWithDelimiter)
 	newAgentNamePromptCount := 0
 	err = runInferCommand(command, prompt, l.responseTimeout, func(s string) bool {
 		// See the comment to `agentNameCount` variable definition.
-		if strings.Contains(s, l.getAgentNameWithDelimiter()) {
+		if strings.Contains(s, l.agentNameWithDelimiter) {
 			newAgentNamePromptCount++
 			if newAgentNamePromptCount > agentNameCount {
 				return false
@@ -126,14 +126,11 @@ func (l *languageModel) buildInferCommand() (string, error) {
 	return l.inferCommand, nil
 }
 
-func (l *languageModel) getAgentNameWithDelimiter() string {
-	return l.agentName + ":"
-}
-
 // We hook up to the llama.cpp binary by launching a subprocess and reading its standard output until
 // processLineFunc(..) signals it should stop with false as the returned value.
-// Launching it as a subprocess has the benefits of full isolations between runs (and fault-tolerance: crashes in llama2.cpp
-// do not crash Sveta altogether)
+// Launching it as a new subprocess for each run has the following benefits:
+// - full isolation (for privacy)
+// - fault-tolerance: crashes in llama.cpp do not crash Sveta altogether
 func runInferCommand(cmdstr, prompt string, responseTimeout time.Duration, processLineFunc func(s string) bool) error {
 	args := strings.Fields(cmdstr)
 	args = append(args, prompt)
@@ -163,4 +160,10 @@ func runInferCommand(cmdstr, prompt string, responseTimeout time.Duration, proce
 	}
 	wg.Wait()
 	return cmd.Wait()
+}
+
+func getAgentNameWithDelimiter(agentName string, promptFormatter domain.PromptFormatter) string {
+	memories := []*domain.Memory{domain.NewMemory("", domain.MemoryTypeAction, agentName, time.Now(), "", "", nil)}
+	result := strings.TrimSpace(promptFormatter.FormatDialog(memories))
+	return result
 }

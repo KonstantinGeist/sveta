@@ -7,5 +7,5 @@ import (
 )
 
 func NewLanguageModel(agentName string, config *common.Config) domain.LanguageModel {
-	return llamacpp.NewLanguageModel(agentName, "llama2.bin", config)
+	return llamacpp.NewLanguageModel(agentName, "llama2.bin", NewPromptFormatter(), config)
 }
