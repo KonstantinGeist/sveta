@@ -7,7 +7,7 @@ import (
 	"kgeyst.com/sveta/pkg/sveta/domain"
 	"kgeyst.com/sveta/pkg/sveta/infrastructure/embed4all"
 	"kgeyst.com/sveta/pkg/sveta/infrastructure/inmemory"
-	"kgeyst.com/sveta/pkg/sveta/infrastructure/llama"
+	"kgeyst.com/sveta/pkg/sveta/infrastructure/llama2"
 	"kgeyst.com/sveta/pkg/sveta/infrastructure/logging"
 )
 
@@ -48,8 +48,8 @@ func NewAPI(config *common.Config) API {
 	logger := common.NewFileLogger(config.GetStringOrDefault(ConfigKeyLogPath, "log.txt"))
 	embedder := embed4all.NewEmbedder()
 	agentName := config.GetStringOrDefault(ConfigKeyAgentName, "Sveta")
-	responseModel := logging.NewLanguageModelDecorator(llama.NewLanguageModel(agentName, config), logger)
-	promptFormatter := llama.NewPromptFormatter()
+	responseModel := logging.NewLanguageModelDecorator(llama2.NewLanguageModel(agentName, config), logger)
+	promptFormatter := llama2.NewPromptFormatter()
 	memoryRepository := inmemory.NewMemoryRepository()
 	memoryFactory := inmemory.NewMemoryFactory(memoryRepository, embedder)
 	return &api{

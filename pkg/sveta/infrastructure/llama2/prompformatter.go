@@ -1,4 +1,4 @@
-package llama
+package llama2
 
 import (
 	"strings"

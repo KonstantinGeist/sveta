@@ -1,5 +1,5 @@
-infer
-model.bin
+llama.cpp
+llama2.bin
 log.txt
 main.log
 chunks.bin

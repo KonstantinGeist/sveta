@@ -1,11 +1,10 @@
-package llama
+package llamacpp
 
 import (
 	"bufio"
 	"context"
 	"errors"
 	"fmt"
-	"net/http"
 	"os"
 	"os/exec"
 	"strings"
@@ -35,9 +34,9 @@ const (
 
 type languageModel struct {
 	mutex           sync.Mutex
-	httpClient      http.Client
 	logger          common.Logger
 	agentName       string
+	modelPath       string
 	inferCommand    string
 	temperature     float64
 	contextSize     int
@@ -47,9 +46,13 @@ type languageModel struct {
 	responseTimeout time.Duration
 }
 
-func NewLanguageModel(agentName string, config *common.Config) domain.LanguageModel {
+// NewLanguageModel Creates a language model as implemented by llama2.cpp
+// `modelPath` specifies the path to the target model relative to the bin folder (llama2.cpp supports many models: Llama 2, Mistral, etc.)
+// `config` contains parameters specific to the current GPU (see the constant above)
+func NewLanguageModel(agentName string, modelPath string, config *common.Config) domain.LanguageModel {
 	return &languageModel{
 		agentName:       agentName,
+		modelPath:       modelPath,
 		temperature:     config.GetFloatOrDefault(ConfigKeyLLMTemperature, 0.7),
 		contextSize:     config.GetIntOrDefault(ConfigKeyLLMContextSize, 4096),
 		gpuLayerCount:   config.GetIntOrDefault(ConfigKeyLLMGPULayerCount, 40),
@@ -86,7 +89,7 @@ func (l *languageModel) Complete(prompt string) (string, error) {
 		return true
 	})
 	if err != nil {
-		// A process can run successfully but be terminated with a SIGKILL for some reason.
+		// A process can run successfully but be terminated with a SIGKILL for some reason (due to context cancellation?)
 		// So we ignore it but log it, leaving what has been generated so far intact.
 		_, ok := err.(*exec.ExitError)
 		if !ok {
@@ -105,9 +108,10 @@ func (l *languageModel) buildInferCommand() (string, error) {
 	if l.inferCommand != "" {
 		return l.inferCommand, nil
 	}
-	shellTemplate := "%s/infer -m %s/model.bin "
+	shellTemplate := "%s/llama.cpp -m %s/"
 	shellTemplate += fmt.Sprintf(
-		"-t %d -ngl %d --color -c %d --temp %f --repeat_penalty %f -n -1 -p ",
+		"%s -t %d -ngl %d --color -c %d --temp %f --repeat_penalty %f -n -1 -p ",
+		l.modelPath,
 		l.cpuThreadCount,
 		l.gpuLayerCount,
 		l.contextSize,
@@ -128,6 +132,8 @@ func (l *languageModel) getAgentNameWithDelimiter() string {
 
 // We hook up to the llama.cpp binary by launching a subprocess and reading its standard output until
 // processLineFunc(..) signals it should stop with false as the returned value.
+// Launching it as a subprocess has the benefits of full isolations between runs (and fault-tolerance: crashes in llama2.cpp
+// do not crash Sveta altogether)
 func runInferCommand(cmdstr, prompt string, responseTimeout time.Duration, processLineFunc func(s string) bool) error {
 	args := strings.Fields(cmdstr)
 	args = append(args, prompt)
