@@ -19,34 +19,43 @@ import (
 var errUnexpectedModelOutput = errors.New("unexpected model output")
 
 const (
-	ConfigKeyLLMTemperature    = "llmTemperature"
-	ConfigKeyLLMContextSize    = "llmContextSize"
+	// ConfigKeyLLMTemperature how creative the output is
+	ConfigKeyLLMTemperature = "llmTemperature"
+	// ConfigKeyLLMContextSize the size of the context
+	ConfigKeyLLMContextSize = "llmContextSize"
+	// ConfigKeyLLMCPUThreadCount the number of CPUs used during inference
 	ConfigKeyLLMCPUThreadCount = "llmCPUThreadCount"
-	ConfigKeyLLMGPULayerCount  = "llmGPULayerCount"
+	// ConfigKeyLLMGPULayerCount how many layers in the model can be offloaded to GPU
+	ConfigKeyLLMGPULayerCount = "llmGPULayerCount"
+	// ConfigKeyLLMGRepeatPenalty a coefficient against repetitions of same tokens
 	ConfigKeyLLMGRepeatPenalty = "llmRepeatPenalty"
+	// ConfigKeyLLResponseTimeout when to stop if the model takes too long to process input/generate output
+	ConfigKeyLLResponseTimeout = "llmResponseTimeout"
 )
 
 type languageModel struct {
-	mutex          sync.Mutex
-	httpClient     http.Client
-	logger         common.Logger
-	agentName      string
-	inferCommand   string
-	temperature    float64
-	contextSize    int
-	gpuLayerCount  int
-	cpuThreadCount int
-	repeatPenalty  float64
+	mutex           sync.Mutex
+	httpClient      http.Client
+	logger          common.Logger
+	agentName       string
+	inferCommand    string
+	temperature     float64
+	contextSize     int
+	gpuLayerCount   int
+	cpuThreadCount  int
+	repeatPenalty   float64
+	responseTimeout time.Duration
 }
 
 func NewLanguageModel(agentName string, config *common.Config) domain.LanguageModel {
 	return &languageModel{
-		agentName:      agentName,
-		temperature:    config.GetFloatOrDefault(ConfigKeyLLMTemperature, 0.7),
-		contextSize:    config.GetIntOrDefault(ConfigKeyLLMContextSize, 4096),
-		gpuLayerCount:  config.GetIntOrDefault(ConfigKeyLLMGPULayerCount, 40),
-		cpuThreadCount: config.GetIntOrDefault(ConfigKeyLLMCPUThreadCount, 6),
-		repeatPenalty:  config.GetFloatOrDefault(ConfigKeyLLMGRepeatPenalty, 1.1),
+		agentName:       agentName,
+		temperature:     config.GetFloatOrDefault(ConfigKeyLLMTemperature, 0.7),
+		contextSize:     config.GetIntOrDefault(ConfigKeyLLMContextSize, 4096),
+		gpuLayerCount:   config.GetIntOrDefault(ConfigKeyLLMGPULayerCount, 40),
+		cpuThreadCount:  config.GetIntOrDefault(ConfigKeyLLMCPUThreadCount, 6),
+		repeatPenalty:   config.GetFloatOrDefault(ConfigKeyLLMGRepeatPenalty, 1.1),
+		responseTimeout: config.GetDurationOrDefault(ConfigKeyLLResponseTimeout, time.Minute),
 	}
 }
 
@@ -65,7 +74,7 @@ func (l *languageModel) Complete(prompt string) (string, error) {
 	// to stop as soon as possible. Note that further the caller will remove unnecessary continuations, too.
 	agentNameCount := strings.Count(prompt, l.getAgentNameWithDelimiter())
 	newAgentNamePromptCount := 0
-	err = runInferCommand(command, prompt, func(s string) bool {
+	err = runInferCommand(command, prompt, l.responseTimeout, func(s string) bool {
 		// See the comment to `agentNameCount` variable definition.
 		if strings.Contains(s, l.getAgentNameWithDelimiter()) {
 			newAgentNamePromptCount++
@@ -119,12 +128,12 @@ func (l *languageModel) getAgentNameWithDelimiter() string {
 
 // We hook up to the llama.cpp binary by launching a subprocess and reading its standard output until
 // processLineFunc(..) signals it should stop with false as the returned value.
-func runInferCommand(cmdstr, prompt string, processLineFunc func(s string) bool) error {
+func runInferCommand(cmdstr, prompt string, responseTimeout time.Duration, processLineFunc func(s string) bool) error {
 	args := strings.Fields(cmdstr)
 	args = append(args, prompt)
-	ctx, cancelFunc := context.WithDeadline(context.Background(), time.Now().Add(time.Minute))
+	ctx, cancelFunc := context.WithDeadline(context.Background(), time.Now().Add(responseTimeout))
 	defer cancelFunc()
-	cmd := exec.CommandContext(ctx, args[0], args[1:]...) // TODO shell injections?
+	cmd := exec.CommandContext(ctx, args[0], args[1:]...)
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		return err
