@@ -78,7 +78,6 @@ func mainImpl() error {
 			if strings.HasPrefix(what, "context ") {
 				context := what[len("context "):]
 				_ = sveta.SetContext(context)
-				_ = sveta.ForgetEverything()
 				return false
 			}
 			response, err := sveta.Respond(strings.TrimSpace(m.From), what, roomName)

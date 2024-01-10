@@ -73,7 +73,7 @@ func (l *languageModel) Complete(prompt string) (string, error) {
 	}
 	var buf strings.Builder
 	// We keep track of how many times the agent name with the delimiter was found in the output, to understand
-	// when we should stop token generation because otherwise the model tries to continue the dialog forever, and we want
+	// when we should stop token generation because otherwise the model can continue the dialog forever, and we want
 	// to stop as soon as possible. Note that the caller will remove unnecessary continuations further, too.
 	agentNameCount := strings.Count(prompt, l.agentNameWithDelimiter)
 	newAgentNamePromptCount := 0

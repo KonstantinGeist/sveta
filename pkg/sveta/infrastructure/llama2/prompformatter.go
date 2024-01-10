@@ -16,7 +16,7 @@ func (p *promptFormatter) FormatDialog(memories []*domain.Memory) string {
 	var buf strings.Builder
 	for i := 0; i < len(memories); i++ {
 		memory := memories[i]
-		buf.WriteString(memory.Who)
+		buf.WriteString("### " + memory.Who)
 		buf.WriteString(":\n")
 		buf.WriteString(memory.What)
 		if i < len(memories)-1 {

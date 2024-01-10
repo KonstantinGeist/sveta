@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"kgeyst.com/sveta/pkg/common"
 )
@@ -92,13 +93,13 @@ func (r *ResponseService) complete(prompt string, memories []*Memory, languageMo
 // Sometimes, the model can generate too much (for example, trying to complete other participants' dialogs), so we trim it.
 // TODO move to response cleaner
 func (r *ResponseService) cleanResponse(response string, participants []string) string {
-	agentNamePrefix := r.agentName + ":"
+	agentNamePrefix := getAgentNameWithDelimiter(r.agentName, r.promptFormatter)
 	response = strings.TrimSpace(response)
 	if strings.HasPrefix(response, agentNamePrefix) {
 		response = response[len(agentNamePrefix):]
 	}
 	for _, participant := range participants {
-		participantPrefix := participant + ":"
+		participantPrefix := getAgentNameWithDelimiter(participant, r.promptFormatter)
 		foundIndex := strings.Index(response, participantPrefix)
 		if foundIndex > 0 { // in the middle/at the end, when it wants to keep generating the dialog
 			response = response[0:foundIndex]
@@ -122,4 +123,10 @@ func (r *ResponseService) collectDialogParticipants(memories []*Memory) []string
 		participants = append(participants, participant)
 	}
 	return participants
+}
+
+func getAgentNameWithDelimiter(agentName string, promptFormatter PromptFormatter) string {
+	memories := []*Memory{NewMemory("", MemoryTypeAction, agentName, time.Now(), "", "", nil)}
+	result := strings.TrimSpace(promptFormatter.FormatDialog(memories))
+	return result
 }
