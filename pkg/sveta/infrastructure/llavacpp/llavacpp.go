@@ -20,11 +20,7 @@ func Run(filePath, what string) (string, error) {
 		return "", err
 	}
 	result := out.String()
-	hackIndex := strings.Index(result, "per image patch)") // TODO
-	if hackIndex != -1 {
-		result = result[hackIndex+len("per image patch)"):]
-	}
-	return strings.TrimSpace(result), nil
+	return removeGarbage(result), nil
 }
 
 func buildExecCommand(filePath, what string) (*exec.Cmd, error) {
@@ -40,4 +36,14 @@ func buildExecCommand(filePath, what string) (*exec.Cmd, error) {
 		"--temp", "0.1",
 		"-p", what,
 	), nil
+}
+
+// TODO can we get rid of the hack?
+func removeGarbage(result string) string {
+	const anchor = "per image patch)"
+	hackIndex := strings.Index(result, anchor)
+	if hackIndex != -1 {
+		result = result[hackIndex+len(anchor):]
+	}
+	return strings.TrimSpace(result)
 }
