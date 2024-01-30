@@ -1,24 +1,24 @@
 package api
 
 import (
-	"time"
-
 	"kgeyst.com/sveta/pkg/common"
 	"kgeyst.com/sveta/pkg/sveta/domain"
+	"kgeyst.com/sveta/pkg/sveta/infrastructure/aifilters"
 	"kgeyst.com/sveta/pkg/sveta/infrastructure/embed4all"
 	"kgeyst.com/sveta/pkg/sveta/infrastructure/inmemory"
-	"kgeyst.com/sveta/pkg/sveta/infrastructure/llama2"
-	"kgeyst.com/sveta/pkg/sveta/infrastructure/logging"
+	"kgeyst.com/sveta/pkg/sveta/infrastructure/llms/llama2"
+	"kgeyst.com/sveta/pkg/sveta/infrastructure/llms/logging"
+	"kgeyst.com/sveta/pkg/sveta/infrastructure/llms/solar"
 )
 
 type api struct {
-	agent *domain.AIService
+	aiService *domain.AIService
 }
 
 // See domain/config.go
 const (
 	ConfigKeyAgentName = domain.ConfigKeyAgentName
-	ConfigKeyContext   = domain.ConfigKeyContext
+	ConfigKeyContext   = domain.ConfigKeyAgentDescription
 	ConfigKeyLogPath   = domain.ConfigKeyLogPath
 )
 
@@ -33,62 +33,81 @@ type API interface {
 	// RememberAction remembers a certain action (not a reply) in the chat: for example, that a certain user entered the chat.
 	// The AI can use this information for enriching the context of the dialog.
 	RememberAction(who string, what string, where string) error
-	// LoadMemory loads a precomputed vector store of a document (specified by `path`) so that the AI could use RAG
-	// ("retrieval-augmented generation") to answer to questions not found in the original model.
-	// The vector store's data is ingested using bin/embed_corpus.py
-	LoadMemory(path, who, where string, when time.Time) error
+	RememberDialog(who string, what string, where string) error
 	// ForgetEverything makes the AI forget all current context across all rooms. Useful for debugging.
 	// Note that it removes all memory loaded previously with LoadMemory.
 	ForgetEverything() error
-	// SetContext resets the context ("system prompt") of the AI. Useful for debugging.
-	SetContext(context string) error
+	// ChangeAgentDescription resets the context ("system prompt") of the AI. Useful for debugging.
+	ChangeAgentDescription(context string) error
 }
 
 func NewAPI(config *common.Config) API {
 	logger := common.NewFileLogger(config.GetStringOrDefault(ConfigKeyLogPath, "log.txt"))
 	embedder := embed4all.NewEmbedder()
-	agentName := config.GetStringOrDefault(ConfigKeyAgentName, "Sveta")
-	responseModel := logging.NewLanguageModelDecorator(llama2.NewLanguageModel(agentName, config), logger)
-	promptFormatter := llama2.NewPromptFormatter()
+	aiContext := domain.NewAIContext(config)
+	roleplayLlama2Model := logging.NewLanguageModelDecorator(llama2.NewRoleplayLanguageModel(aiContext, config), logger)
+	genericSolarModel := logging.NewLanguageModelDecorator(solar.NewGenericLanguageModel(aiContext, config), logger)
+	languageModelSelector := domain.NewLanguageModelSelector([]domain.LanguageModel{genericSolarModel, roleplayLlama2Model})
 	memoryRepository := inmemory.NewMemoryRepository()
 	memoryFactory := inmemory.NewMemoryFactory(memoryRepository, embedder)
+	responseService := domain.NewResponseService(
+		aiContext,
+		languageModelSelector,
+		embedder,
+		memoryFactory,
+		config,
+		logger,
+	)
+	promptFormatterForLog := llama2.NewPromptFormatter()
+	htmlFilter := aifilters.NewHTMLFilter(logger)
+	imageFilter := aifilters.NewImageFilter(logger)
+	wikiFilter := aifilters.NewWikiFilter(
+		responseService,
+		memoryFactory,
+		memoryRepository,
+		logger,
+		config,
+	)
+	responseFilter := domain.NewResponseFilter(
+		aiContext,
+		memoryFactory,
+		memoryRepository,
+		responseService,
+		promptFormatterForLog,
+		logger,
+		config,
+	)
 	return &api{
-		agent: domain.NewAIService(
-			agentName,
+		aiService: domain.NewAIService(
 			memoryRepository,
 			memoryFactory,
-			domain.NewResponseService(
-				agentName,
-				responseModel,
-				embedder,
-				memoryFactory,
-				promptFormatter,
-				config,
-				logger,
-			),
-			promptFormatter,
-			logger,
-			config,
+			aiContext,
+			[]domain.AIFilter{
+				htmlFilter,
+				imageFilter,
+				wikiFilter,
+				responseFilter,
+			},
 		),
 	}
 }
 
 func (a *api) Respond(who string, what string, where string) (string, error) {
-	return a.agent.Respond(who, what, where)
+	return a.aiService.Respond(who, what, where)
 }
 
 func (a *api) RememberAction(who string, what string, where string) error {
-	return a.agent.RememberAction(who, what, where)
+	return a.aiService.RememberAction(who, what, where)
 }
 
-func (a *api) LoadMemory(path, who, where string, when time.Time) error {
-	return a.agent.LoadMemory(path, who, where, when)
+func (a *api) RememberDialog(who string, what string, where string) error {
+	return a.aiService.RememberDialog(who, what, where)
 }
 
 func (a *api) ForgetEverything() error {
-	return a.agent.ForgetEverything()
+	return a.aiService.ForgetEverything()
 }
 
-func (a *api) SetContext(context string) error {
-	return a.agent.SetContext(context)
+func (a *api) ChangeAgentDescription(context string) error {
+	return a.aiService.ChangeAgentDescription(context)
 }

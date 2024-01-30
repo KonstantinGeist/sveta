@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/chzyer/readline"
 
@@ -28,14 +27,10 @@ func mainImpl() error {
 	sveta := api.NewAPI(config)
 	context := config.GetString(api.ConfigKeyContext)
 	if context != "" {
-		err := sveta.SetContext(context)
+		err := sveta.ChangeAgentDescription(context)
 		if err != nil {
 			return err
 		}
-	}
-	err = sveta.LoadMemory("chunks.bin", "Context", roomName, time.Time{})
-	if err != nil {
-		fmt.Println(err)
 	}
 	rl, err := readline.New("> ")
 	if err != nil {

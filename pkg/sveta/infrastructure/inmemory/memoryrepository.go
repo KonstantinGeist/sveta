@@ -3,10 +3,10 @@ package inmemory
 import (
 	"sort"
 
+	"github.com/google/uuid"
+
 	"kgeyst.com/sveta/pkg/common"
 	"kgeyst.com/sveta/pkg/sveta/domain"
-
-	"github.com/google/uuid"
 )
 
 type memoryRepository struct {
@@ -98,7 +98,13 @@ func (r *memoryRepository) FindByEmbedding(filter domain.EmbeddingFilter) ([]*do
 }
 
 func (r *memoryRepository) RemoveAll() error {
-	r.memories = nil
+	var newMems []*domain.Memory
+	for _, mem := range r.memories {
+		if mem.When.IsZero() {
+			newMems = append(newMems, mem)
+		}
+	}
+	r.memories = newMems
 	return nil
 }
 

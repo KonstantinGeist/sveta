@@ -20,13 +20,25 @@ func NewLanguageModelDecorator(wrappedLanguageModel domain.LanguageModel, logger
 	}
 }
 
-func (l *languageModelDecorator) Complete(prompt string) (string, error) {
-	l.logger.Log(fmt.Sprintf("\n================\n raw prompt:\n%s\n================\n\n", prompt))
+func (l *languageModelDecorator) Name() string {
+	return l.wrappedLanguageModel.Name()
+}
+
+func (l *languageModelDecorator) Purpose() domain.LanguageModelPurpose {
+	return l.wrappedLanguageModel.Purpose()
+}
+
+func (l *languageModelDecorator) Complete(prompt string, jsonMode bool) (string, error) {
+	l.logger.Log(fmt.Sprintf("\n================\n raw prompt (using '%s'):\n%s\n================\n\n", l.Name(), prompt))
 	t := time.Now()
-	response, err := l.wrappedLanguageModel.Complete(prompt)
+	response, err := l.wrappedLanguageModel.Complete(prompt, jsonMode)
 	if err != nil {
 		return "", err
 	}
 	l.logger.Log(fmt.Sprintf("\n================\n raw prompt response:\n%s\n (took %d ms)\n================\n", response, time.Now().Sub(t).Milliseconds()))
 	return response, nil
+}
+
+func (l *languageModelDecorator) PromptFormatter() domain.PromptFormatter {
+	return l.wrappedLanguageModel.PromptFormatter()
 }

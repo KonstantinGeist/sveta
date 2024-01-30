@@ -3,12 +3,11 @@ package main
 import (
 	"fmt"
 	"strings"
-	"time"
+
+	"github.com/whyrusleeping/hellabot"
 
 	"kgeyst.com/sveta/pkg/common"
 	"kgeyst.com/sveta/pkg/sveta/api"
-
-	"github.com/whyrusleeping/hellabot"
 )
 
 func main() {
@@ -30,14 +29,10 @@ func mainImpl() error {
 	sveta := api.NewAPI(config)
 	context := config.GetString(api.ConfigKeyContext)
 	if context != "" {
-		err := sveta.SetContext(context)
+		err := sveta.ChangeAgentDescription(context)
 		if err != nil {
 			return err
 		}
-	}
-	err = sveta.LoadMemory("chunks.bin", "Context", roomName, time.Time{})
-	if err != nil {
-		fmt.Println(err)
 	}
 	var trigger = hbot.Trigger{
 		func(b *hbot.Bot, m *hbot.Message) bool {
@@ -77,7 +72,7 @@ func mainImpl() error {
 			}
 			if strings.HasPrefix(what, "context ") {
 				context := what[len("context "):]
-				_ = sveta.SetContext(context)
+				_ = sveta.ChangeAgentDescription(context)
 				return false
 			}
 			response, err := sveta.Respond(strings.TrimSpace(m.From), what, roomName)

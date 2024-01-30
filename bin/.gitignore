@@ -1,5 +1,11 @@
 llama.cpp
-llama2.bin
+llava.cpp
+llama2-roleplay.bin
+mixtral-generic.bin
+solar-generic.bin
+llava.bin
+llava-proj.bin
 log.txt
 main.log
-chunks.bin
+whisper.bin
+whisper.cpp

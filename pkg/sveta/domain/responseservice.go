@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -11,74 +12,92 @@ import (
 
 var ErrFailedToResponse = errors.New("failed to respond")
 
+// ResponseService makes it possible to respond to memories with text, or JSON.
 type ResponseService struct {
-	agentName             string
-	context               string
-	responseLanguageModel LanguageModel
+	aiContext             *AIContext
+	languageModelSelector *LanguageModelSelector
 	embedder              Embedder
 	memoryFactory         MemoryFactory
-	promptFormatter       PromptFormatter
 	logger                common.Logger
 	retryCount            int
 }
 
 func NewResponseService(
-	agentName string,
-	responseLanguageModel LanguageModel,
+	aiContext *AIContext,
+	languageModelSelector *LanguageModelSelector,
 	embedder Embedder,
 	memoryFactory MemoryFactory,
-	promptFormatter PromptFormatter,
 	config *common.Config,
 	logger common.Logger,
 ) *ResponseService {
 	return &ResponseService{
-		agentName:             agentName,
-		responseLanguageModel: responseLanguageModel,
+		aiContext:             aiContext,
+		languageModelSelector: languageModelSelector,
 		embedder:              embedder,
 		memoryFactory:         memoryFactory,
-		promptFormatter:       promptFormatter,
 		logger:                logger,
 		retryCount:            config.GetIntOrDefault(ConfigKeyResponseRetryCount, 3),
 	}
 }
 
-func (r *ResponseService) RespondToMemories(memories []*Memory) (string, error) {
+func (r *ResponseService) RespondToMemoriesWithText(memories []*Memory) (string, error) {
 	if len(memories) == 0 {
 		return "", nil
 	}
 	dialogAndActionMemories := FilterMemoriesByTypes(memories, []MemoryType{MemoryTypeDialog, MemoryTypeAction})
+	languageModel := r.languageModelSelector.Select(memories, false)
+	promptFormatter := languageModel.PromptFormatter()
 	promptEndMemories := r.generatePromptEndMemories()
-	memoriesAsString := r.promptFormatter.FormatDialog(MergeMemories(dialogAndActionMemories, promptEndMemories...))
+	memoriesAsString := promptFormatter.FormatDialog(MergeMemories(dialogAndActionMemories, promptEndMemories...))
 	dialogPrompt := fmt.Sprintf(
-		"%s\n\n%s",
-		r.context,
+		"%s %s.\n\n%s",
+		r.aiContext.AgentDescription,
+		promptFormatter.FormatAnnouncedTime(time.Now()),
 		memoriesAsString,
 	)
-	return r.complete(dialogPrompt, memories, r.responseLanguageModel)
+	return r.complete(dialogPrompt, false, memories, languageModel)
 }
 
-func (r *ResponseService) SetContext(context string) error {
-	r.context = context
-	return nil
+func (r *ResponseService) RespondToQueryWithJSON(query string, obj any) error {
+	jsonQuerySchema, err := json.Marshal(obj)
+	if err != nil {
+		return err
+	}
+	queryMemories := []*Memory{r.memoryFactory.NewMemory(MemoryTypeDialog, "User", query, "")}
+	languageModel := r.languageModelSelector.Select(queryMemories, true)
+	promptFormatter := languageModel.PromptFormatter()
+	promptEndMemories := r.generatePromptEndMemories()
+	memoriesAsString := promptFormatter.FormatDialog(MergeMemories(queryMemories, promptEndMemories...))
+	dialogPrompt := fmt.Sprintf(
+		"%s %s.\n\n%s",
+		r.aiContext.AgentDescription,
+		promptFormatter.FormatJSONRequest(string(jsonQuerySchema)),
+		memoriesAsString,
+	)
+	response, err := r.complete(dialogPrompt, true, queryMemories, languageModel)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal([]byte(response), obj)
 }
 
 func (r *ResponseService) generatePromptEndMemories() []*Memory {
 	return []*Memory{
-		r.memoryFactory.NewMemory(MemoryTypeDialog, r.agentName, "", ""),
+		r.memoryFactory.NewMemory(MemoryTypeDialog, r.aiContext.AgentName, "", ""),
 	}
 }
 
-func (r *ResponseService) complete(prompt string, memories []*Memory, languageModel LanguageModel) (string, error) {
+func (r *ResponseService) complete(prompt string, jsonMode bool, memories []*Memory, languageModel LanguageModel) (string, error) {
 	if len(memories) == 0 {
 		return "", ErrFailedToResponse
 	}
 	for i := 0; i < r.retryCount; i++ {
-		response, err := languageModel.Complete(prompt)
+		response, err := languageModel.Complete(prompt, jsonMode)
 		if err != nil {
 			return "", err
 		}
 		dialogParticipants := r.collectDialogParticipants(memories)
-		cleanResponse := r.cleanResponse(response, dialogParticipants)
+		cleanResponse := r.cleanResponse(languageModel, response, dialogParticipants)
 		// Sometimes, a model can just repeat the user's name.
 		if strings.ToLower(cleanResponse) == strings.ToLower(memories[len(memories)-1].Who) {
 			continue
@@ -91,15 +110,15 @@ func (r *ResponseService) complete(prompt string, memories []*Memory, languageMo
 }
 
 // Sometimes, the model can generate too much (for example, trying to complete other participants' dialogs), so we trim it.
-// TODO move to response cleaner
-func (r *ResponseService) cleanResponse(response string, participants []string) string {
-	agentNamePrefix := getAgentNameWithDelimiter(r.agentName, r.promptFormatter)
+func (r *ResponseService) cleanResponse(languageModel LanguageModel, response string, participants []string) string {
+	promptFormatter := languageModel.PromptFormatter()
+	agentNamePrefix := getAgentNameWithDelimiter(r.aiContext.AgentName, promptFormatter)
 	response = strings.TrimSpace(response)
 	if strings.HasPrefix(response, agentNamePrefix) {
 		response = response[len(agentNamePrefix):]
 	}
 	for _, participant := range participants {
-		participantPrefix := getAgentNameWithDelimiter(participant, r.promptFormatter)
+		participantPrefix := getAgentNameWithDelimiter(participant, promptFormatter)
 		foundIndex := strings.Index(response, participantPrefix)
 		if foundIndex > 0 { // in the middle/at the end, when it wants to keep generating the dialog
 			response = response[0:foundIndex]
@@ -112,7 +131,7 @@ func (r *ResponseService) cleanResponse(response string, participants []string) 
 
 func (r *ResponseService) collectDialogParticipants(memories []*Memory) []string {
 	resultSet := make(map[string]struct{})
-	resultSet[r.agentName] = struct{}{}
+	resultSet[r.aiContext.AgentName] = struct{}{}
 	for _, memory := range memories {
 		if (memory.Type == MemoryTypeDialog || memory.Type == MemoryTypeAction) && memory.Who != "" {
 			resultSet[memory.Who] = struct{}{}

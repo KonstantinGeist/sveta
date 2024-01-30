@@ -35,8 +35,10 @@ const (
 type languageModel struct {
 	mutex                  sync.Mutex
 	logger                 common.Logger
-	modelPath              string
-	inferCommand           string
+	name                   string
+	binPath                string
+	purpose                domain.LanguageModelPurpose
+	promptFormatter        domain.PromptFormatter
 	agentNameWithDelimiter string
 	temperature            float64
 	contextSize            int
@@ -47,12 +49,15 @@ type languageModel struct {
 }
 
 // NewLanguageModel Creates a language model as implemented by llama2.cpp
-// `modelPath` specifies the path to the target model relative to the bin folder (llama2.cpp supports many models: Llama 2, Mistral, etc.)
+// `binPath` specifies the path to the target model relative to the bin folder (llama2.cpp supports many models: Llama 2, Mistral, etc.)
 // `config` contains parameters specific to the current GPU (see the constant above)
-func NewLanguageModel(agentName string, modelPath string, promptFormatter domain.PromptFormatter, config *common.Config) domain.LanguageModel {
+func NewLanguageModel(aiContext *domain.AIContext, modelName, binPath string, purpose domain.LanguageModelPurpose, promptFormatter domain.PromptFormatter, config *common.Config) domain.LanguageModel {
 	return &languageModel{
-		modelPath:              modelPath,
-		agentNameWithDelimiter: getAgentNameWithDelimiter(agentName, promptFormatter),
+		name:                   modelName,
+		binPath:                binPath,
+		purpose:                purpose,
+		promptFormatter:        promptFormatter,
+		agentNameWithDelimiter: getAgentNameWithDelimiter(aiContext, promptFormatter),
 		temperature:            config.GetFloatOrDefault(ConfigKeyLLMTemperature, 0.7),
 		contextSize:            config.GetIntOrDefault(ConfigKeyLLMContextSize, 4096),
 		gpuLayerCount:          config.GetIntOrDefault(ConfigKeyLLMGPULayerCount, 40),
@@ -62,12 +67,20 @@ func NewLanguageModel(agentName string, modelPath string, promptFormatter domain
 	}
 }
 
-func (l *languageModel) Complete(prompt string) (string, error) {
+func (l *languageModel) Name() string {
+	return l.name
+}
+
+func (l *languageModel) Purpose() domain.LanguageModelPurpose {
+	return l.purpose
+}
+
+func (l *languageModel) Complete(prompt string, jsonMode bool) (string, error) {
 	// Only 1 request can be processed at a time currently because we run Sveta on commodity hardware which can't
 	// usually process two requests simultaneously due to low amounts of VRAM.
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
-	command, err := l.buildInferCommand()
+	command, err := l.buildInferCommand(jsonMode)
 	if err != nil {
 		return "", err
 	}
@@ -104,26 +117,30 @@ func (l *languageModel) Complete(prompt string) (string, error) {
 	return strings.TrimSpace(output[len(prompt)+1:]), nil
 }
 
-func (l *languageModel) buildInferCommand() (string, error) {
-	if l.inferCommand != "" {
-		return l.inferCommand, nil
+func (l *languageModel) PromptFormatter() domain.PromptFormatter {
+	return l.promptFormatter
+}
+
+func (l *languageModel) buildInferCommand(jsonMode bool) (string, error) {
+	workingDirectory, err := os.Getwd()
+	if err != nil {
+		return "", err
 	}
-	shellTemplate := "%s/llama.cpp -m %s/"
+	shellTemplate := "%s/llama.cpp"
+	if jsonMode {
+		shellTemplate += fmt.Sprintf(" --grammar-file %s/json.gbnf", workingDirectory)
+	}
+	shellTemplate += " -m %s/"
 	shellTemplate += fmt.Sprintf(
 		"%s -t %d -ngl %d --color -c %d --temp %f --repeat_penalty %f -n -1 -p ",
-		l.modelPath,
+		l.binPath,
 		l.cpuThreadCount,
 		l.gpuLayerCount,
 		l.contextSize,
 		l.temperature,
 		l.repeatPenalty,
 	)
-	workingDirectory, err := os.Getwd()
-	if err != nil {
-		return "", err
-	}
-	l.inferCommand = fmt.Sprintf(shellTemplate, workingDirectory, workingDirectory)
-	return l.inferCommand, nil
+	return fmt.Sprintf(shellTemplate, workingDirectory, workingDirectory), nil
 }
 
 // We hook up to the llama.cpp binary by launching a subprocess and reading its standard output until
@@ -162,8 +179,8 @@ func runInferCommand(cmdstr, prompt string, responseTimeout time.Duration, proce
 	return cmd.Wait()
 }
 
-func getAgentNameWithDelimiter(agentName string, promptFormatter domain.PromptFormatter) string {
-	memories := []*domain.Memory{domain.NewMemory("", domain.MemoryTypeAction, agentName, time.Now(), "", "", nil)}
+func getAgentNameWithDelimiter(aiContext *domain.AIContext, promptFormatter domain.PromptFormatter) string {
+	memories := []*domain.Memory{domain.NewMemory("", domain.MemoryTypeAction, aiContext.AgentName, time.Now(), "", "", nil)}
 	result := strings.TrimSpace(promptFormatter.FormatDialog(memories))
 	return result
 }

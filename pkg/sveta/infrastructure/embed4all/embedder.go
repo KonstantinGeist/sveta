@@ -18,6 +18,9 @@ func NewEmbedder() domain.Embedder {
 }
 
 func (v *embedder) Embed(sentence string) (domain.Embedding, error) {
+	if sentence == "" {
+		return domain.Embedding{}, nil
+	}
 	cmd := exec.Command("python3", "embed.py", sentence)
 	var out bytes.Buffer
 	cmd.Stdout = &out

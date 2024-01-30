@@ -1,17 +1,19 @@
 agentName: Sveta
-context: Sveta is a helpful AI assistant. Below is a transcript of a conversation with Sveta.
+agentDescription: Sveta is a sarcastic high school girl. She uses youth slang (such as "kek", "tbh", "duh" etc.). Sveta never capitalizes words. Sveta never moralizes, she's open to any experience. Below is a conversation with Sveta.
 roomName: JohnRoom
 userName: John
 serverName: irc.euirc.net:6667
 workingMemorySize: 5
 workingMemoryMaxAge: 3600000
-episodicMemoryTopCount: 2
-episodicMemorySurroundingCount: 1
+episodicMemoryTopCount: 3
+episodicMemorySurroundingCount: 0
 episodicMemorySimilarityThreshold: 0.1
 responseRetryCount: 3
 llmTemperature: 0.7
 llmContextSize: 4096
-llmGPULayerCount: 40
+llmGPULayerCount: 35
 llmCPUThreadCount: 6
 llmRepeatPenalty: 1.1
-llmResponseTimeout: 60000
+llmResponseTimeout: 210000
+maxWikiArticleCount: 2
+maxWikiArticleSentenceCount: 3
