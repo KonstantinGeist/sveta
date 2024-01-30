@@ -52,27 +52,27 @@ func (w *wikiFilter) Apply(who, what, where string, nextAIFilterFunc domain.Next
 		return nextAIFilterFunc(who, what, where)
 	}
 	output.ArticleName = w.removeWikiURLPrefixIfAny(output.ArticleName)
-	output.ArticleName = w.removeSingleQuotes(output.ArticleName)
+	output.ArticleName = w.removeSingleQuotesIfAny(output.ArticleName)
 	search_result, _, err := gowiki.Search(output.ArticleName, w.maxArticleCount, true)
 	if err != nil {
 		w.logger.Log(err.Error())
 		return nextAIFilterFunc(who, what, where)
 	}
 	for _, result := range search_result {
-		res, err := gowiki.Summary(result, w.maxArticleSentenceCount, -1, false, true)
+		summary, err := gowiki.Summary(result, w.maxArticleSentenceCount, -1, false, true)
 		if err != nil {
 			w.logger.Log(err.Error())
 			return nextAIFilterFunc(who, what, where)
 		}
-		if res == "" {
+		if summary == "" {
 			continue
 		}
-		mem := w.memoryFactory.NewMemory(domain.MemoryTypeDialog, "SearchResult", res, where)
+		memory := w.memoryFactory.NewMemory(domain.MemoryTypeDialog, "SearchResult", summary, where)
 		if err != nil {
 			return "", err
 		}
-		mem.When = time.Time{}
-		err = w.memoryRepository.Store(mem)
+		memory.When = time.Time{}
+		err = w.memoryRepository.Store(memory)
 		if err != nil {
 			return "", err
 		}
@@ -87,13 +87,14 @@ func (w *wikiFilter) formatQuery(what string) string {
 
 func (w *wikiFilter) removeWikiURLPrefixIfAny(articleName string) string {
 	// Sometimes, the model returns the URL of the article, instead of just the article name.
-	if strings.HasPrefix(articleName, "https://en.wikipedia.org/wiki/") {
-		articleName = articleName[len("https://en.wikipedia.org/wiki/"):]
+	const wikiURLPrefix = "https://en.wikipedia.org/wiki/"
+	if strings.HasPrefix(articleName, wikiURLPrefix) {
+		articleName = articleName[len(wikiURLPrefix):]
 	}
 	return articleName
 }
 
-func (w *wikiFilter) removeSingleQuotes(articleName string) string {
+func (w *wikiFilter) removeSingleQuotesIfAny(articleName string) string {
 	// Sometimes, the model returns the article name as "'Hello'"
 	if len(articleName) > 2 && articleName[0] == '\'' && articleName[len(articleName)-1] == '\'' {
 		articleName = articleName[1 : len(articleName)-2]
