@@ -2,23 +2,21 @@ package aifilters
 
 import (
 	"fmt"
-	"io"
-	"net/http"
 	"os"
-	"os/exec"
 	"strings"
 
 	"github.com/mvdan/xurls"
 
 	"kgeyst.com/sveta/pkg/common"
 	"kgeyst.com/sveta/pkg/sveta/domain"
+	"kgeyst.com/sveta/pkg/sveta/infrastructure/llavacpp"
 )
-
-// TODO
 
 // TODO internationalize
 const couldntLoadImageFormatMessage = "%s Description: \"no description because the URL failed to load\""
 const imageDescriptionFormatMessage = "%s\nThe description of the picture says: \"%s\"\n%s"
+
+const tempImagePath = "tmp.jpg"
 
 type imageFilter struct {
 	logger common.Logger
@@ -30,62 +28,33 @@ func NewImageFilter(logger common.Logger) domain.AIFilter {
 	}
 }
 
-type saveOutput struct {
-	savedOutput []byte
-}
-
-func (so *saveOutput) Write(p []byte) (n int, err error) {
-	so.savedOutput = append(so.savedOutput, p...)
-	return os.Stdout.Write(p)
-}
-
 func (i *imageFilter) Apply(who, what, where string, nextAIFilterFunc domain.NextAIFilterFunc) (string, error) {
 	urls := xurls.Relaxed.FindAllString(what, -1)
-	whatWithout := what
-	url := "tmp.jpg"
+	whatWithoutURL := what
+	url := tempImagePath
 	if len(urls) != 0 {
 		url = urls[0] // let's do it with only one image so far
 		if !common.IsImageFormat(url) {
 			return nextAIFilterFunc(who, what, where)
 		}
-		resp, err := http.Get(url)
+		err := common.DownloadFromURL(url, tempImagePath)
 		if err != nil {
 			i.logger.Log(err.Error())
 			return nextAIFilterFunc(who, fmt.Sprintf(couldntLoadImageFormatMessage, what), where)
 		}
-		defer func() {
-			_ = resp.Body.Close()
-		}()
-		out, err := os.Create("tmp.jpg")
-		if err != nil {
-			i.logger.Log(err.Error())
-			return nextAIFilterFunc(who, fmt.Sprintf(couldntLoadImageFormatMessage, what), where)
-		}
-		defer out.Close()
-		_, err = io.Copy(out, resp.Body)
-		if err != nil {
-			i.logger.Log(err.Error())
-			return nextAIFilterFunc(who, fmt.Sprintf(couldntLoadImageFormatMessage, what), where)
-		}
-		whatWithout = strings.TrimSpace(strings.ReplaceAll(what, url, ""))
+		whatWithoutURL = i.removeURL(what, url)
 	}
-	if _, err := os.Stat("tmp.jpg"); err != nil {
+	if _, err := os.Stat(tempImagePath); err != nil {
 		return nextAIFilterFunc(who, what, where)
 	}
-	cmd := exec.Command("/home/konstantin/projects/sveta/bin/llava.cpp", "-m", "/home/konstantin/projects/sveta/bin/llava.bin", "--mmproj", "/home/konstantin/projects/sveta/bin/llava-proj.bin", "--image", "/home/konstantin/projects/sveta/bin/tmp.jpg", "--temp", "0.1", "-p", whatWithout)
-	var so saveOutput
-	cmd.Stdout = &so
-	cmd.Stderr = os.Stderr
-	err := cmd.Run()
+	response, err := llavacpp.Run(tempImagePath, what)
 	if err != nil {
 		i.logger.Log(err.Error())
 		return nextAIFilterFunc(who, fmt.Sprintf(couldntLoadImageFormatMessage, what), where)
 	}
-	description := string(so.savedOutput)
-	hackIndex := strings.Index(description, "per image patch)") // TODO
-	if hackIndex != -1 {
-		description = description[hackIndex+len("per image patch)"):]
-	}
-	description = strings.TrimSpace(description)
-	return nextAIFilterFunc(who, fmt.Sprintf(imageDescriptionFormatMessage, url, description, whatWithout), where)
+	return nextAIFilterFunc(who, fmt.Sprintf(imageDescriptionFormatMessage, url, response, whatWithoutURL), where)
+}
+
+func (i *imageFilter) removeURL(what, url string) string {
+	return strings.TrimSpace(strings.ReplaceAll(what, url, ""))
 }
