@@ -1,22 +1,21 @@
-package http
+package common
 
 import (
 	"io"
 	"net/http"
 )
 
-// TODO move to pkg/common
-func ReadAllFromURL(url string) (string, error) {
+func ReadAllFromURL(url string) ([]byte, error) {
 	res, err := http.Get(url)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	content, err := io.ReadAll(res.Body)
 	defer func() {
 		_ = res.Body.Close()
 	}()
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	return string(content), nil
+	return content, nil
 }

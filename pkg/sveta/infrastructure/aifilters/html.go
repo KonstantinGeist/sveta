@@ -4,12 +4,11 @@ import (
 	"fmt"
 	"strings"
 
-	"kgeyst.com/sveta/pkg/common"
-	"kgeyst.com/sveta/pkg/sveta/domain"
-	"kgeyst.com/sveta/pkg/sveta/infrastructure/http"
-
 	"github.com/PuerkitoBio/goquery"
 	"github.com/mvdan/xurls"
+
+	"kgeyst.com/sveta/pkg/common"
+	"kgeyst.com/sveta/pkg/sveta/domain"
 )
 
 // TODO internationalize
@@ -36,12 +35,12 @@ func (h *HTMLFilter) Apply(who, what, where string, nextAIFilterFunc domain.Next
 	if strings.HasSuffix(url, ".jpg") || strings.HasSuffix(url, ".jpeg") || strings.HasSuffix(url, ".png") {
 		return nextAIFilterFunc(who, what, where)
 	}
-	page, err := http.ReadAllFromURL(url)
+	page, err := common.ReadAllFromURL(url)
 	if err != nil {
 		h.logger.Log(err.Error())
 		return nextAIFilterFunc(who, fmt.Sprintf(couldntLoadURLFormatMessage, what), where)
 	}
-	reader, err := goquery.NewDocumentFromReader(strings.NewReader(page))
+	reader, err := goquery.NewDocumentFromReader(strings.NewReader(string(page)))
 	if err != nil {
 		h.logger.Log(err.Error())
 		return nextAIFilterFunc(who, fmt.Sprintf(couldntLoadURLFormatMessage, what), where)

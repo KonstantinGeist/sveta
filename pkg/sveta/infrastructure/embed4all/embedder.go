@@ -29,7 +29,7 @@ func (v *embedder) Embed(sentence string) (domain.Embedding, error) {
 		return domain.Embedding{}, nil
 	}
 	result := out.String()
-	const garbage = "bert_load_from_file: bert tokenizer vocab = 30522\n" // GPT4all outputs garbage so we want to strip it
+	const garbage = "bert_load_from_file: bert tokenizer vocab = 30522\n" // GPT4all outputs garbage so we want to strip it TODO
 	index := strings.Index(result, garbage)
 	if index != -1 {
 		result = result[index+len(garbage):]
