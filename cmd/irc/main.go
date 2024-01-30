@@ -27,7 +27,7 @@ func mainImpl() error {
 	serverName := config.GetStringOrDefault("serverName", "irc.euirc.net:6667")
 	lowerAgentName := strings.ToLower(agentName)
 	sveta := api.NewAPI(config)
-	context := config.GetString(api.ConfigKeyContext)
+	context := config.GetString(api.ConfigKeyAgentDescription)
 	if context != "" {
 		err := sveta.ChangeAgentDescription(context)
 		if err != nil {
@@ -67,7 +67,7 @@ func mainImpl() error {
 				what = what[1:]
 			}
 			if what == "forget everything" {
-				_ = sveta.ForgetEverything()
+				_ = sveta.ClearAllMemory()
 				return false
 			}
 			if strings.HasPrefix(what, "context ") {

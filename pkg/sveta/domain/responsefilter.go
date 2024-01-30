@@ -45,7 +45,7 @@ func NewResponseFilter(
 	}
 }
 
-func (r *responseFilter) Apply(who, what, where string, nextFilterFunc NextFilterFunc) (string, error) {
+func (r *responseFilter) Apply(who, what, where string, nextAIFilterFunc NextAIFilterFunc) (string, error) {
 	err := r.memoryRepository.Store(r.memoryFactory.NewMemory(MemoryTypeDialog, who, what, where))
 	if err != nil {
 		return "", err
@@ -67,7 +67,7 @@ func (r *responseFilter) Apply(who, what, where string, nextFilterFunc NextFilte
 	if err != nil {
 		return "", err
 	}
-	return nextFilterFunc(r.aiContext.AgentName, response, where)
+	return nextAIFilterFunc(r.aiContext.AgentName, response, where)
 }
 
 // recallFromWorkingMemory finds memories from the so-called "working memory" -- it's simply N latest memories (depends on

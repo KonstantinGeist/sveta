@@ -40,6 +40,7 @@ func NewResponseService(
 	}
 }
 
+// RespondToMemoriesWithText responds to the given list of memories as a large language model.
 func (r *ResponseService) RespondToMemoriesWithText(memories []*Memory) (string, error) {
 	if len(memories) == 0 {
 		return "", nil
@@ -58,8 +59,9 @@ func (r *ResponseService) RespondToMemoriesWithText(memories []*Memory) (string,
 	return r.complete(dialogPrompt, false, memories, languageModel)
 }
 
-func (r *ResponseService) RespondToQueryWithJSON(query string, obj any) error {
-	jsonQuerySchema, err := json.Marshal(obj)
+// RespondToQueryWithJSON responds to the given query in the JSON format and automatically fills `obj`'s property.
+func (r *ResponseService) RespondToQueryWithJSON(query string, jsonObject any) error {
+	jsonQuerySchema, err := json.Marshal(jsonObject)
 	if err != nil {
 		return err
 	}
@@ -78,15 +80,18 @@ func (r *ResponseService) RespondToQueryWithJSON(query string, obj any) error {
 	if err != nil {
 		return err
 	}
-	return json.Unmarshal([]byte(response), obj)
+	return json.Unmarshal([]byte(response), jsonObject)
 }
 
+// generatePromptEndMemories creates a hanging "Sveta:" and the like, to make the completion engine produce the expected answer
+// on the AI agent's behalf.
 func (r *ResponseService) generatePromptEndMemories() []*Memory {
 	return []*Memory{
 		r.memoryFactory.NewMemory(MemoryTypeDialog, r.aiContext.AgentName, "", ""),
 	}
 }
 
+// For both RespondToMemoriesWithText(..) and RespondToQueryWithJSON(..)
 func (r *ResponseService) complete(prompt string, jsonMode bool, memories []*Memory, languageModel LanguageModel) (string, error) {
 	if len(memories) == 0 {
 		return "", ErrFailedToResponse
@@ -129,6 +134,7 @@ func (r *ResponseService) cleanResponse(languageModel LanguageModel, response st
 	return strings.TrimSpace(response)
 }
 
+// For cleanResponse(..)
 func (r *ResponseService) collectDialogParticipants(memories []*Memory) []string {
 	resultSet := make(map[string]struct{})
 	resultSet[r.aiContext.AgentName] = struct{}{}
@@ -144,6 +150,7 @@ func (r *ResponseService) collectDialogParticipants(memories []*Memory) []string
 	return participants
 }
 
+// For cleanResponse(..)
 func getAgentNameWithDelimiter(agentName string, promptFormatter PromptFormatter) string {
 	memories := []*Memory{NewMemory("", MemoryTypeAction, agentName, time.Now(), "", "", nil)}
 	result := strings.TrimSpace(promptFormatter.FormatDialog(memories))

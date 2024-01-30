@@ -25,7 +25,7 @@ func mainImpl() error {
 	userName := config.GetStringOrDefault("userName", "John")
 	roomName := config.GetStringOrDefault("roomName", "JohnRoom")
 	sveta := api.NewAPI(config)
-	context := config.GetString(api.ConfigKeyContext)
+	context := config.GetString(api.ConfigKeyAgentDescription)
 	if context != "" {
 		err := sveta.ChangeAgentDescription(context)
 		if err != nil {

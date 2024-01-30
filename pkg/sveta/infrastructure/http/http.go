@@ -5,6 +5,7 @@ import (
 	"net/http"
 )
 
+// TODO move to pkg/common
 func ReadAllFromURL(url string) (string, error) {
 	res, err := http.Get(url)
 	if err != nil {

@@ -1,5 +1,6 @@
 package domain
 
+// LanguageModelSelector makes sure the right language model is chosen for a given scenario.
 type LanguageModelSelector struct {
 	allLanguageModels       []LanguageModel
 	jsonLanguageModels      []LanguageModel
@@ -21,6 +22,7 @@ func NewLanguageModelSelector(languageModels []LanguageModel) *LanguageModelSele
 	}
 }
 
+// Select given a list of memories and the parameter `jsonMode`, finds the language model most suitable for the task.
 // TODO not thread-safe
 func (l *LanguageModelSelector) Select(_ []*Memory, jsonMode bool) LanguageModel {
 	if jsonMode {

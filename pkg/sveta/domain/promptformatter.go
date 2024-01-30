@@ -5,10 +5,10 @@ import "time"
 type PromptFormatter interface {
 	// FormatDialog formats the given memory into a prompt which is best suited for the underlying LLM (large language model).
 	// Example:
-	// 		### Sveta:
-	//      Hello
-	//      ### John:
-	//      Hello, too!
+	//		### Sveta:
+	//		Hello
+	//		### John:
+	//		Hello, too!
 	FormatDialog(memories []*Memory) string
 
 	// FormatAnnouncedTime formats the given time into a natural language string which announces the current time in

@@ -17,9 +17,9 @@ type api struct {
 
 // See domain/config.go
 const (
-	ConfigKeyAgentName = domain.ConfigKeyAgentName
-	ConfigKeyContext   = domain.ConfigKeyAgentDescription
-	ConfigKeyLogPath   = domain.ConfigKeyLogPath
+	ConfigKeyAgentName        = domain.ConfigKeyAgentName
+	ConfigKeyAgentDescription = domain.ConfigKeyAgentDescription
+	ConfigKeyLogPath          = domain.ConfigKeyLogPath
 )
 
 // API is the entrypoint to Sveta. It shouldn't contain any logic of its own; it glues all the components together
@@ -33,10 +33,12 @@ type API interface {
 	// RememberAction remembers a certain action (not a reply) in the chat: for example, that a certain user entered the chat.
 	// The AI can use this information for enriching the context of the dialog.
 	RememberAction(who string, what string, where string) error
+	// RememberDialog remembers a certain utterance in the chat. The AI can use this information for enriching the context
+	// of the dialog without directly responding to it (as is usual with Respond(..)
 	RememberDialog(who string, what string, where string) error
-	// ForgetEverything makes the AI forget all current context across all rooms. Useful for debugging.
+	// ClearAllMemory makes the AI forget all current context across all rooms. Useful for debugging.
 	// Note that it removes all memory loaded previously with LoadMemory.
-	ForgetEverything() error
+	ClearAllMemory() error
 	// ChangeAgentDescription resets the context ("system prompt") of the AI. Useful for debugging.
 	ChangeAgentDescription(context string) error
 }
@@ -104,8 +106,8 @@ func (a *api) RememberDialog(who string, what string, where string) error {
 	return a.aiService.RememberDialog(who, what, where)
 }
 
-func (a *api) ForgetEverything() error {
-	return a.aiService.ForgetEverything()
+func (a *api) ClearAllMemory() error {
+	return a.aiService.ClearAllMemory()
 }
 
 func (a *api) ChangeAgentDescription(context string) error {

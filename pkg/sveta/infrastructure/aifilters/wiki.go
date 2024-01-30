@@ -37,7 +37,7 @@ func NewWikiFilter(
 	}
 }
 
-func (w *wikiFilter) Apply(who, what, where string, nextFilterFunc domain.NextFilterFunc) (string, error) {
+func (w *wikiFilter) Apply(who, what, where string, nextAIFilterFunc domain.NextAIFilterFunc) (string, error) {
 	var output struct {
 		Reasoning   string `json:"reasoning"`
 		ArticleName string `json:"articleName"`
@@ -45,24 +45,24 @@ func (w *wikiFilter) Apply(who, what, where string, nextFilterFunc domain.NextFi
 	err := w.responseService.RespondToQueryWithJSON(w.formatQuery(what), &output)
 	if err != nil {
 		w.logger.Log(err.Error())
-		return nextFilterFunc(who, what, where)
+		return nextAIFilterFunc(who, what, where)
 	}
 	if output.ArticleName == "" {
 		w.logger.Log("article name not found")
-		return nextFilterFunc(who, what, where)
+		return nextAIFilterFunc(who, what, where)
 	}
 	output.ArticleName = w.removeWikiURLPrefixIfAny(output.ArticleName)
 	output.ArticleName = w.removeSingleQuotes(output.ArticleName)
 	search_result, _, err := gowiki.Search(output.ArticleName, w.maxWikiArticleCount, true)
 	if err != nil {
 		w.logger.Log(err.Error())
-		return nextFilterFunc(who, what, where)
+		return nextAIFilterFunc(who, what, where)
 	}
 	for _, result := range search_result {
 		res, err := gowiki.Summary(result, w.maxWikiArticleSentenceCount, -1, false, true)
 		if err != nil {
 			w.logger.Log(err.Error())
-			return nextFilterFunc(who, what, where)
+			return nextAIFilterFunc(who, what, where)
 		}
 		if res == "" {
 			continue
@@ -77,7 +77,7 @@ func (w *wikiFilter) Apply(who, what, where string, nextFilterFunc domain.NextFi
 			return "", err
 		}
 	}
-	return nextFilterFunc(who, what, where)
+	return nextAIFilterFunc(who, what, where)
 }
 
 func (w *wikiFilter) formatQuery(what string) string {

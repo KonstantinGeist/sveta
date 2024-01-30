@@ -26,25 +26,25 @@ func NewHTMLFilter(logger common.Logger) domain.AIFilter {
 	}
 }
 
-func (h *HTMLFilter) Apply(who, what, where string, nextFilterFunc domain.NextFilterFunc) (string, error) {
+func (h *HTMLFilter) Apply(who, what, where string, nextAIFilterFunc domain.NextAIFilterFunc) (string, error) {
 	urls := xurls.Relaxed.FindAllString(what, -1)
 	if len(urls) == 0 {
-		return nextFilterFunc(who, what, where)
+		return nextAIFilterFunc(who, what, where)
 	}
 	url := urls[0] // let's do it with only one URL so far
 	// TODO
-	if strings.HasSuffix(url, ".jpg") || !strings.HasSuffix(url, ".jpeg") || strings.HasSuffix(url, ".png") {
-		return nextFilterFunc(who, what, where)
+	if strings.HasSuffix(url, ".jpg") || strings.HasSuffix(url, ".jpeg") || strings.HasSuffix(url, ".png") {
+		return nextAIFilterFunc(who, what, where)
 	}
 	page, err := http.ReadAllFromURL(url)
 	if err != nil {
 		h.logger.Log(err.Error())
-		return nextFilterFunc(who, fmt.Sprintf(couldntLoadURLFormatMessage, what), where)
+		return nextAIFilterFunc(who, fmt.Sprintf(couldntLoadURLFormatMessage, what), where)
 	}
 	reader, err := goquery.NewDocumentFromReader(strings.NewReader(page))
 	if err != nil {
 		h.logger.Log(err.Error())
-		return nextFilterFunc(who, fmt.Sprintf(couldntLoadURLFormatMessage, what), where)
+		return nextAIFilterFunc(who, fmt.Sprintf(couldntLoadURLFormatMessage, what), where)
 	}
 	plain := reader.Find("title").Text()
 	found := reader.Find("p").Map(func(i int, selection *goquery.Selection) string {
@@ -58,7 +58,7 @@ func (h *HTMLFilter) Apply(who, what, where string, nextFilterFunc domain.NextFi
 	plain = strings.ReplaceAll(plain, "\r", "")
 	plain = strings.TrimSpace(plain)
 	if plain == "" {
-		return nextFilterFunc(who, fmt.Sprintf(couldntLoadURLFormatMessage, what), where)
+		return nextAIFilterFunc(who, fmt.Sprintf(couldntLoadURLFormatMessage, what), where)
 	}
-	return nextFilterFunc(who, fmt.Sprintf(urlDescriptionFormatMessage, what, plain), where)
+	return nextAIFilterFunc(who, fmt.Sprintf(urlDescriptionFormatMessage, what, plain), where)
 }
