@@ -48,8 +48,8 @@ type languageModel struct {
 	responseTimeout        time.Duration
 }
 
-// NewLanguageModel Creates a language model as implemented by llama2.cpp
-// `binPath` specifies the path to the target model relative to the bin folder (llama2.cpp supports many models: Llama 2, Mistral, etc.)
+// NewLanguageModel Creates a language model as implemented by llama.cpp
+// `binPath` specifies the path to the target model relative to the bin folder (llama.cpp supports many models: Llama 2, Mistral, etc.)
 // `config` contains parameters specific to the current GPU (see the constant above)
 func NewLanguageModel(aiContext *domain.AIContext, modelName, binPath string, purpose domain.LanguageModelPurpose, promptFormatter domain.PromptFormatter, config *common.Config) domain.LanguageModel {
 	return &languageModel{
@@ -126,12 +126,12 @@ func (l *languageModel) buildInferCommand(jsonMode bool) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	shellTemplate := "%s/llama.cpp"
+	result := fmt.Sprintf("%s/llama.cpp", workingDirectory)
 	if jsonMode {
-		shellTemplate += fmt.Sprintf(" --grammar-file %s/json.gbnf", workingDirectory)
+		result += fmt.Sprintf(" --grammar-file %s/json.gbnf", workingDirectory)
 	}
-	shellTemplate += " -m %s/"
-	shellTemplate += fmt.Sprintf(
+	result += fmt.Sprintf(" -m %s/", workingDirectory)
+	result += fmt.Sprintf(
 		"%s -t %d -ngl %d --color -c %d --temp %f --repeat_penalty %f -n -1 -p ",
 		l.binPath,
 		l.cpuThreadCount,
@@ -140,14 +140,14 @@ func (l *languageModel) buildInferCommand(jsonMode bool) (string, error) {
 		l.temperature,
 		l.repeatPenalty,
 	)
-	return fmt.Sprintf(shellTemplate, workingDirectory, workingDirectory), nil
+	return result, nil
 }
 
 // We hook up to the llama.cpp binary by launching a subprocess and reading its standard output until
 // processLineFunc(..) signals it should stop with false as the returned value.
 // Launching it as a new subprocess for each run has the following benefits:
 // - full isolation (for privacy)
-// - fault-tolerance: crashes in llama.cpp do not crash Sveta altogether
+// - fault-tolerance: crashes in llama.cpp (out of memory, segfaults, etc.) do not crash the AI agent altogether
 func runInferCommand(cmdstr, prompt string, responseTimeout time.Duration, processLineFunc func(s string) bool) error {
 	args := strings.Fields(cmdstr)
 	args = append(args, prompt)
