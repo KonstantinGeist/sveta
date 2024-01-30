@@ -45,7 +45,7 @@ func (i *imageFilter) Apply(who, what, where string, nextAIFilterFunc domain.Nex
 	url := "tmp.jpg"
 	if len(urls) != 0 {
 		url = urls[0] // let's do it with only one image so far
-		if !strings.HasSuffix(url, ".jpg") && !strings.HasSuffix(url, ".jpeg") && !strings.HasSuffix(url, ".png") {
+		if !common.IsImageFormat(url) {
 			return nextAIFilterFunc(who, what, where)
 		}
 		resp, err := http.Get(url)

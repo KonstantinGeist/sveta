@@ -14,5 +14,6 @@ llmGPULayerCount: 35
 llmCPUThreadCount: 6
 llmRepeatPenalty: 1.1
 llmResponseTimeout: 210000
-maxWikiArticleCount: 2
-maxWikiArticleSentenceCount: 3
+wikiMaxArticleCount: 2
+wikiMaxArticleSentenceCount: 3
+htmlMaxPageContentSize: 1000

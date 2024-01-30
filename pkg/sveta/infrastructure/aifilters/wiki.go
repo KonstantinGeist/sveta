@@ -12,12 +12,12 @@ import (
 )
 
 type wikiFilter struct {
-	responseService             *domain.ResponseService
-	memoryFactory               domain.MemoryFactory
-	memoryRepository            domain.MemoryRepository
-	logger                      common.Logger
-	maxWikiArticleCount         int
-	maxWikiArticleSentenceCount int
+	responseService         *domain.ResponseService
+	memoryFactory           domain.MemoryFactory
+	memoryRepository        domain.MemoryRepository
+	logger                  common.Logger
+	maxArticleCount         int
+	maxArticleSentenceCount int
 }
 
 func NewWikiFilter(
@@ -28,12 +28,12 @@ func NewWikiFilter(
 	config *common.Config,
 ) domain.AIFilter {
 	return &wikiFilter{
-		responseService:             responseService,
-		memoryFactory:               memoryFactory,
-		memoryRepository:            memoryRepository,
-		logger:                      logger,
-		maxWikiArticleCount:         config.GetIntOrDefault("maxWikiArticleCount", 2),
-		maxWikiArticleSentenceCount: config.GetIntOrDefault("maxWikiArticleSentenceCount", 2),
+		responseService:         responseService,
+		memoryFactory:           memoryFactory,
+		memoryRepository:        memoryRepository,
+		logger:                  logger,
+		maxArticleCount:         config.GetIntOrDefault("wikiMaxArticleCount", 2),
+		maxArticleSentenceCount: config.GetIntOrDefault("wikiMaxArticleSentenceCount", 3),
 	}
 }
 
@@ -53,13 +53,13 @@ func (w *wikiFilter) Apply(who, what, where string, nextAIFilterFunc domain.Next
 	}
 	output.ArticleName = w.removeWikiURLPrefixIfAny(output.ArticleName)
 	output.ArticleName = w.removeSingleQuotes(output.ArticleName)
-	search_result, _, err := gowiki.Search(output.ArticleName, w.maxWikiArticleCount, true)
+	search_result, _, err := gowiki.Search(output.ArticleName, w.maxArticleCount, true)
 	if err != nil {
 		w.logger.Log(err.Error())
 		return nextAIFilterFunc(who, what, where)
 	}
 	for _, result := range search_result {
-		res, err := gowiki.Summary(result, w.maxWikiArticleSentenceCount, -1, false, true)
+		res, err := gowiki.Summary(result, w.maxArticleSentenceCount, -1, false, true)
 		if err != nil {
 			w.logger.Log(err.Error())
 			return nextAIFilterFunc(who, what, where)

@@ -5,6 +5,8 @@ import (
 	"net/http"
 )
 
+// ReadAllFromURL reads all content from the URL.
+// TODO Unsafe if the URL is a dynamic page which infinitely streams output -- we can crash with an OOM in that case.
 func ReadAllFromURL(url string) ([]byte, error) {
 	res, err := http.Get(url)
 	if err != nil {
