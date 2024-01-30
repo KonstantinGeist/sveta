@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	gowiki "github.com/trietmn/go-wiki"
 
@@ -18,6 +19,7 @@ type wikiFilter struct {
 	logger                  common.Logger
 	maxArticleCount         int
 	maxArticleSentenceCount int
+	messageSizeThreshold    int
 }
 
 func NewWikiFilter(
@@ -34,10 +36,14 @@ func NewWikiFilter(
 		logger:                  logger,
 		maxArticleCount:         config.GetIntOrDefault("wikiMaxArticleCount", 2),
 		maxArticleSentenceCount: config.GetIntOrDefault("wikiMaxArticleSentenceCount", 3),
+		messageSizeThreshold:    config.GetIntOrDefault("wikiMessageSizeThreshold", 8),
 	}
 }
 
 func (w *wikiFilter) Apply(who, what, where string, nextAIFilterFunc domain.NextAIFilterFunc) (string, error) {
+	if utf8.RuneCountInString(what) < w.messageSizeThreshold {
+		return nextAIFilterFunc(who, what, where)
+	}
 	var output struct {
 		Reasoning   string `json:"reasoning"`
 		ArticleName string `json:"articleName"`

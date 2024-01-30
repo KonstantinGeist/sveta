@@ -16,4 +16,5 @@ llmRepeatPenalty: 1.1
 llmResponseTimeout: 210000
 wikiMaxArticleCount: 2
 wikiMaxArticleSentenceCount: 3
+wikiMessageSizeThreshold: 8
 htmlMaxPageContentSize: 1000
