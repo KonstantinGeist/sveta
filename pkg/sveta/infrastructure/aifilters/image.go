@@ -14,8 +14,9 @@ import (
 
 // TODO internationalize
 const couldntLoadImageFormatMessage = "%s Description: \"no description because the URL failed to load\""
-const imageDescriptionFormatMessage = "%s\nThe description of the picture says: \"%s\"\n%s"
+const imageDescriptionFormatMessage = "%s\nThe description of the picture says: \"%s\"\n%s (When answering stay in character!)"
 
+// TODO not thread safe
 const tempImagePath = "tmp.jpg"
 
 type imageFilter struct {

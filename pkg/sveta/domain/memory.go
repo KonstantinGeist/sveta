@@ -35,7 +35,7 @@ type MemoryFilter struct {
 type EmbeddingFilter struct {
 	Types               []MemoryType
 	Where               string
-	Embedding           Embedding
+	Embeddings          []Embedding
 	TopCount            int
 	SurroundingCount    int
 	ExcludedIDs         []string
@@ -46,7 +46,7 @@ type MemoryRepository interface {
 	NextID() string // should be time-sortable
 	Store(memory *Memory) error
 	Find(filter MemoryFilter) ([]*Memory, error)
-	FindByEmbedding(filter EmbeddingFilter) ([]*Memory, error)
+	FindByEmbeddings(filter EmbeddingFilter) ([]*Memory, error)
 	RemoveAll() error
 }
 

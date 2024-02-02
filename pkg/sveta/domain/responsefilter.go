@@ -2,6 +2,7 @@ package domain
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"kgeyst.com/sveta/pkg/common"
@@ -89,16 +90,13 @@ func (r *responseFilter) recallFromEpisodicMemory(workingMemories []*Memory) ([]
 		return nil, nil
 	}
 	latestMemory := workingMemories[len(workingMemories)-1] // let's recall based on the latest memory
-	if latestMemory.Embedding == nil {                      // not all memories may have embeddings
-		return nil, nil
+	embeddingsToSearch := r.getHypotheticalEmbeddings(latestMemory.What)
+	if latestMemory.Embedding != nil {
+		embeddingsToSearch = append(embeddingsToSearch, *latestMemory.Embedding)
 	}
-	summary := r.summarize(latestMemory.What)
-	if summary != "" {
-		latestMemory = r.memoryFactory.NewMemory(MemoryTypeDialog, "", summary, "")
-	}
-	episodicMemories, err := r.memoryRepository.FindByEmbedding(EmbeddingFilter{
+	episodicMemories, err := r.memoryRepository.FindByEmbeddings(EmbeddingFilter{
 		Where:               latestMemory.Where,
-		Embedding:           *latestMemory.Embedding,
+		Embeddings:          embeddingsToSearch,
 		TopCount:            r.episodicMemoryTopCount,
 		SurroundingCount:    r.episodicMemorySurroundingCount,
 		ExcludedIDs:         GetMemoryIDs(workingMemories), // don't recall what's already in the input
@@ -115,16 +113,42 @@ func (r *responseFilter) recallFromEpisodicMemory(workingMemories []*Memory) ([]
 	return episodicMemories, nil
 }
 
-func (r *responseFilter) summarize(what string) string {
+// getHypotheticalEmbeddings an implementation of Hypothetical Document Embeddings (HyDE)
+func (r *responseFilter) getHypotheticalEmbeddings(what string) []Embedding {
+	if !strings.Contains(what, "?") { // not a question
+		memory := r.memoryFactory.NewMemory(MemoryTypeDialog, "", what, "")
+		if memory.Embedding != nil {
+			return []Embedding{*memory.Embedding}
+		}
+		return nil
+	}
 	var output struct {
-		Reasoning string `json:"reasoning"`
-		Summary   string `json:"summary"`
+		Response1 string `json:"response1"`
+		Response2 string `json:"response2"`
+		Response3 string `json:"response3"`
 	}
 	// TODO internationalize
-	err := r.responseService.RespondToQueryWithJSON("Summarize the following query as a very short sentence: \""+what+"\"", &output)
+	err := r.responseService.RespondToQueryWithJSON("Imagine 3 possible responses to the following user query as if you knew the answer: \""+what+"\"", &output)
 	if err != nil {
-		r.logger.Log("failed to summarize")
-		return ""
+		r.logger.Log("failed to get hypothetical answers")
+		return nil
 	}
-	return output.Summary
+	var hypotheticalResponses []string
+	if output.Response1 != "" {
+		hypotheticalResponses = append(hypotheticalResponses, output.Response1)
+	}
+	if output.Response2 != "" {
+		hypotheticalResponses = append(hypotheticalResponses, output.Response2)
+	}
+	if output.Response3 != "" {
+		hypotheticalResponses = append(hypotheticalResponses, output.Response3)
+	}
+	var hypotheticalEmbeddings []Embedding
+	for _, response := range hypotheticalResponses {
+		memory := r.memoryFactory.NewMemory(MemoryTypeDialog, "", response, "")
+		if memory.Embedding != nil {
+			hypotheticalEmbeddings = append(hypotheticalEmbeddings, *memory.Embedding)
+		}
+	}
+	return hypotheticalEmbeddings
 }

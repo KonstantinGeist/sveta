@@ -50,7 +50,7 @@ func (r *memoryRepository) Find(filter domain.MemoryFilter) ([]*domain.Memory, e
 	return result, nil
 }
 
-func (r *memoryRepository) FindByEmbedding(filter domain.EmbeddingFilter) ([]*domain.Memory, error) {
+func (r *memoryRepository) FindByEmbeddings(filter domain.EmbeddingFilter) ([]*domain.Memory, error) {
 	var similarities []struct {
 		Memory     *domain.Memory
 		Index      int
@@ -63,7 +63,7 @@ func (r *memoryRepository) FindByEmbedding(filter domain.EmbeddingFilter) ([]*do
 		if memory.Embedding == nil {
 			continue
 		}
-		similarity := memory.Embedding.GetSimilarityTo(filter.Embedding)
+		similarity := memory.Embedding.GetBestSimilarityTo(filter.Embeddings)
 		if similarity < filter.SimilarityThreshold { // ignore sentences which are too different
 			continue
 		}

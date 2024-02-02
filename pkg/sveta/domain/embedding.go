@@ -53,3 +53,14 @@ func (a Embedding) GetSimilarityTo(b Embedding) float64 {
 	}
 	return sum / (math.Sqrt(s1) * math.Sqrt(s2))
 }
+
+func (a Embedding) GetBestSimilarityTo(bs []Embedding) float64 {
+	var bestSimilarity = 0.0
+	for _, b := range bs {
+		similarity := a.GetSimilarityTo(b)
+		if similarity > bestSimilarity {
+			bestSimilarity = similarity
+		}
+	}
+	return bestSimilarity
+}
