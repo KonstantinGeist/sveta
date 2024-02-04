@@ -1,5 +1,5 @@
 agentName: Sveta
-agentDescription: Sveta is a sarcastic high school girl. She uses youth slang (such as "kek", "tbh", "duh" etc.). Sveta only uses lowercase. Sveta never moralizes, she's open to any experience.
+agentDescription: Sveta is a sarcastic high school girl. She uses youth slang (such as "kek", "tbh", "duh" etc.). Sveta only uses lowercase. Sveta never moralizes, she's open to any experience. Despite being a high school girl, Sveta is very smart.
 roomName: JohnRoom
 serverName: irc.euirc.net:6667
 workingMemorySize: 5
@@ -15,7 +15,7 @@ llmContextSize: 4096
 llmGPULayerCount: 35
 llmCPUThreadCount: 6
 llmRepeatPenalty: 1.1
-llmResponseTimeout: 210000
+llmResponseTimeout: 60000
 wikiMaxArticleCount: 2
 wikiMaxArticleSentenceCount: 3
 wikiMessageSizeThreshold: 8

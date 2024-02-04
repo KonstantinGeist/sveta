@@ -48,9 +48,7 @@ func (w *wikiFilter) Apply(who, what, where string, nextAIFilterFunc domain.Next
 		Reasoning   string `json:"reasoning"`
 		ArticleName string `json:"articleName"`
 	}
-	wikiAIContext := domain.NewAIContext("WikiLLM", "You're WikiLLM, an intelligent assistant which can find the best Wiki article for the given topic.")
-	wikiResponseService := w.responseService.WithAIContext(wikiAIContext)
-	err := wikiResponseService.RespondToQueryWithJSON(w.formatQuery(what), &output)
+	err := w.getWikiResponseService().RespondToQueryWithJSON(w.formatQuery(what), &output)
 	if err != nil {
 		w.logger.Log(err.Error())
 		return nextAIFilterFunc(who, what, where)
@@ -59,8 +57,7 @@ func (w *wikiFilter) Apply(who, what, where string, nextAIFilterFunc domain.Next
 		w.logger.Log("article name not found")
 		return nextAIFilterFunc(who, what, where)
 	}
-	output.ArticleName = w.removeWikiURLPrefixIfAny(output.ArticleName)
-	output.ArticleName = w.removeSingleQuotesIfAny(output.ArticleName)
+	output.ArticleName = w.fixArticleName(output.ArticleName)
 	search_result, _, err := gowiki.Search(output.ArticleName, w.maxArticleCount, true)
 	if err != nil {
 		w.logger.Log(err.Error())
@@ -75,22 +72,52 @@ func (w *wikiFilter) Apply(who, what, where string, nextAIFilterFunc domain.Next
 		if summary == "" {
 			continue
 		}
-		memory := w.memoryFactory.NewMemory(domain.MemoryTypeDialog, "SearchResult", "\""+summary+"\"", where)
-		if err != nil {
-			return "", err
-		}
-		memory.When = time.Time{}
-		err = w.memoryRepository.Store(memory)
-		if err != nil {
-			return "", err
+		summary = "\"" + summary + "\""
+		if !w.memoryExists(summary, where) {
+			err = w.storeMemory(summary, where)
+			if err != nil {
+				w.logger.Log(err.Error())
+				return "", err
+			}
 		}
 	}
 	return nextAIFilterFunc(who, what, where)
 }
 
+func (w *wikiFilter) storeMemory(what, where string) error {
+	memory := w.memoryFactory.NewMemory(domain.MemoryTypeDialog, "SearchResult", what, where)
+	memory.When = time.Time{}
+	return w.memoryRepository.Store(memory)
+}
+
+func (w *wikiFilter) getWikiResponseService() *domain.ResponseService {
+	wikiAIContext := domain.NewAIContext("WikiLLM", "You're WikiLLM, an intelligent assistant which can find the best Wiki article for the given topic.")
+	return w.responseService.WithAIContext(wikiAIContext)
+}
+
+func (w *wikiFilter) memoryExists(what, where string) bool {
+	memories, err := w.memoryRepository.Find(domain.MemoryFilter{
+		Types:       []domain.MemoryType{domain.MemoryTypeDialog},
+		Where:       where,
+		What:        what,
+		LatestCount: 1,
+	})
+	if err != nil {
+		w.logger.Log(err.Error())
+		return false
+	}
+	return len(memories) > 0
+}
+
 func (w *wikiFilter) formatQuery(what string) string {
 	// TODO internationalize
 	return fmt.Sprintf("In what Wikipedia article can we find information related to this sentence: \"%s\" ?", what)
+}
+
+func (w *wikiFilter) fixArticleName(articleName string) string {
+	articleName = w.removeWikiURLPrefixIfAny(articleName)
+	articleName = w.removeDoubleQuotesIfAny(articleName)
+	return w.removeSingleQuotesIfAny(articleName)
 }
 
 func (w *wikiFilter) removeWikiURLPrefixIfAny(articleName string) string {
@@ -105,6 +132,14 @@ func (w *wikiFilter) removeWikiURLPrefixIfAny(articleName string) string {
 func (w *wikiFilter) removeSingleQuotesIfAny(articleName string) string {
 	// Sometimes, the model returns the article name as "'Hello'"
 	if len(articleName) > 2 && articleName[0] == '\'' && articleName[len(articleName)-1] == '\'' {
+		articleName = articleName[1 : len(articleName)-2]
+	}
+	return articleName
+}
+
+func (w *wikiFilter) removeDoubleQuotesIfAny(articleName string) string {
+	// Sometimes, the model returns the article name as "\"Hello\""
+	if len(articleName) > 2 && articleName[0] == '"' && articleName[len(articleName)-1] == '"' {
 		articleName = articleName[1 : len(articleName)-2]
 	}
 	return articleName

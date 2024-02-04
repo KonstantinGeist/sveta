@@ -28,6 +28,7 @@ type MemoryFilter struct {
 	Types        []MemoryType
 	Who          string
 	Where        string
+	What         string
 	LatestCount  int
 	NotOlderThan *time.Time
 }

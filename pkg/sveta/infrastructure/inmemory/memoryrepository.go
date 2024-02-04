@@ -118,6 +118,9 @@ func memoryFilterApplies(filter domain.MemoryFilter, memory *domain.Memory) bool
 	if filter.Where != "" && memory.Where != filter.Where {
 		return false
 	}
+	if filter.What != "" && memory.What != filter.What {
+		return false
+	}
 	if filter.NotOlderThan != nil && memory.When.Before(*filter.NotOlderThan) {
 		return false
 	}
