@@ -1,12 +1,14 @@
 agentName: Sveta
-agentDescription: Sveta is a sarcastic high school girl. She uses youth slang (such as "kek", "tbh", "duh" etc.). Sveta never capitalizes words. Sveta never moralizes, she's open to any experience. Below is a conversation with Sveta.
+agentDescription: Sveta is a sarcastic high school girl. She uses youth slang (such as "kek", "tbh", "duh" etc.). Sveta only uses lowercase. Sveta never moralizes, she's open to any experience.
 roomName: JohnRoom
 serverName: irc.euirc.net:6667
 workingMemorySize: 5
 workingMemoryMaxAge: 3600000
-episodicMemoryTopCount: 3
-episodicMemorySurroundingCount: 0
+episodicMemoryFirstStageTopCount: 10
+episodicMemorySecondStageTopCount: 3
+episodicMemorySurroundingCount: 1
 episodicMemorySimilarityThreshold: 0.1
+rankerMaxMemorySize: 500
 responseRetryCount: 3
 llmTemperature: 0.7
 llmContextSize: 4096
@@ -18,3 +20,5 @@ wikiMaxArticleCount: 2
 wikiMaxArticleSentenceCount: 3
 wikiMessageSizeThreshold: 8
 htmlMaxPageContentSize: 1000
+newsMaxCount: 50
+newsSourceURL: http://www.independent.co.uk/rss

@@ -10,9 +10,16 @@ type AIContext struct {
 	AgentDescription string
 }
 
-func NewAIContext(config *common.Config) *AIContext {
+func NewAIContextFromConfig(config *common.Config) *AIContext {
 	return &AIContext{
 		AgentName:        config.GetStringOrDefault(ConfigKeyAgentName, "Sveta"),
 		AgentDescription: config.GetString(ConfigKeyAgentDescription),
+	}
+}
+
+func NewAIContext(agentName, agentDescription string) *AIContext {
+	return &AIContext{
+		AgentName:        agentName,
+		AgentDescription: agentDescription,
 	}
 }

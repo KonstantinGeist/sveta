@@ -73,7 +73,7 @@ func (w *wikiFilter) Apply(who, what, where string, nextAIFilterFunc domain.Next
 		if summary == "" {
 			continue
 		}
-		memory := w.memoryFactory.NewMemory(domain.MemoryTypeDialog, "SearchResult", summary, where)
+		memory := w.memoryFactory.NewMemory(domain.MemoryTypeDialog, "SearchResult", "\""+summary+"\"", where)
 		if err != nil {
 			return "", err
 		}

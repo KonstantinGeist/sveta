@@ -46,7 +46,7 @@ type API interface {
 func NewAPI(config *common.Config) API {
 	logger := common.NewFileLogger(config.GetStringOrDefault(ConfigKeyLogPath, "log.txt"))
 	embedder := embed4all.NewEmbedder()
-	aiContext := domain.NewAIContext(config)
+	aiContext := domain.NewAIContextFromConfig(config)
 	roleplayLLama2Model := logging.NewLanguageModelDecorator(llama2.NewRoleplayLanguageModel(aiContext, config), logger)
 	genericSolarModel := logging.NewLanguageModelDecorator(solar.NewGenericLanguageModel(aiContext, config), logger)
 	languageModelSelector := domain.NewLanguageModelSelector([]domain.LanguageModel{genericSolarModel, roleplayLLama2Model})
@@ -61,7 +61,8 @@ func NewAPI(config *common.Config) API {
 		logger,
 	)
 	promptFormatterForLog := llama2.NewPromptFormatter()
-	htmlFilter := aifilters.NewHTMLFilter(logger, config)
+	newsFilter := aifilters.NewNewsFilter(memoryRepository, memoryFactory, config, logger)
+	htmlFilter := aifilters.NewHTMLFilter(config, logger)
 	imageFilter := aifilters.NewImageFilter(logger)
 	wikiFilter := aifilters.NewWikiFilter(
 		responseService,
@@ -75,6 +76,7 @@ func NewAPI(config *common.Config) API {
 		memoryFactory,
 		memoryRepository,
 		responseService,
+		embedder,
 		promptFormatterForLog,
 		logger,
 		config,
@@ -85,6 +87,7 @@ func NewAPI(config *common.Config) API {
 			memoryFactory,
 			aiContext,
 			[]domain.AIFilter{
+				newsFilter,
 				htmlFilter,
 				imageFilter,
 				wikiFilter,

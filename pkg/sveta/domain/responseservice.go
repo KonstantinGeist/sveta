@@ -40,6 +40,12 @@ func NewResponseService(
 	}
 }
 
+func (r *ResponseService) WithAIContext(aiContext *AIContext) *ResponseService {
+	clone := *r
+	clone.aiContext = aiContext
+	return &clone
+}
+
 // RespondToMemoriesWithText responds to the given list of memories as a large language model.
 func (r *ResponseService) RespondToMemoriesWithText(memories []*Memory) (string, error) {
 	if len(memories) == 0 {

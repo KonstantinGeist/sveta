@@ -24,7 +24,7 @@ type htmlFilter struct {
 // Limitations:
 // - only sees the first URL, if there are several URLs in a message
 // - the whole AI agent can crash if the given URL dynamically produces infinite output (see common.ReadAllFromURL)
-func NewHTMLFilter(logger common.Logger, config *common.Config) domain.AIFilter {
+func NewHTMLFilter(config *common.Config, logger common.Logger) domain.AIFilter {
 	return &htmlFilter{
 		logger:         logger,
 		maxContentSize: config.GetIntOrDefault("htmlMaxPageContentSize", 1000),
