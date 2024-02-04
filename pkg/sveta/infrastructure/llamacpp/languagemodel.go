@@ -17,6 +17,8 @@ import (
 
 var errUnexpectedModelOutput = errors.New("unexpected model output")
 
+var mutex sync.Mutex
+
 const (
 	// ConfigKeyLLMTemperature how creative the output is
 	ConfigKeyLLMTemperature = "llmTemperature"
@@ -33,7 +35,6 @@ const (
 )
 
 type languageModel struct {
-	mutex                  sync.Mutex
 	logger                 common.Logger
 	name                   string
 	binPath                string
@@ -78,8 +79,8 @@ func (l *languageModel) Modes() []domain.ResponseMode {
 func (l *languageModel) Complete(prompt string, jsonMode bool) (string, error) {
 	// Only 1 request can be processed at a time currently because we run Sveta on commodity hardware which can't
 	// usually process two requests simultaneously due to low amounts of VRAM.
-	l.mutex.Lock()
-	defer l.mutex.Unlock()
+	mutex.Lock()
+	defer mutex.Unlock()
 	command, err := l.buildInferCommand(jsonMode)
 	if err != nil {
 		return "", err

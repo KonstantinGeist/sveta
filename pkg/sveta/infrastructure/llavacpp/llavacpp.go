@@ -5,9 +5,16 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"sync"
 )
 
+var mutex sync.Mutex
+
 func Run(filePath, what string) (string, error) {
+	// Only 1 request can be processed at a time currently because we run Sveta on commodity hardware which can't
+	// usually process two requests simultaneously due to low amounts of VRAM.
+	mutex.Lock()
+	defer mutex.Unlock()
 	cmd, err := buildExecCommand(filePath, what)
 	if err != nil {
 		return "", err

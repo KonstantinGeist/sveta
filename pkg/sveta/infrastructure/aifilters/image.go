@@ -14,7 +14,7 @@ import (
 
 // TODO internationalize
 const couldntLoadImageFormatMessage = "%s Description: \"no description because the URL failed to load\""
-const imageDescriptionFormatMessage = "%s\nThe description of the picture says: \"%s\"\n%s (When answering stay in character!)"
+const imageDescriptionFormatMessage = "%s\nThe description of the picture says: \"%s\"\n%s (when answering, use only the description above and nothing else, but use language which is appropriate for your persona)"
 
 type imageFilter struct {
 	whereToRememberedImages map[string]*rememberedImageData
@@ -39,7 +39,7 @@ func NewImageFilter(config *common.Config, logger common.Logger) domain.AIFilter
 func (i *imageFilter) Apply(who, what, where string, nextAIFilterFunc domain.NextAIFilterFunc) (string, error) {
 	var err error
 	rememberedImage := i.getRememberedImage(where)
-	whatWithoutURL := what
+	whatWithoutURL := what // first initialization, will be changed later
 	urls := xurls.Relaxed.FindAllString(what, -1)
 	if len(urls) != 0 {
 		url := urls[0] // let's do it with only one image so far
