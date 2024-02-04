@@ -48,7 +48,9 @@ func (w *wikiFilter) Apply(who, what, where string, nextAIFilterFunc domain.Next
 		Reasoning   string `json:"reasoning"`
 		ArticleName string `json:"articleName"`
 	}
-	err := w.responseService.RespondToQueryWithJSON(w.formatQuery(what), &output)
+	wikiAIContext := domain.NewAIContext("WikiLLM", "You're WikiLLM, an intelligent assistant which can find the best Wiki article for the given topic.")
+	wikiResponseService := w.responseService.WithAIContext(wikiAIContext)
+	err := wikiResponseService.RespondToQueryWithJSON(w.formatQuery(what), &output)
 	if err != nil {
 		w.logger.Log(err.Error())
 		return nextAIFilterFunc(who, what, where)

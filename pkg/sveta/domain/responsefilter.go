@@ -141,7 +141,9 @@ func (r *responseFilter) getHypotheticalEmbeddings(what string) []Embedding {
 		Response3 string `json:"response3"`
 	}
 	// TODO internationalize
-	err := r.responseService.RespondToQueryWithJSON(
+	hyDEAIContext := NewAIContext("AnswerLLM", "You're AnswerLLM, an intelligent assistant which answers questions to the given user query.")
+	hyDEResponseService := r.responseService.WithAIContext(hyDEAIContext)
+	err := hyDEResponseService.RespondToQueryWithJSON(
 		"Imagine 3 possible responses to the following user query as if you knew the answer: \""+what+"\"",
 		&output,
 	)
