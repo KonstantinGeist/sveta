@@ -63,7 +63,7 @@ func NewAPI(config *common.Config) API {
 	promptFormatterForLog := llama2.NewPromptFormatter()
 	newsFilter := aifilters.NewNewsFilter(memoryRepository, memoryFactory, config, logger)
 	htmlFilter := aifilters.NewHTMLFilter(config, logger)
-	imageFilter := aifilters.NewImageFilter(logger)
+	imageFilter := aifilters.NewImageFilter(config, logger)
 	wikiFilter := aifilters.NewWikiFilter(
 		responseService,
 		memoryFactory,

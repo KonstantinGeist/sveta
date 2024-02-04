@@ -16,46 +16,85 @@ import (
 const couldntLoadImageFormatMessage = "%s Description: \"no description because the URL failed to load\""
 const imageDescriptionFormatMessage = "%s\nThe description of the picture says: \"%s\"\n%s (When answering stay in character!)"
 
-// TODO not thread safe
-const tempImagePath = "tmp.jpg"
-
 type imageFilter struct {
-	logger common.Logger
+	whereToRememberedImages map[string]*rememberedImageData
+	logger                  common.Logger
+	memoryDecayDuration     int
 }
 
-func NewImageFilter(logger common.Logger) domain.AIFilter {
+type rememberedImageData struct {
+	OriginalURL      string
+	FilePath         string
+	MemoryDecayIndex int
+}
+
+func NewImageFilter(config *common.Config, logger common.Logger) domain.AIFilter {
 	return &imageFilter{
-		logger: logger,
+		whereToRememberedImages: make(map[string]*rememberedImageData),
+		logger:                  logger,
+		memoryDecayDuration:     config.GetIntOrDefault("imageMemoryDecayDuration", 3),
 	}
 }
 
 func (i *imageFilter) Apply(who, what, where string, nextAIFilterFunc domain.NextAIFilterFunc) (string, error) {
-	urls := xurls.Relaxed.FindAllString(what, -1)
+	var err error
+	rememberedImage := i.getRememberedImage(where)
 	whatWithoutURL := what
-	url := tempImagePath
+	urls := xurls.Relaxed.FindAllString(what, -1)
 	if len(urls) != 0 {
-		url = urls[0] // let's do it with only one image so far
+		url := urls[0] // let's do it with only one image so far
 		if !common.IsImageFormat(url) {
 			return nextAIFilterFunc(who, what, where)
 		}
-		err := common.DownloadFromURL(url, tempImagePath)
+		rememberedImage, err = i.rememberImage(where, url)
 		if err != nil {
 			i.logger.Log(err.Error())
 			return nextAIFilterFunc(who, fmt.Sprintf(couldntLoadImageFormatMessage, what), where)
 		}
 		whatWithoutURL = i.removeURL(what, url)
 	}
-	if _, err := os.Stat(tempImagePath); err != nil {
+	if rememberedImage == nil || !rememberedImage.fileExists() {
 		return nextAIFilterFunc(who, what, where)
 	}
-	response, err := llavacpp.Run(tempImagePath, what)
+	response, err := llavacpp.Run(rememberedImage.FilePath, what)
 	if err != nil {
 		i.logger.Log(err.Error())
 		return nextAIFilterFunc(who, fmt.Sprintf(couldntLoadImageFormatMessage, what), where)
 	}
-	return nextAIFilterFunc(who, fmt.Sprintf(imageDescriptionFormatMessage, url, response, whatWithoutURL), where)
+	return nextAIFilterFunc(who, fmt.Sprintf(imageDescriptionFormatMessage, rememberedImage.OriginalURL, response, whatWithoutURL), where)
+}
+
+func (i *imageFilter) getRememberedImage(where string) *rememberedImageData {
+	rememberedImage := i.whereToRememberedImages[where]
+	if rememberedImage != nil {
+		rememberedImage.MemoryDecayIndex--
+		if rememberedImage.MemoryDecayIndex <= 0 {
+			delete(i.whereToRememberedImages, where)
+			rememberedImage = nil
+		}
+	}
+	return rememberedImage
+}
+
+func (i *imageFilter) rememberImage(where, url string) (*rememberedImageData, error) {
+	result := &rememberedImageData{
+		OriginalURL:      url,
+		FilePath:         os.TempDir() + "/svpc_" + common.Hash(where),
+		MemoryDecayIndex: i.memoryDecayDuration,
+	}
+	err := common.DownloadFromURL(url, result.FilePath)
+	if err != nil {
+		return nil, err
+	}
+	i.whereToRememberedImages[where] = result
+	return result, nil
 }
 
 func (i *imageFilter) removeURL(what, url string) string {
 	return strings.TrimSpace(strings.ReplaceAll(what, url, ""))
+}
+
+func (r *rememberedImageData) fileExists() bool {
+	_, err := os.Stat(r.FilePath)
+	return err == nil
 }

@@ -22,3 +22,4 @@ wikiMessageSizeThreshold: 8
 htmlMaxPageContentSize: 1000
 newsMaxCount: 50
 newsSourceURL: http://www.independent.co.uk/rss
+imageMemoryDecayDuration: 3
