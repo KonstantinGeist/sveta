@@ -7,5 +7,12 @@ import (
 )
 
 func NewRoleplayLanguageModel(aiContext *domain.AIContext, config *common.Config) domain.LanguageModel {
-	return llamacpp.NewLanguageModel(aiContext, "llama2-roleplay", "llama2-roleplay.bin", domain.LanguageModelPurposeRolePlay, NewPromptFormatter(), config)
+	return llamacpp.NewLanguageModel(
+		aiContext,
+		"llama2-roleplay",
+		"llama2-roleplay.bin",
+		[]domain.ResponseMode{domain.ResponseModeNormal},
+		NewPromptFormatter(),
+		config,
+	)
 }

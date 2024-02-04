@@ -7,5 +7,12 @@ import (
 )
 
 func NewGenericLanguageModel(aiContext *domain.AIContext, config *common.Config) domain.LanguageModel {
-	return llamacpp.NewLanguageModel(aiContext, "solar-generic", "solar-generic.bin", domain.LanguageModelPurposeGeneric, NewPromptFormatter(), config)
+	return llamacpp.NewLanguageModel(
+		aiContext,
+		"solar-generic",
+		"solar-generic.bin",
+		[]domain.ResponseMode{domain.ResponseModeNormal, domain.ResponseModeJSON, domain.ResponseModeRerank},
+		NewPromptFormatter(),
+		config,
+	)
 }

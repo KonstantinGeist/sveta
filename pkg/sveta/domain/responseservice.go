@@ -47,12 +47,12 @@ func (r *ResponseService) WithAIContext(aiContext *AIContext) *ResponseService {
 }
 
 // RespondToMemoriesWithText responds to the given list of memories as a large language model.
-func (r *ResponseService) RespondToMemoriesWithText(memories []*Memory) (string, error) {
+func (r *ResponseService) RespondToMemoriesWithText(memories []*Memory, responseMode ResponseMode) (string, error) {
 	if len(memories) == 0 {
 		return "", nil
 	}
 	dialogAndActionMemories := FilterMemoriesByTypes(memories, []MemoryType{MemoryTypeDialog, MemoryTypeAction})
-	languageModel := r.languageModelSelector.Select(memories, false)
+	languageModel := r.languageModelSelector.Select(memories, responseMode)
 	promptFormatter := languageModel.PromptFormatter()
 	promptEndMemories := r.generatePromptEndMemories()
 	memoriesAsString := promptFormatter.FormatDialog(MergeMemories(dialogAndActionMemories, promptEndMemories...))
@@ -72,7 +72,7 @@ func (r *ResponseService) RespondToQueryWithJSON(query string, jsonObject any) e
 		return err
 	}
 	queryMemories := []*Memory{r.memoryFactory.NewMemory(MemoryTypeDialog, "User", query, "")}
-	languageModel := r.languageModelSelector.Select(queryMemories, true)
+	languageModel := r.languageModelSelector.Select(queryMemories, ResponseModeJSON)
 	promptFormatter := languageModel.PromptFormatter()
 	promptEndMemories := r.generatePromptEndMemories()
 	memoriesAsString := promptFormatter.FormatDialog(MergeMemories(queryMemories, promptEndMemories...))

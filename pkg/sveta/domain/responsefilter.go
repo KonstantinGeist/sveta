@@ -68,7 +68,7 @@ func (r *responseFilter) Apply(who, what, where string, nextAIFilterFunc NextAIF
 		return "", err
 	}
 	memories := MergeMemories(episodicMemories, workingMemories...)
-	response, err := r.responseService.RespondToMemoriesWithText(memories)
+	response, err := r.responseService.RespondToMemoriesWithText(memories, ResponseModeNormal)
 	if err != nil {
 		return "", err
 	}
@@ -183,7 +183,7 @@ func (r *responseFilter) rankMemoriesAndGetTopN(memories []*Memory, what, where 
 	queryMemory := r.memoryFactory.NewMemory(MemoryTypeDialog, "User", query, where)
 	rankerAIContext := NewAIContext("RankLLM", "You are RankLLM, an intelligent assistant that can rank passages based on their relevancy to the query.")
 	rankerResponseService := r.responseService.WithAIContext(rankerAIContext)
-	response, err := rankerResponseService.RespondToMemoriesWithText([]*Memory{queryMemory})
+	response, err := rankerResponseService.RespondToMemoriesWithText([]*Memory{queryMemory}, ResponseModeRerank)
 	if err != nil {
 		r.logger.Log("failed to rank memories")
 		return nil

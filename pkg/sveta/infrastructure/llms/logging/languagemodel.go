@@ -24,8 +24,8 @@ func (l *languageModelDecorator) Name() string {
 	return l.wrappedLanguageModel.Name()
 }
 
-func (l *languageModelDecorator) Purpose() domain.LanguageModelPurpose {
-	return l.wrappedLanguageModel.Purpose()
+func (l *languageModelDecorator) Modes() []domain.ResponseMode {
+	return l.wrappedLanguageModel.Modes()
 }
 
 func (l *languageModelDecorator) Complete(prompt string, jsonMode bool) (string, error) {

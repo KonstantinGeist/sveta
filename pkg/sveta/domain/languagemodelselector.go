@@ -2,35 +2,32 @@ package domain
 
 // LanguageModelSelector makes sure the right language model is chosen for a given scenario.
 type LanguageModelSelector struct {
-	allLanguageModels       []LanguageModel
-	jsonLanguageModels      []LanguageModel
-	allLanguageModelsIndex  int
-	jsonLanguageModelsIndex int
+	responseModesToLanguageModels       map[ResponseMode][]LanguageModel
+	responseModesToLanguageModelIndices map[ResponseMode]int
 }
 
 func NewLanguageModelSelector(languageModels []LanguageModel) *LanguageModelSelector {
-	var jsonLanguageModels []LanguageModel
+	modesToLanguageModels := make(map[ResponseMode][]LanguageModel)
+	modesToLanguageModelIndices := make(map[ResponseMode]int)
 	for _, languageModel := range languageModels {
-		if languageModel.Purpose() == LanguageModelPurposeGeneric ||
-			languageModel.Purpose() == LanguageModelPurposeJSON {
-			jsonLanguageModels = append(jsonLanguageModels, languageModel)
+		for _, modes := range languageModel.Modes() {
+			modesToLanguageModels[modes] = append(modesToLanguageModels[modes], languageModel)
 		}
 	}
+	for _, responseMode := range ResponseModes {
+		modesToLanguageModelIndices[responseMode] = 0
+	}
 	return &LanguageModelSelector{
-		allLanguageModels:  languageModels,
-		jsonLanguageModels: jsonLanguageModels,
+		responseModesToLanguageModels:       modesToLanguageModels,
+		responseModesToLanguageModelIndices: modesToLanguageModelIndices,
 	}
 }
 
-// Select given a list of memories and the parameter `jsonMode`, finds the language model most suitable for the task.
+// Select given a list of memories and the response mode, finds the language model most suitable for the task.
 // TODO not thread-safe
-func (l *LanguageModelSelector) Select(_ []*Memory, jsonMode bool) LanguageModel {
-	if jsonMode {
-		languageModel := l.jsonLanguageModels[l.jsonLanguageModelsIndex]
-		l.jsonLanguageModelsIndex = (l.jsonLanguageModelsIndex + 1) % len(l.jsonLanguageModels)
-		return languageModel
-	}
-	languageModel := l.allLanguageModels[l.allLanguageModelsIndex]
-	l.allLanguageModelsIndex = (l.allLanguageModelsIndex + 1) % len(l.allLanguageModels)
+func (l *LanguageModelSelector) Select(_ []*Memory, responseMode ResponseMode) LanguageModel {
+	languageModelIndex := l.responseModesToLanguageModelIndices[responseMode]
+	languageModel := l.responseModesToLanguageModels[responseMode][languageModelIndex]
+	l.responseModesToLanguageModelIndices[responseMode] = (languageModelIndex + 1) % (len(l.responseModesToLanguageModels[responseMode]))
 	return languageModel
 }

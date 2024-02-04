@@ -37,7 +37,7 @@ type languageModel struct {
 	logger                 common.Logger
 	name                   string
 	binPath                string
-	purpose                domain.LanguageModelPurpose
+	modes                  []domain.ResponseMode
 	promptFormatter        domain.PromptFormatter
 	agentNameWithDelimiter string
 	temperature            float64
@@ -51,11 +51,11 @@ type languageModel struct {
 // NewLanguageModel Creates a language model as implemented by llama.cpp
 // `binPath` specifies the path to the target model relative to the bin folder (llama.cpp supports many models: Llama 2, Mistral, etc.)
 // `config` contains parameters specific to the current GPU (see the constant above)
-func NewLanguageModel(aiContext *domain.AIContext, modelName, binPath string, purpose domain.LanguageModelPurpose, promptFormatter domain.PromptFormatter, config *common.Config) domain.LanguageModel {
+func NewLanguageModel(aiContext *domain.AIContext, modelName, binPath string, modes []domain.ResponseMode, promptFormatter domain.PromptFormatter, config *common.Config) domain.LanguageModel {
 	return &languageModel{
 		name:                   modelName,
 		binPath:                binPath,
-		purpose:                purpose,
+		modes:                  modes,
 		promptFormatter:        promptFormatter,
 		agentNameWithDelimiter: getAgentNameWithDelimiter(aiContext, promptFormatter),
 		temperature:            config.GetFloatOrDefault(ConfigKeyLLMTemperature, 0.7),
@@ -71,8 +71,8 @@ func (l *languageModel) Name() string {
 	return l.name
 }
 
-func (l *languageModel) Purpose() domain.LanguageModelPurpose {
-	return l.purpose
+func (l *languageModel) Modes() []domain.ResponseMode {
+	return l.modes
 }
 
 func (l *languageModel) Complete(prompt string, jsonMode bool) (string, error) {
