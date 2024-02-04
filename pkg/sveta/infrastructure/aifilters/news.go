@@ -55,7 +55,7 @@ func (n *newsFilter) loadNews(where string) {
 	for index, item := range rssFeed.Items {
 		line := fmt.Sprintf("Published Date: %s. Title: \"%s\". Description: \"%s\"", item.PubDate, strings.TrimSpace(item.Title), strings.TrimSpace(item.Description))
 		_ = index
-		fmt.Println(index)
+		fmt.Printf("Loading news #%d...\n", index)
 		memory := n.memoryFactory.NewMemory(domain.MemoryTypeDialog, "News", line, where)
 		memory.When = time.Time{}
 		err = n.memoryRepository.Store(memory)

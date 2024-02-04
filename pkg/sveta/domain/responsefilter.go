@@ -218,7 +218,9 @@ func (r *responseFilter) formatMemoriesForRanker(memories []*Memory) string {
 func (r *responseFilter) parseIndicesInRerankerResponse(response string, memoryCount int) []int {
 	response = strings.ReplaceAll(response, "[", "")
 	response = strings.ReplaceAll(response, "]", "")
-	split := strings.Split(response, ">")
+	split := strings.FieldsFunc(response, func(r rune) bool {
+		return strings.ContainsRune("><,=", r)
+	})
 	var indices []int
 	for _, s := range split {
 		index, err := strconv.Atoi(strings.TrimSpace(s))

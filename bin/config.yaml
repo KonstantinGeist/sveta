@@ -4,9 +4,9 @@ roomName: JohnRoom
 serverName: irc.euirc.net:6667
 workingMemorySize: 5
 workingMemoryMaxAge: 3600000
-episodicMemoryFirstStageTopCount: 10
-episodicMemorySecondStageTopCount: 3
+episodicMemoryFirstStageTopCount: 5
 episodicMemorySurroundingCount: 1
+episodicMemorySecondStageTopCount: 3
 episodicMemorySimilarityThreshold: 0.1
 rankerMaxMemorySize: 500
 responseRetryCount: 3
