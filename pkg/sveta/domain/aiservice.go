@@ -1,10 +1,13 @@
 package domain
 
+import "sync"
+
 type respondFunc func(who, what, where string) (string, error)
 
 // AIService is the main orchestrator of the whole AI: it receives a list of AI filters and runs them one after another.
 // Additionally, it has various functions for debugging/control: remove all memory, remember actions, change context etc.\
 type AIService struct {
+	mutex            sync.Mutex
 	memoryRepository MemoryRepository
 	memoryFactory    MemoryFactory
 	aiContext        *AIContext
@@ -27,28 +30,38 @@ func NewAIService(
 
 // Respond see API.Respond
 func (a *AIService) Respond(who, what, where string) (string, error) {
+	a.mutex.Lock()
+	defer a.mutex.Unlock()
 	return a.applyAIFilterAtIndex(who, what, where, 0)
 }
 
 // RememberAction see API.RememberAction
 func (a *AIService) RememberAction(who, what, where string) error {
+	a.mutex.Lock()
+	defer a.mutex.Unlock()
 	memory := a.memoryFactory.NewMemory(MemoryTypeAction, who, what, where)
 	return a.memoryRepository.Store(memory)
 }
 
 // RememberDialog see API.RememberDialog
 func (a *AIService) RememberDialog(who, what, where string) error {
+	a.mutex.Lock()
+	defer a.mutex.Unlock()
 	memory := a.memoryFactory.NewMemory(MemoryTypeDialog, who, what, where)
 	return a.memoryRepository.Store(memory)
 }
 
 // ClearAllMemory see API.ClearAllMemory
 func (a *AIService) ClearAllMemory() error {
+	a.mutex.Lock()
+	defer a.mutex.Unlock()
 	return a.memoryRepository.RemoveAll()
 }
 
 // ChangeAgentDescription see API.ChangeAgentDescription
 func (a *AIService) ChangeAgentDescription(context string) error {
+	a.mutex.Lock()
+	defer a.mutex.Unlock()
 	a.aiContext.AgentDescription = context
 	return nil
 }

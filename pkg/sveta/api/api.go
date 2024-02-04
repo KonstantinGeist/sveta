@@ -1,8 +1,6 @@
 package api
 
 import (
-	"sync"
-
 	"kgeyst.com/sveta/pkg/common"
 	"kgeyst.com/sveta/pkg/sveta/domain"
 	"kgeyst.com/sveta/pkg/sveta/infrastructure/aifilters"
@@ -14,7 +12,6 @@ import (
 )
 
 type api struct {
-	mutex     sync.Mutex
 	aiService *domain.AIService
 }
 
@@ -101,31 +98,21 @@ func NewAPI(config *common.Config) API {
 }
 
 func (a *api) Respond(who string, what string, where string) (string, error) {
-	a.mutex.Lock()
-	defer a.mutex.Unlock()
 	return a.aiService.Respond(who, what, where)
 }
 
 func (a *api) RememberAction(who string, what string, where string) error {
-	a.mutex.Lock()
-	defer a.mutex.Unlock()
 	return a.aiService.RememberAction(who, what, where)
 }
 
 func (a *api) RememberDialog(who string, what string, where string) error {
-	a.mutex.Lock()
-	defer a.mutex.Unlock()
 	return a.aiService.RememberDialog(who, what, where)
 }
 
 func (a *api) ClearAllMemory() error {
-	a.mutex.Lock()
-	defer a.mutex.Unlock()
 	return a.aiService.ClearAllMemory()
 }
 
 func (a *api) ChangeAgentDescription(context string) error {
-	a.mutex.Lock()
-	defer a.mutex.Unlock()
 	return a.aiService.ChangeAgentDescription(context)
 }
