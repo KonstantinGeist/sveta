@@ -33,12 +33,17 @@ func (n *NewsProvider) GetNews(maxNewsCount int) ([]news.Item, error) {
 	for index, item := range rssFeed.Items {
 		result = append(result, news.Item{
 			PublishedDate: item.PubDate,
-			Title:         strings.TrimSpace(item.Title),
-			Description:   strings.TrimSpace(item.Description),
+			Title:         strings.TrimSpace(removeKnownTags(item.Title)),
+			Description:   strings.TrimSpace(removeKnownTags(item.Description)),
 		})
 		if index > maxNewsCount {
 			break
 		}
 	}
 	return result, nil
+}
+
+func removeKnownTags(str string) string {
+	str = strings.ReplaceAll(str, "<p>", "")
+	return strings.ReplaceAll(str, "</p>", "")
 }
