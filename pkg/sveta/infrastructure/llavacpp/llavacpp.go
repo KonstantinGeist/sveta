@@ -10,12 +10,18 @@ import (
 
 var mutex sync.Mutex
 
-func Run(filePath, what string) (string, error) {
+type VisionModel struct{}
+
+func NewVisionModel() *VisionModel {
+	return &VisionModel{}
+}
+
+func (v *VisionModel) Infer(filePath, prompt string) (string, error) {
 	// Only 1 request can be processed at a time currently because we run Sveta on commodity hardware which can't
 	// usually process two requests simultaneously due to low amounts of VRAM.
 	mutex.Lock()
 	defer mutex.Unlock()
-	cmd, err := buildExecCommand(filePath, what)
+	cmd, err := buildExecCommand(filePath, prompt)
 	if err != nil {
 		return "", err
 	}

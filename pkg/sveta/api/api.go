@@ -3,12 +3,14 @@ package api
 import (
 	"kgeyst.com/sveta/pkg/common"
 	"kgeyst.com/sveta/pkg/sveta/domain"
+	"kgeyst.com/sveta/pkg/sveta/domain/aifilters/image"
 	"kgeyst.com/sveta/pkg/sveta/domain/aifilters/response"
 	domainweb "kgeyst.com/sveta/pkg/sveta/domain/aifilters/web"
 	domainwiki "kgeyst.com/sveta/pkg/sveta/domain/aifilters/wiki"
 	"kgeyst.com/sveta/pkg/sveta/infrastructure/aifilters"
 	"kgeyst.com/sveta/pkg/sveta/infrastructure/embed4all"
 	"kgeyst.com/sveta/pkg/sveta/infrastructure/inmemory"
+	"kgeyst.com/sveta/pkg/sveta/infrastructure/llavacpp"
 	"kgeyst.com/sveta/pkg/sveta/infrastructure/llms/llama2"
 	"kgeyst.com/sveta/pkg/sveta/infrastructure/llms/logging"
 	"kgeyst.com/sveta/pkg/sveta/infrastructure/llms/solar"
@@ -66,14 +68,16 @@ func NewAPI(config *common.Config) API {
 		logger,
 	)
 	promptFormatterForLog := llama2.NewPromptFormatter()
+	urlFinder := infraweb.NewURLFinder()
 	newsFilter := aifilters.NewNewsFilter(memoryRepository, memoryFactory, config, logger)
 	webFilter := domainweb.NewFilter(
-		infraweb.NewURLFinder(),
+		urlFinder,
 		infraweb.NewPageContentExtractor(),
 		config,
 		logger,
 	)
-	imageFilter := aifilters.NewImageFilter(config, logger)
+	visionModel := llavacpp.NewVisionModel()
+	imageFilter := image.NewFilter(urlFinder, visionModel, config, logger)
 	wikiFilter := domainwiki.NewFilter(
 		responseService,
 		memoryFactory,

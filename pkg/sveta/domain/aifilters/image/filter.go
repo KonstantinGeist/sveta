@@ -1,22 +1,21 @@
-package aifilters
+package image
 
 import (
 	"fmt"
 	"os"
 	"strings"
 
-	"github.com/mvdan/xurls"
-
 	"kgeyst.com/sveta/pkg/common"
 	"kgeyst.com/sveta/pkg/sveta/domain"
-	"kgeyst.com/sveta/pkg/sveta/infrastructure/llavacpp"
 )
 
 // TODO internationalize
 const couldntLoadImageFormatMessage = "%s Description: \"no description because the URL failed to load\""
 const imageDescriptionFormatMessage = "%s\nThe description of the picture says: \"%s\"\n%s (when answering, use only the description above and nothing else, but use language which is appropriate for your persona)"
 
-type imageFilter struct {
+type filter struct {
+	urlFinder               URLFinder
+	visionModel             VisionModel
 	whereToRememberedImages map[string]*rememberedImageData
 	logger                  common.Logger
 	memoryDecayDuration     int
@@ -28,19 +27,26 @@ type rememberedImageData struct {
 	MemoryDecayIndex int
 }
 
-func NewImageFilter(config *common.Config, logger common.Logger) domain.AIFilter {
-	return &imageFilter{
+func NewFilter(
+	urlFinder URLFinder,
+	visionModel VisionModel,
+	config *common.Config,
+	logger common.Logger,
+) domain.AIFilter {
+	return &filter{
+		urlFinder:               urlFinder,
+		visionModel:             visionModel,
 		whereToRememberedImages: make(map[string]*rememberedImageData),
 		logger:                  logger,
 		memoryDecayDuration:     config.GetIntOrDefault("imageMemoryDecayDuration", 3),
 	}
 }
 
-func (i *imageFilter) Apply(who, what, where string, nextAIFilterFunc domain.NextAIFilterFunc) (string, error) {
+func (i *filter) Apply(who, what, where string, nextAIFilterFunc domain.NextAIFilterFunc) (string, error) {
 	var err error
 	rememberedImage := i.getRememberedImage(where)
 	whatWithoutURL := what // first initialization, will be changed later
-	urls := xurls.Relaxed.FindAllString(what, -1)
+	urls := i.urlFinder.FindURLs(what)
 	if len(urls) != 0 {
 		url := urls[0] // let's do it with only one image so far
 		if !common.IsImageFormat(url) {
@@ -56,7 +62,7 @@ func (i *imageFilter) Apply(who, what, where string, nextAIFilterFunc domain.Nex
 	if rememberedImage == nil || !rememberedImage.fileExists() {
 		return nextAIFilterFunc(who, what, where)
 	}
-	response, err := llavacpp.Run(rememberedImage.FilePath, what)
+	response, err := i.visionModel.Infer(rememberedImage.FilePath, what)
 	if err != nil {
 		i.logger.Log(err.Error())
 		return nextAIFilterFunc(who, fmt.Sprintf(couldntLoadImageFormatMessage, what), where)
@@ -64,7 +70,7 @@ func (i *imageFilter) Apply(who, what, where string, nextAIFilterFunc domain.Nex
 	return nextAIFilterFunc(who, fmt.Sprintf(imageDescriptionFormatMessage, rememberedImage.OriginalURL, response, whatWithoutURL), where)
 }
 
-func (i *imageFilter) getRememberedImage(where string) *rememberedImageData {
+func (i *filter) getRememberedImage(where string) *rememberedImageData {
 	rememberedImage := i.whereToRememberedImages[where]
 	if rememberedImage != nil {
 		rememberedImage.MemoryDecayIndex--
@@ -76,7 +82,7 @@ func (i *imageFilter) getRememberedImage(where string) *rememberedImageData {
 	return rememberedImage
 }
 
-func (i *imageFilter) rememberImage(where, url string) (*rememberedImageData, error) {
+func (i *filter) rememberImage(where, url string) (*rememberedImageData, error) {
 	result := &rememberedImageData{
 		OriginalURL:      url,
 		FilePath:         os.TempDir() + "/svpc_" + common.Hash(where),
@@ -90,7 +96,7 @@ func (i *imageFilter) rememberImage(where, url string) (*rememberedImageData, er
 	return result, nil
 }
 
-func (i *imageFilter) removeURL(what, url string) string {
+func (i *filter) removeURL(what, url string) string {
 	return strings.TrimSpace(strings.ReplaceAll(what, url, ""))
 }
 
