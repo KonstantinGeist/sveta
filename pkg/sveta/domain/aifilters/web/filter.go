@@ -12,24 +12,24 @@ import (
 const couldntLoadURLFormatMessage = "%s Description: \"no description because the URL failed to load\""
 const urlDescriptionFormatMessage = "%s\nSome content from the link above: \"%s\""
 
-type webFilter struct {
+type filter struct {
 	urlFinder            URLFinder
 	pageContentExtractor PageContentExtractor
 	logger               common.Logger
 	maxContentSize       int
 }
 
-// NewWebFilter this AI filter allows the AI agent to see the content of the given URLs.
+// NewFilter this AI filter allows the AI agent to see the content of the given URLs.
 // Limitations:
 // - only sees the first URL, if there are several URLs in a message
 // - the whole AI agent can crash if the given URL dynamically produces infinite output (see common.ReadAllFromURL)
-func NewWebFilter(
+func NewFilter(
 	urlFinder URLFinder,
 	pageContentExtractor PageContentExtractor,
 	config *common.Config,
 	logger common.Logger,
 ) domain.AIFilter {
-	return &webFilter{
+	return &filter{
 		urlFinder:            urlFinder,
 		pageContentExtractor: pageContentExtractor,
 		logger:               logger,
@@ -37,7 +37,7 @@ func NewWebFilter(
 	}
 }
 
-func (h *webFilter) Apply(who, what, where string, nextAIFilterFunc domain.NextAIFilterFunc) (string, error) {
+func (h *filter) Apply(who, what, where string, nextAIFilterFunc domain.NextAIFilterFunc) (string, error) {
 	urls := h.urlFinder.FindURLs(what)
 	if len(urls) == 0 {
 		return nextAIFilterFunc(who, what, where)
@@ -58,7 +58,7 @@ func (h *webFilter) Apply(who, what, where string, nextAIFilterFunc domain.NextA
 	return nextAIFilterFunc(who, fmt.Sprintf(urlDescriptionFormatMessage, what, pageContent), where)
 }
 
-func (h *webFilter) processPageContent(pageContent string) string {
+func (h *filter) processPageContent(pageContent string) string {
 	if len(pageContent) > h.maxContentSize {
 		pageContent = pageContent[0:h.maxContentSize]
 	}

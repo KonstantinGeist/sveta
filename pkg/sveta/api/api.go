@@ -3,6 +3,7 @@ package api
 import (
 	"kgeyst.com/sveta/pkg/common"
 	"kgeyst.com/sveta/pkg/sveta/domain"
+	"kgeyst.com/sveta/pkg/sveta/domain/aifilters/response"
 	domainweb "kgeyst.com/sveta/pkg/sveta/domain/aifilters/web"
 	domainwiki "kgeyst.com/sveta/pkg/sveta/domain/aifilters/wiki"
 	"kgeyst.com/sveta/pkg/sveta/infrastructure/aifilters"
@@ -66,14 +67,14 @@ func NewAPI(config *common.Config) API {
 	)
 	promptFormatterForLog := llama2.NewPromptFormatter()
 	newsFilter := aifilters.NewNewsFilter(memoryRepository, memoryFactory, config, logger)
-	webFilter := domainweb.NewWebFilter(
+	webFilter := domainweb.NewFilter(
 		infraweb.NewURLFinder(),
 		infraweb.NewPageContentExtractor(),
 		config,
 		logger,
 	)
 	imageFilter := aifilters.NewImageFilter(config, logger)
-	wikiFilter := domainwiki.NewWikiFilter(
+	wikiFilter := domainwiki.NewFilter(
 		responseService,
 		memoryFactory,
 		memoryRepository,
@@ -81,7 +82,7 @@ func NewAPI(config *common.Config) API {
 		logger,
 		config,
 	)
-	responseFilter := domain.NewResponseFilter(
+	responseFilter := response.NewFilter(
 		aiContext,
 		memoryFactory,
 		memoryRepository,

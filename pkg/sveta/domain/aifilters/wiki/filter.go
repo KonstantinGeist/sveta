@@ -10,7 +10,7 @@ import (
 	"kgeyst.com/sveta/pkg/sveta/domain"
 )
 
-type wikiFilter struct {
+type filter struct {
 	responseService         *domain.ResponseService
 	memoryFactory           domain.MemoryFactory
 	memoryRepository        domain.MemoryRepository
@@ -21,7 +21,7 @@ type wikiFilter struct {
 	messageSizeThreshold    int
 }
 
-func NewWikiFilter(
+func NewFilter(
 	responseService *domain.ResponseService,
 	memoryFactory domain.MemoryFactory,
 	memoryRepository domain.MemoryRepository,
@@ -29,7 +29,7 @@ func NewWikiFilter(
 	logger common.Logger,
 	config *common.Config,
 ) domain.AIFilter {
-	return &wikiFilter{
+	return &filter{
 		responseService:         responseService,
 		memoryFactory:           memoryFactory,
 		memoryRepository:        memoryRepository,
@@ -41,7 +41,7 @@ func NewWikiFilter(
 	}
 }
 
-func (w *wikiFilter) Apply(who, what, where string, nextAIFilterFunc domain.NextAIFilterFunc) (string, error) {
+func (w *filter) Apply(who, what, where string, nextAIFilterFunc domain.NextAIFilterFunc) (string, error) {
 	if utf8.RuneCountInString(what) < w.messageSizeThreshold {
 		return nextAIFilterFunc(who, what, where)
 	}
@@ -85,18 +85,18 @@ func (w *wikiFilter) Apply(who, what, where string, nextAIFilterFunc domain.Next
 	return nextAIFilterFunc(who, what, where)
 }
 
-func (w *wikiFilter) storeMemory(what, where string) error {
+func (w *filter) storeMemory(what, where string) error {
 	memory := w.memoryFactory.NewMemory(domain.MemoryTypeDialog, "SearchResult", what, where)
 	memory.When = time.Time{}
 	return w.memoryRepository.Store(memory)
 }
 
-func (w *wikiFilter) getWikiResponseService() *domain.ResponseService {
+func (w *filter) getWikiResponseService() *domain.ResponseService {
 	wikiAIContext := domain.NewAIContext("WikiLLM", "You're WikiLLM, an intelligent assistant which can find the best Wiki article for the given topic.")
 	return w.responseService.WithAIContext(wikiAIContext)
 }
 
-func (w *wikiFilter) memoryExists(what, where string) bool {
+func (w *filter) memoryExists(what, where string) bool {
 	memories, err := w.memoryRepository.Find(domain.MemoryFilter{
 		Types:       []domain.MemoryType{domain.MemoryTypeDialog},
 		Where:       where,
@@ -110,18 +110,18 @@ func (w *wikiFilter) memoryExists(what, where string) bool {
 	return len(memories) > 0
 }
 
-func (w *wikiFilter) formatQuery(what string) string {
+func (w *filter) formatQuery(what string) string {
 	// TODO internationalize
 	return fmt.Sprintf("In what Wikipedia article can we find information related to this sentence: \"%s\" ?", what)
 }
 
-func (w *wikiFilter) fixArticleName(articleName string) string {
+func (w *filter) fixArticleName(articleName string) string {
 	articleName = w.removeWikiURLPrefixIfAny(articleName)
 	articleName = w.removeDoubleQuotesIfAny(articleName)
 	return w.removeSingleQuotesIfAny(articleName)
 }
 
-func (w *wikiFilter) removeWikiURLPrefixIfAny(articleName string) string {
+func (w *filter) removeWikiURLPrefixIfAny(articleName string) string {
 	// Sometimes, the model returns the URL of the article, instead of just the article name.
 	const wikiURLPrefix = "https://en.wikipedia.org/wiki/"
 	if strings.HasPrefix(articleName, wikiURLPrefix) {
@@ -130,7 +130,7 @@ func (w *wikiFilter) removeWikiURLPrefixIfAny(articleName string) string {
 	return articleName
 }
 
-func (w *wikiFilter) removeSingleQuotesIfAny(articleName string) string {
+func (w *filter) removeSingleQuotesIfAny(articleName string) string {
 	// Sometimes, the model returns the article name as "'Hello'"
 	if len(articleName) > 2 && articleName[0] == '\'' && articleName[len(articleName)-1] == '\'' {
 		articleName = articleName[1 : len(articleName)-2]
@@ -138,7 +138,7 @@ func (w *wikiFilter) removeSingleQuotesIfAny(articleName string) string {
 	return articleName
 }
 
-func (w *wikiFilter) removeDoubleQuotesIfAny(articleName string) string {
+func (w *filter) removeDoubleQuotesIfAny(articleName string) string {
 	// Sometimes, the model returns the article name as "\"Hello\""
 	if len(articleName) > 2 && articleName[0] == '"' && articleName[len(articleName)-1] == '"' {
 		articleName = articleName[1 : len(articleName)-2]
