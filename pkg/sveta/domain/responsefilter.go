@@ -140,10 +140,7 @@ func (r *responseFilter) getHypotheticalEmbeddings(what string) []Embedding {
 		Response2 string `json:"response2"`
 		Response3 string `json:"response3"`
 	}
-	// TODO internationalize
-	hyDEAIContext := NewAIContext("AnswerLLM", "You're AnswerLLM, an intelligent assistant which answers questions to the given user query.")
-	hyDEResponseService := r.responseService.WithAIContext(hyDEAIContext)
-	err := hyDEResponseService.RespondToQueryWithJSON(
+	err := r.getHyDEResponseService().RespondToQueryWithJSON(
 		"Imagine 3 possible responses to the following user query as if you knew the answer: \""+what+"\"",
 		&output,
 	)
@@ -183,9 +180,7 @@ func (r *responseFilter) rankMemoriesAndGetTopN(memories []*Memory, what, where 
 		len(memories),
 	)
 	queryMemory := r.memoryFactory.NewMemory(MemoryTypeDialog, "User", query, where)
-	rankerAIContext := NewAIContext("RankLLM", "You are RankLLM, an intelligent assistant that can rank passages based on their relevancy to the query.")
-	rankerResponseService := r.responseService.WithAIContext(rankerAIContext)
-	response, err := rankerResponseService.RespondToMemoriesWithText([]*Memory{queryMemory}, ResponseModeRerank)
+	response, err := r.getRankerResponseService().RespondToMemoriesWithText([]*Memory{queryMemory}, ResponseModeRerank)
 	if err != nil {
 		r.logger.Log("failed to rank memories")
 		return nil
@@ -203,6 +198,18 @@ func (r *responseFilter) rankMemoriesAndGetTopN(memories []*Memory, what, where 
 		result = result[0:r.episodicMemorySecondStageTopCount]
 	}
 	return result
+}
+
+func (r *responseFilter) getHyDEResponseService() *ResponseService {
+	// TODO internationalize
+	hyDEAIContext := NewAIContext("AnswerLLM", "You're AnswerLLM, an intelligent assistant which answers questions to the given user query.")
+	return r.responseService.WithAIContext(hyDEAIContext)
+}
+
+func (r *responseFilter) getRankerResponseService() *ResponseService {
+	// TODO internationalize
+	rankerAIContext := NewAIContext("RankLLM", "You're RankLLM, an intelligent assistant that can rank passages based on their relevancy to the query.")
+	return r.responseService.WithAIContext(rankerAIContext)
 }
 
 func (r *responseFilter) formatMemoriesForRanker(memories []*Memory) string {
