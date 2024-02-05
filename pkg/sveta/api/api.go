@@ -4,16 +4,17 @@ import (
 	"kgeyst.com/sveta/pkg/common"
 	"kgeyst.com/sveta/pkg/sveta/domain"
 	"kgeyst.com/sveta/pkg/sveta/domain/aifilters/image"
+	"kgeyst.com/sveta/pkg/sveta/domain/aifilters/news"
 	"kgeyst.com/sveta/pkg/sveta/domain/aifilters/response"
 	domainweb "kgeyst.com/sveta/pkg/sveta/domain/aifilters/web"
 	domainwiki "kgeyst.com/sveta/pkg/sveta/domain/aifilters/wiki"
-	"kgeyst.com/sveta/pkg/sveta/infrastructure/aifilters"
 	"kgeyst.com/sveta/pkg/sveta/infrastructure/embed4all"
 	"kgeyst.com/sveta/pkg/sveta/infrastructure/inmemory"
 	"kgeyst.com/sveta/pkg/sveta/infrastructure/llavacpp"
 	"kgeyst.com/sveta/pkg/sveta/infrastructure/llms/llama2"
 	"kgeyst.com/sveta/pkg/sveta/infrastructure/llms/logging"
 	"kgeyst.com/sveta/pkg/sveta/infrastructure/llms/solar"
+	"kgeyst.com/sveta/pkg/sveta/infrastructure/rss"
 	infraweb "kgeyst.com/sveta/pkg/sveta/infrastructure/web"
 	infrawiki "kgeyst.com/sveta/pkg/sveta/infrastructure/wiki"
 )
@@ -69,7 +70,16 @@ func NewAPI(config *common.Config) API {
 	)
 	promptFormatterForLog := llama2.NewPromptFormatter()
 	urlFinder := infraweb.NewURLFinder()
-	newsFilter := aifilters.NewNewsFilter(memoryRepository, memoryFactory, config, logger)
+	newsProvider := rss.NewNewsProvider(
+		config.GetStringOrDefault("newsSourceURL", "http://www.independent.co.uk/rss"),
+	)
+	newsFilter := news.NewFilter(
+		newsProvider,
+		memoryRepository,
+		memoryFactory,
+		config,
+		logger,
+	)
 	webFilter := domainweb.NewFilter(
 		urlFinder,
 		infraweb.NewPageContentExtractor(),
