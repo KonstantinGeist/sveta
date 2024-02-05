@@ -1,12 +1,10 @@
-package aifilters
+package wiki
 
 import (
 	"fmt"
 	"strings"
 	"time"
 	"unicode/utf8"
-
-	gowiki "github.com/trietmn/go-wiki"
 
 	"kgeyst.com/sveta/pkg/common"
 	"kgeyst.com/sveta/pkg/sveta/domain"
@@ -16,6 +14,7 @@ type wikiFilter struct {
 	responseService         *domain.ResponseService
 	memoryFactory           domain.MemoryFactory
 	memoryRepository        domain.MemoryRepository
+	articleProvider         ArticleProvider
 	logger                  common.Logger
 	maxArticleCount         int
 	maxArticleSentenceCount int
@@ -26,6 +25,7 @@ func NewWikiFilter(
 	responseService *domain.ResponseService,
 	memoryFactory domain.MemoryFactory,
 	memoryRepository domain.MemoryRepository,
+	articleProvider ArticleProvider,
 	logger common.Logger,
 	config *common.Config,
 ) domain.AIFilter {
@@ -33,6 +33,7 @@ func NewWikiFilter(
 		responseService:         responseService,
 		memoryFactory:           memoryFactory,
 		memoryRepository:        memoryRepository,
+		articleProvider:         articleProvider,
 		logger:                  logger,
 		maxArticleCount:         config.GetIntOrDefault("wikiMaxArticleCount", 2),
 		maxArticleSentenceCount: config.GetIntOrDefault("wikiMaxArticleSentenceCount", 3),
@@ -58,13 +59,13 @@ func (w *wikiFilter) Apply(who, what, where string, nextAIFilterFunc domain.Next
 		return nextAIFilterFunc(who, what, where)
 	}
 	output.ArticleName = w.fixArticleName(output.ArticleName)
-	search_result, _, err := gowiki.Search(output.ArticleName, w.maxArticleCount, true)
+	articleNames, err := w.articleProvider.Search(output.ArticleName, w.maxArticleCount)
 	if err != nil {
 		w.logger.Log(err.Error())
 		return nextAIFilterFunc(who, what, where)
 	}
-	for _, result := range search_result {
-		summary, err := gowiki.Summary(result, w.maxArticleSentenceCount, -1, false, true)
+	for _, articleName := range articleNames {
+		summary, err := w.articleProvider.GetSummary(articleName, w.maxArticleSentenceCount)
 		if err != nil {
 			w.logger.Log(err.Error())
 			return nextAIFilterFunc(who, what, where)

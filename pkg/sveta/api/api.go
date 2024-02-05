@@ -3,12 +3,14 @@ package api
 import (
 	"kgeyst.com/sveta/pkg/common"
 	"kgeyst.com/sveta/pkg/sveta/domain"
+	domainwiki "kgeyst.com/sveta/pkg/sveta/domain/aifilters/wiki"
 	"kgeyst.com/sveta/pkg/sveta/infrastructure/aifilters"
 	"kgeyst.com/sveta/pkg/sveta/infrastructure/embed4all"
 	"kgeyst.com/sveta/pkg/sveta/infrastructure/inmemory"
 	"kgeyst.com/sveta/pkg/sveta/infrastructure/llms/llama2"
 	"kgeyst.com/sveta/pkg/sveta/infrastructure/llms/logging"
 	"kgeyst.com/sveta/pkg/sveta/infrastructure/llms/solar"
+	infrawiki "kgeyst.com/sveta/pkg/sveta/infrastructure/wiki"
 )
 
 type api struct {
@@ -64,10 +66,11 @@ func NewAPI(config *common.Config) API {
 	newsFilter := aifilters.NewNewsFilter(memoryRepository, memoryFactory, config, logger)
 	htmlFilter := aifilters.NewHTMLFilter(config, logger)
 	imageFilter := aifilters.NewImageFilter(config, logger)
-	wikiFilter := aifilters.NewWikiFilter(
+	wikiFilter := domainwiki.NewWikiFilter(
 		responseService,
 		memoryFactory,
 		memoryRepository,
+		infrawiki.NewArticleProvider(),
 		logger,
 		config,
 	)
