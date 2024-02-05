@@ -12,9 +12,6 @@ func FormatAsAlpacaDialog(memories []*domain.Memory) string {
 	for i := 0; i < len(memories); i++ {
 		memory := memories[i]
 		buf.WriteString("### " + memory.Who)
-		if memory.Who == "Sveta" {
-			buf.WriteString(" (staying in character, using youth slang and lowercase)")
-		}
 		buf.WriteString(":\n")
 		buf.WriteString(memory.What)
 		if i < len(memories)-1 {
