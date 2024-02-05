@@ -3,6 +3,7 @@ package api
 import (
 	"kgeyst.com/sveta/pkg/common"
 	"kgeyst.com/sveta/pkg/sveta/domain"
+	domainweb "kgeyst.com/sveta/pkg/sveta/domain/aifilters/web"
 	domainwiki "kgeyst.com/sveta/pkg/sveta/domain/aifilters/wiki"
 	"kgeyst.com/sveta/pkg/sveta/infrastructure/aifilters"
 	"kgeyst.com/sveta/pkg/sveta/infrastructure/embed4all"
@@ -10,6 +11,7 @@ import (
 	"kgeyst.com/sveta/pkg/sveta/infrastructure/llms/llama2"
 	"kgeyst.com/sveta/pkg/sveta/infrastructure/llms/logging"
 	"kgeyst.com/sveta/pkg/sveta/infrastructure/llms/solar"
+	infraweb "kgeyst.com/sveta/pkg/sveta/infrastructure/web"
 	infrawiki "kgeyst.com/sveta/pkg/sveta/infrastructure/wiki"
 )
 
@@ -64,7 +66,12 @@ func NewAPI(config *common.Config) API {
 	)
 	promptFormatterForLog := llama2.NewPromptFormatter()
 	newsFilter := aifilters.NewNewsFilter(memoryRepository, memoryFactory, config, logger)
-	htmlFilter := aifilters.NewHTMLFilter(config, logger)
+	webFilter := domainweb.NewWebFilter(
+		infraweb.NewURLFinder(),
+		infraweb.NewPageContentExtractor(),
+		config,
+		logger,
+	)
 	imageFilter := aifilters.NewImageFilter(config, logger)
 	wikiFilter := domainwiki.NewWikiFilter(
 		responseService,
@@ -91,7 +98,7 @@ func NewAPI(config *common.Config) API {
 			aiContext,
 			[]domain.AIFilter{
 				newsFilter,
-				htmlFilter,
+				webFilter,
 				imageFilter,
 				wikiFilter,
 				responseFilter,
