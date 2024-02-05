@@ -9,24 +9,24 @@ import (
 	"kgeyst.com/sveta/pkg/sveta/domain"
 )
 
-type memoryRepository struct {
+type MemoryRepository struct {
 	memories []*domain.Memory
 }
 
-func NewMemoryRepository() domain.MemoryRepository {
-	return &memoryRepository{}
+func NewMemoryRepository() *MemoryRepository {
+	return &MemoryRepository{}
 }
 
-func (r *memoryRepository) NextID() string {
+func (r *MemoryRepository) NextID() string {
 	return uuid.NewString()
 }
 
-func (r *memoryRepository) Store(memory *domain.Memory) error {
+func (r *MemoryRepository) Store(memory *domain.Memory) error {
 	r.memories = append(r.memories, memory)
 	return nil
 }
 
-func (r *memoryRepository) Find(filter domain.MemoryFilter) ([]*domain.Memory, error) {
+func (r *MemoryRepository) Find(filter domain.MemoryFilter) ([]*domain.Memory, error) {
 	if filter.LatestCount < 0 || filter.LatestCount > len(r.memories) {
 		filter.LatestCount = len(r.memories)
 	}
@@ -50,7 +50,7 @@ func (r *memoryRepository) Find(filter domain.MemoryFilter) ([]*domain.Memory, e
 	return result, nil
 }
 
-func (r *memoryRepository) FindByEmbeddings(filter domain.EmbeddingFilter) ([]*domain.Memory, error) {
+func (r *MemoryRepository) FindByEmbeddings(filter domain.EmbeddingFilter) ([]*domain.Memory, error) {
 	var similarities []struct {
 		Memory     *domain.Memory
 		Index      int
@@ -97,7 +97,7 @@ func (r *memoryRepository) FindByEmbeddings(filter domain.EmbeddingFilter) ([]*d
 	return domain.UniqueMemories(result), nil
 }
 
-func (r *memoryRepository) RemoveAll() error {
+func (r *MemoryRepository) RemoveAll() error {
 	var newMems []*domain.Memory
 	for _, mem := range r.memories {
 		if mem.When.IsZero() {

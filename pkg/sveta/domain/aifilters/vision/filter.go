@@ -1,4 +1,4 @@
-package image
+package vision
 
 import (
 	"fmt"
@@ -14,8 +14,8 @@ const couldntLoadImageFormatMessage = "%s Description: \"no description because 
 const imageDescriptionFormatMessage = "%s\nThe description of the picture says: \"%s\"\n%s (when answering, use only the description above and nothing else, but use language which is appropriate for your persona)"
 
 type filter struct {
-	urlFinder               URLFinder
-	visionModel             VisionModel
+	urlFinder               common.URLFinder
+	visionModel             Model
 	whereToRememberedImages map[string]*rememberedImageData
 	logger                  common.Logger
 	memoryDecayDuration     int
@@ -28,8 +28,8 @@ type rememberedImageData struct {
 }
 
 func NewFilter(
-	urlFinder URLFinder,
-	visionModel VisionModel,
+	urlFinder common.URLFinder,
+	visionModel Model,
 	config *common.Config,
 	logger common.Logger,
 ) domain.AIFilter {

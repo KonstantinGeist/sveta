@@ -13,7 +13,7 @@ const couldntLoadURLFormatMessage = "%s Description: \"no description because th
 const urlDescriptionFormatMessage = "%s\nSome content from the link above: \"%s\""
 
 type filter struct {
-	urlFinder            URLFinder
+	urlFinder            common.URLFinder
 	pageContentExtractor PageContentExtractor
 	logger               common.Logger
 	maxContentSize       int
@@ -24,7 +24,7 @@ type filter struct {
 // - only sees the first URL, if there are several URLs in a message
 // - the whole AI agent can crash if the given URL dynamically produces infinite output (see common.ReadAllFromURL)
 func NewFilter(
-	urlFinder URLFinder,
+	urlFinder common.URLFinder,
 	pageContentExtractor PageContentExtractor,
 	config *common.Config,
 	logger common.Logger,

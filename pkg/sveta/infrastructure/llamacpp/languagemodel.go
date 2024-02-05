@@ -34,7 +34,7 @@ const (
 	ConfigKeyLLResponseTimeout = "llmResponseTimeout"
 )
 
-type languageModel struct {
+type LanguageModel struct {
 	logger                 common.Logger
 	name                   string
 	binPath                string
@@ -49,11 +49,15 @@ type languageModel struct {
 	responseTimeout        time.Duration
 }
 
+func (l *LanguageModel) Name() string {
+	return l.name
+}
+
 // NewLanguageModel Creates a language model as implemented by llama.cpp
 // `binPath` specifies the path to the target model relative to the bin folder (llama.cpp supports many models: Llama 2, Mistral, etc.)
 // `config` contains parameters specific to the current GPU (see the constant above)
-func NewLanguageModel(aiContext *domain.AIContext, modelName, binPath string, modes []domain.ResponseMode, promptFormatter domain.PromptFormatter, config *common.Config) domain.LanguageModel {
-	return &languageModel{
+func NewLanguageModel(aiContext *domain.AIContext, modelName, binPath string, modes []domain.ResponseMode, promptFormatter domain.PromptFormatter, config *common.Config) *LanguageModel {
+	return &LanguageModel{
 		name:                   modelName,
 		binPath:                binPath,
 		modes:                  modes,
@@ -68,15 +72,11 @@ func NewLanguageModel(aiContext *domain.AIContext, modelName, binPath string, mo
 	}
 }
 
-func (l *languageModel) Name() string {
-	return l.name
-}
-
-func (l *languageModel) Modes() []domain.ResponseMode {
+func (l *LanguageModel) Modes() []domain.ResponseMode {
 	return l.modes
 }
 
-func (l *languageModel) Complete(prompt string, jsonMode bool) (string, error) {
+func (l *LanguageModel) Complete(prompt string, jsonMode bool) (string, error) {
 	// Only 1 request can be processed at a time currently because we run Sveta on commodity hardware which can't
 	// usually process two requests simultaneously due to low amounts of VRAM.
 	mutex.Lock()
@@ -118,11 +118,11 @@ func (l *languageModel) Complete(prompt string, jsonMode bool) (string, error) {
 	return strings.TrimSpace(output[len(prompt)+1:]), nil
 }
 
-func (l *languageModel) PromptFormatter() domain.PromptFormatter {
+func (l *LanguageModel) PromptFormatter() domain.PromptFormatter {
 	return l.promptFormatter
 }
 
-func (l *languageModel) buildInferCommand(jsonMode bool) (string, error) {
+func (l *LanguageModel) buildInferCommand(jsonMode bool) (string, error) {
 	workingDirectory, err := os.Getwd()
 	if err != nil {
 		return "", err

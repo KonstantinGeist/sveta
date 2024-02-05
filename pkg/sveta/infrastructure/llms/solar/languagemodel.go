@@ -6,7 +6,7 @@ import (
 	"kgeyst.com/sveta/pkg/sveta/infrastructure/llamacpp"
 )
 
-func NewGenericLanguageModel(aiContext *domain.AIContext, config *common.Config) domain.LanguageModel {
+func NewGenericLanguageModel(aiContext *domain.AIContext, config *common.Config) *llamacpp.LanguageModel {
 	return llamacpp.NewLanguageModel(
 		aiContext,
 		"solar-generic",

@@ -3,9 +3,9 @@ package api
 import (
 	"kgeyst.com/sveta/pkg/common"
 	"kgeyst.com/sveta/pkg/sveta/domain"
-	"kgeyst.com/sveta/pkg/sveta/domain/aifilters/image"
 	"kgeyst.com/sveta/pkg/sveta/domain/aifilters/news"
 	"kgeyst.com/sveta/pkg/sveta/domain/aifilters/response"
+	"kgeyst.com/sveta/pkg/sveta/domain/aifilters/vision"
 	domainweb "kgeyst.com/sveta/pkg/sveta/domain/aifilters/web"
 	domainwiki "kgeyst.com/sveta/pkg/sveta/domain/aifilters/wiki"
 	"kgeyst.com/sveta/pkg/sveta/infrastructure/embed4all"
@@ -87,7 +87,7 @@ func NewAPI(config *common.Config) API {
 		logger,
 	)
 	visionModel := llavacpp.NewVisionModel()
-	imageFilter := image.NewFilter(urlFinder, visionModel, config, logger)
+	visionFilter := vision.NewFilter(urlFinder, visionModel, config, logger)
 	wikiFilter := domainwiki.NewFilter(
 		responseService,
 		memoryFactory,
@@ -114,7 +114,7 @@ func NewAPI(config *common.Config) API {
 			[]domain.AIFilter{
 				newsFilter,
 				webFilter,
-				imageFilter,
+				visionFilter,
 				wikiFilter,
 				responseFilter,
 			},

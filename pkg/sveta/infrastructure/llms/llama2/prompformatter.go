@@ -7,21 +7,21 @@ import (
 	"kgeyst.com/sveta/pkg/sveta/infrastructure/llms/common"
 )
 
-type promptFormatter struct{}
+type PromptFormatter struct{}
 
-func NewPromptFormatter() domain.PromptFormatter {
-	return &promptFormatter{}
+func NewPromptFormatter() *PromptFormatter {
+	return &PromptFormatter{}
 }
 
-func (p *promptFormatter) FormatDialog(memories []*domain.Memory) string {
+func (p *PromptFormatter) FormatDialog(memories []*domain.Memory) string {
 	return common.FormatAsAlpacaDialog(memories)
 }
 
-func (p *promptFormatter) FormatAnnouncedTime(t time.Time) string {
+func (p *PromptFormatter) FormatAnnouncedTime(t time.Time) string {
 	// TODO internationalize here and in other such instances as well
 	return common.FormatAnnouncedTimeInEnglish(t)
 }
 
-func (p *promptFormatter) FormatJSONRequest(jsonSchemaQuery string) string {
+func (p *PromptFormatter) FormatJSONRequest(jsonSchemaQuery string) string {
 	return common.FormatJSONRequestInEnglish(jsonSchemaQuery)
 }

@@ -8,16 +8,16 @@ import (
 	"kgeyst.com/sveta/pkg/sveta/domain"
 )
 
-type embedder struct{}
+type Embedder struct{}
 
 // NewEmbedder depends on Python 3 and the Embed4all library.
 // Also, it automatically downloads the sentence_transformers model which is not good for container-native images.
 // TODO use something more robust and controllable, without a dependency on Python 3
-func NewEmbedder() domain.Embedder {
-	return &embedder{}
+func NewEmbedder() *Embedder {
+	return &Embedder{}
 }
 
-func (v *embedder) Embed(sentence string) (domain.Embedding, error) {
+func (v *Embedder) Embed(sentence string) (domain.Embedding, error) {
 	if sentence == "" {
 		return domain.Embedding{}, nil
 	}

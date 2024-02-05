@@ -1,5 +1,5 @@
-package image
+package vision
 
-type VisionModel interface {
+type Model interface {
 	Infer(filePath, prompt string) (string, error)
 }
