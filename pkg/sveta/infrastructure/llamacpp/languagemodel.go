@@ -107,7 +107,7 @@ func (l *LanguageModel) Complete(prompt string, jsonMode bool) (string, error) {
 		// So we ignore it but log it, leaving what has been generated so far intact.
 		_, ok := err.(*exec.ExitError)
 		if !ok {
-			fmt.Println(err)
+			l.logger.Log(err.Error())
 		}
 	}
 	output := buf.String()

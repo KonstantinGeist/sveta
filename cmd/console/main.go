@@ -54,7 +54,7 @@ func mainImpl() error {
 		} else {
 			response, err := sveta.Respond(userName, line, roomName)
 			if err != nil {
-				fmt.Println(err)
+				response = "I'm borked :("
 			}
 			fmt.Println(response)
 		}
