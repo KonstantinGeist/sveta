@@ -53,12 +53,12 @@ func NewFilter(
 	}
 }
 
-func (r *filter) Apply(who, what, where string, nextAIFilterFunc domain.NextAIFilterFunc) (string, error) {
-	err := r.memoryRepository.Store(r.memoryFactory.NewMemory(domain.MemoryTypeDialog, who, what, where))
+func (r *filter) Apply(context domain.AIFilterContext, nextAIFilterFunc domain.NextAIFilterFunc) (string, error) {
+	err := r.memoryRepository.Store(r.memoryFactory.NewMemory(domain.MemoryTypeDialog, context.Who, context.What, context.Where))
 	if err != nil {
 		return "", err
 	}
-	workingMemories, err := r.recallFromWorkingMemory(where)
+	workingMemories, err := r.recallFromWorkingMemory(context.Where)
 	if err != nil {
 		return "", err
 	}
@@ -71,11 +71,11 @@ func (r *filter) Apply(who, what, where string, nextAIFilterFunc domain.NextAIFi
 	if err != nil {
 		return "", err
 	}
-	err = r.memoryRepository.Store(r.memoryFactory.NewMemory(domain.MemoryTypeDialog, r.aiContext.AgentName, response, where))
+	err = r.memoryRepository.Store(r.memoryFactory.NewMemory(domain.MemoryTypeDialog, r.aiContext.AgentName, response, context.Where))
 	if err != nil {
 		return "", err
 	}
-	return nextAIFilterFunc(r.aiContext.AgentName, response, where)
+	return nextAIFilterFunc(domain.NewAIFilterContext(r.aiContext.AgentName, response, context.Where))
 }
 
 // recallFromWorkingMemory finds memories from the so-called "working memory" -- it's simply N latest memories (depends on

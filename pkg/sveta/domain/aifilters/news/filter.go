@@ -34,12 +34,12 @@ func NewFilter(
 	}
 }
 
-func (n *filter) Apply(who, what, where string, nextAIFilterFunc domain.NextAIFilterFunc) (string, error) {
-	if !n.loaded[where] {
-		n.loadNews(where)
-		n.loaded[where] = true
+func (n *filter) Apply(context domain.AIFilterContext, nextAIFilterFunc domain.NextAIFilterFunc) (string, error) {
+	if !n.loaded[context.Where] {
+		n.loadNews(context.Where)
+		n.loaded[context.Where] = true
 	}
-	return nextAIFilterFunc(who, what, where)
+	return nextAIFilterFunc(context)
 }
 
 func (n *filter) loadNews(where string) {

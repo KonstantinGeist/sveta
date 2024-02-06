@@ -37,25 +37,25 @@ func NewFilter(
 	}
 }
 
-func (h *filter) Apply(who, what, where string, nextAIFilterFunc domain.NextAIFilterFunc) (string, error) {
-	urls := h.urlFinder.FindURLs(what)
+func (h *filter) Apply(context domain.AIFilterContext, nextAIFilterFunc domain.NextAIFilterFunc) (string, error) {
+	urls := h.urlFinder.FindURLs(context.What)
 	if len(urls) == 0 {
-		return nextAIFilterFunc(who, what, where)
+		return nextAIFilterFunc(context)
 	}
 	url := urls[0]                 // let's do it with only one URL so far (a known limitation)
 	if common.IsImageFormat(url) { // for images, we have ImageFilter
-		return nextAIFilterFunc(who, what, where)
+		return nextAIFilterFunc(context)
 	}
 	pageContent, err := h.pageContentExtractor.ExtractPageContentFromURL(url)
 	if err != nil {
 		// It's important to add `couldntLoadURLFormatMessage` so that the main LLM correctly respond that the URL doesn't load.
-		return nextAIFilterFunc(who, fmt.Sprintf(couldntLoadURLFormatMessage, what), where)
+		return nextAIFilterFunc(context.WithWhat(fmt.Sprintf(couldntLoadURLFormatMessage, context.What)))
 	}
 	pageContent = h.processPageContent(pageContent)
 	if pageContent == "" {
-		return nextAIFilterFunc(who, fmt.Sprintf(couldntLoadURLFormatMessage, what), where)
+		return nextAIFilterFunc(context.WithWhat(fmt.Sprintf(couldntLoadURLFormatMessage, context.What)))
 	}
-	return nextAIFilterFunc(who, fmt.Sprintf(urlDescriptionFormatMessage, what, pageContent), where)
+	return nextAIFilterFunc(context.WithWhat(fmt.Sprintf(urlDescriptionFormatMessage, context.What, pageContent)))
 }
 
 func (h *filter) processPageContent(pageContent string) string {

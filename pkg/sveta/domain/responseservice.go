@@ -64,7 +64,7 @@ func (r *ResponseService) RespondToMemoriesWithText(memories []*Memory, response
 	)
 	return r.complete(
 		dialogPrompt,
-		CompleteOptions{},
+		DefaultCompleteOptions,
 		memories,
 		languageModel,
 	)
@@ -89,7 +89,7 @@ func (r *ResponseService) RespondToQueryWithJSON(query string, jsonObject any) e
 	)
 	response, err := r.complete(
 		dialogPrompt,
-		CompleteOptions{JSONMode: true},
+		CompleteOptionsWithJSONMode,
 		queryMemories,
 		languageModel,
 	)

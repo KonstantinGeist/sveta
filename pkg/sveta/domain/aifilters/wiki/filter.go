@@ -41,48 +41,48 @@ func NewFilter(
 	}
 }
 
-func (w *filter) Apply(who, what, where string, nextAIFilterFunc domain.NextAIFilterFunc) (string, error) {
-	if utf8.RuneCountInString(what) < w.messageSizeThreshold {
-		return nextAIFilterFunc(who, what, where)
+func (w *filter) Apply(context domain.AIFilterContext, nextAIFilterFunc domain.NextAIFilterFunc) (string, error) {
+	if utf8.RuneCountInString(context.What) < w.messageSizeThreshold {
+		return nextAIFilterFunc(context)
 	}
 	var output struct {
 		Reasoning   string `json:"reasoning"`
 		ArticleName string `json:"articleName"`
 	}
-	err := w.getWikiResponseService().RespondToQueryWithJSON(w.formatQuery(what), &output)
+	err := w.getWikiResponseService().RespondToQueryWithJSON(w.formatQuery(context.What), &output)
 	if err != nil {
 		w.logger.Log(err.Error())
-		return nextAIFilterFunc(who, what, where)
+		return nextAIFilterFunc(context)
 	}
 	if output.ArticleName == "" {
 		w.logger.Log("article name not found")
-		return nextAIFilterFunc(who, what, where)
+		return nextAIFilterFunc(context)
 	}
 	output.ArticleName = w.fixArticleName(output.ArticleName)
 	articleNames, err := w.articleProvider.Search(output.ArticleName, w.maxArticleCount)
 	if err != nil {
 		w.logger.Log(err.Error())
-		return nextAIFilterFunc(who, what, where)
+		return nextAIFilterFunc(context)
 	}
 	for _, articleName := range articleNames {
 		summary, err := w.articleProvider.GetSummary(articleName, w.maxArticleSentenceCount)
 		if err != nil {
 			w.logger.Log(err.Error())
-			return nextAIFilterFunc(who, what, where)
+			return nextAIFilterFunc(context)
 		}
 		if summary == "" {
 			continue
 		}
 		summary = "\"" + summary + "\""
-		if !w.memoryExists(summary, where) {
-			err = w.storeMemory(summary, where)
+		if !w.memoryExists(summary, context.Where) {
+			err = w.storeMemory(summary, context.Where)
 			if err != nil {
 				w.logger.Log(err.Error())
 				return "", err
 			}
 		}
 	}
-	return nextAIFilterFunc(who, what, where)
+	return nextAIFilterFunc(context)
 }
 
 func (w *filter) storeMemory(what, where string) error {

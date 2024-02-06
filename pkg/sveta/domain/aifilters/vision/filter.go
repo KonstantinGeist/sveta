@@ -42,32 +42,32 @@ func NewFilter(
 	}
 }
 
-func (i *filter) Apply(who, what, where string, nextAIFilterFunc domain.NextAIFilterFunc) (string, error) {
+func (i *filter) Apply(context domain.AIFilterContext, nextAIFilterFunc domain.NextAIFilterFunc) (string, error) {
 	var err error
-	rememberedImage := i.getRememberedImage(where)
-	whatWithoutURL := what // first initialization, will be changed later
-	urls := i.urlFinder.FindURLs(what)
+	rememberedImage := i.getRememberedImage(context.Where)
+	whatWithoutURL := context.What // first initialization, will be changed later
+	urls := i.urlFinder.FindURLs(context.What)
 	if len(urls) != 0 {
 		url := urls[0] // let's do it with only one image so far
 		if !common.IsImageFormat(url) {
-			return nextAIFilterFunc(who, what, where)
+			return nextAIFilterFunc(context)
 		}
-		rememberedImage, err = i.rememberImage(where, url)
+		rememberedImage, err = i.rememberImage(context.Where, url)
 		if err != nil {
 			i.logger.Log(err.Error())
-			return nextAIFilterFunc(who, fmt.Sprintf(couldntLoadImageFormatMessage, what), where)
+			return nextAIFilterFunc(context.WithWhat(fmt.Sprintf(couldntLoadImageFormatMessage, context.What)))
 		}
-		whatWithoutURL = i.removeURL(what, url)
+		whatWithoutURL = i.removeURL(context.What, url)
 	}
 	if rememberedImage == nil || !rememberedImage.fileExists() {
-		return nextAIFilterFunc(who, what, where)
+		return nextAIFilterFunc(context)
 	}
-	response, err := i.visionModel.Infer(rememberedImage.FilePath, what)
+	response, err := i.visionModel.Infer(rememberedImage.FilePath, context.What)
 	if err != nil {
 		i.logger.Log(err.Error())
-		return nextAIFilterFunc(who, fmt.Sprintf(couldntLoadImageFormatMessage, what), where)
+		return nextAIFilterFunc(context.WithWhat(fmt.Sprintf(couldntLoadImageFormatMessage, context.What)))
 	}
-	return nextAIFilterFunc(who, fmt.Sprintf(imageDescriptionFormatMessage, rememberedImage.OriginalURL, response, whatWithoutURL), where)
+	return nextAIFilterFunc(context.WithWhat(fmt.Sprintf(imageDescriptionFormatMessage, rememberedImage.OriginalURL, response, whatWithoutURL)))
 }
 
 func (i *filter) getRememberedImage(where string) *rememberedImageData {

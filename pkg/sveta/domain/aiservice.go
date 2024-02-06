@@ -32,7 +32,7 @@ func NewAIService(
 func (a *AIService) Respond(who, what, where string) (string, error) {
 	a.mutex.Lock()
 	defer a.mutex.Unlock()
-	return a.applyAIFilterAtIndex(who, what, where, 0)
+	return a.applyAIFilterAtIndex(NewAIFilterContext(who, what, where), 0)
 }
 
 // RememberAction see API.RememberAction
@@ -66,16 +66,16 @@ func (a *AIService) ChangeAgentDescription(context string) error {
 	return nil
 }
 
-func (a *AIService) applyAIFilterAtIndex(who, what, where string, index int) (string, error) {
+func (a *AIService) applyAIFilterAtIndex(context AIFilterContext, index int) (string, error) {
 	var nextAIFilterFunc NextAIFilterFunc
 	if index < len(a.aiFilters)-1 {
-		nextAIFilterFunc = func(who, what, where string) (string, error) {
-			return a.applyAIFilterAtIndex(who, what, where, index+1)
+		nextAIFilterFunc = func(context AIFilterContext) (string, error) {
+			return a.applyAIFilterAtIndex(context, index+1)
 		}
 	} else {
-		nextAIFilterFunc = func(who, what, where string) (string, error) {
-			return what, nil
+		nextAIFilterFunc = func(context AIFilterContext) (string, error) {
+			return context.What, nil
 		}
 	}
-	return a.aiFilters[index].Apply(who, what, where, nextAIFilterFunc)
+	return a.aiFilters[index].Apply(context, nextAIFilterFunc)
 }
