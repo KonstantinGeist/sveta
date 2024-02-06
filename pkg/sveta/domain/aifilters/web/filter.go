@@ -10,7 +10,7 @@ import (
 
 // TODO internationalize
 const couldntLoadURLFormatMessage = "%s Description: \"no description because the URL failed to load\""
-const urlDescriptionFormatMessage = "%s\nSome content from the link above: \"%s\""
+const urlDescriptionFormatMessage = "%s\nContext found at the URL: \"%s\"\nQuery: \"%s\" (answer using the provided context, but slightly reformulate it in the language of your persona)"
 
 type filter struct {
 	urlFinder            common.URLFinder
@@ -37,8 +37,8 @@ func NewFilter(
 	}
 }
 
-func (h *filter) Apply(context domain.AIFilterContext, nextAIFilterFunc domain.NextAIFilterFunc) (string, error) {
-	urls := h.urlFinder.FindURLs(context.What)
+func (f *filter) Apply(context domain.AIFilterContext, nextAIFilterFunc domain.NextAIFilterFunc) (string, error) {
+	urls := f.urlFinder.FindURLs(context.What)
 	if len(urls) == 0 {
 		return nextAIFilterFunc(context)
 	}
@@ -46,23 +46,28 @@ func (h *filter) Apply(context domain.AIFilterContext, nextAIFilterFunc domain.N
 	if common.IsImageFormat(url) { // for images, we have ImageFilter
 		return nextAIFilterFunc(context)
 	}
-	pageContent, err := h.pageContentExtractor.ExtractPageContentFromURL(url)
+	pageContent, err := f.pageContentExtractor.ExtractPageContentFromURL(url)
 	if err != nil {
 		// It's important to add `couldntLoadURLFormatMessage` so that the main LLM correctly respond that the URL doesn't load.
 		return nextAIFilterFunc(context.WithWhat(fmt.Sprintf(couldntLoadURLFormatMessage, context.What)))
 	}
-	pageContent = h.processPageContent(pageContent)
+	pageContent = f.processPageContent(pageContent)
 	if pageContent == "" {
 		return nextAIFilterFunc(context.WithWhat(fmt.Sprintf(couldntLoadURLFormatMessage, context.What)))
 	}
-	return nextAIFilterFunc(context.WithWhat(fmt.Sprintf(urlDescriptionFormatMessage, context.What, pageContent)))
+	whatWithoutURL := f.removeURL(context.What, url)
+	return nextAIFilterFunc(context.WithWhat(fmt.Sprintf(urlDescriptionFormatMessage, url, pageContent, whatWithoutURL)))
 }
 
-func (h *filter) processPageContent(pageContent string) string {
-	if len(pageContent) > h.maxContentSize {
-		pageContent = pageContent[0:h.maxContentSize]
+func (f *filter) processPageContent(pageContent string) string {
+	if len(pageContent) > f.maxContentSize {
+		pageContent = pageContent[0:f.maxContentSize]
 	}
 	pageContent = strings.ReplaceAll(pageContent, "\n", " ")
 	pageContent = strings.ReplaceAll(pageContent, "\r", "")
 	return strings.TrimSpace(pageContent)
+}
+
+func (f *filter) removeURL(what, url string) string {
+	return strings.TrimSpace(strings.ReplaceAll(what, url, ""))
 }

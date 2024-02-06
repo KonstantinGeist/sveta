@@ -53,62 +53,62 @@ func NewFilter(
 	}
 }
 
-func (r *filter) Apply(context domain.AIFilterContext, nextAIFilterFunc domain.NextAIFilterFunc) (string, error) {
-	err := r.memoryRepository.Store(r.memoryFactory.NewMemory(domain.MemoryTypeDialog, context.Who, context.What, context.Where))
+func (f *filter) Apply(context domain.AIFilterContext, nextAIFilterFunc domain.NextAIFilterFunc) (string, error) {
+	err := f.memoryRepository.Store(f.memoryFactory.NewMemory(domain.MemoryTypeDialog, context.Who, context.What, context.Where))
 	if err != nil {
 		return "", err
 	}
-	workingMemories, err := r.recallFromWorkingMemory(context.Where)
+	workingMemories, err := f.recallFromWorkingMemory(context.Where)
 	if err != nil {
 		return "", err
 	}
-	episodicMemories, err := r.recallFromEpisodicMemory(workingMemories)
+	episodicMemories, err := f.recallFromEpisodicMemory(workingMemories)
 	if err != nil {
 		return "", err
 	}
 	memories := domain.MergeMemories(episodicMemories, workingMemories...)
-	response, err := r.responseService.RespondToMemoriesWithText(memories, domain.ResponseModeNormal)
+	response, err := f.responseService.RespondToMemoriesWithText(memories, domain.ResponseModeNormal)
 	if err != nil {
 		return "", err
 	}
-	err = r.memoryRepository.Store(r.memoryFactory.NewMemory(domain.MemoryTypeDialog, r.aiContext.AgentName, response, context.Where))
+	err = f.memoryRepository.Store(f.memoryFactory.NewMemory(domain.MemoryTypeDialog, f.aiContext.AgentName, response, context.Where))
 	if err != nil {
 		return "", err
 	}
-	return nextAIFilterFunc(domain.NewAIFilterContext(r.aiContext.AgentName, response, context.Where))
+	return nextAIFilterFunc(domain.NewAIFilterContext(f.aiContext.AgentName, response, context.Where))
 }
 
 // recallFromWorkingMemory finds memories from the so-called "working memory" -- it's simply N latest memories (depends on
 // `workingMemorySize` specified in the context). Working memory is the basis for building proper dialog contexts
 // (so that AI could hold continuous dialogs).
-func (r *filter) recallFromWorkingMemory(where string) ([]*domain.Memory, error) {
+func (f *filter) recallFromWorkingMemory(where string) ([]*domain.Memory, error) {
 	// Note that we don't want to recall the latest entries if they're too old (they're most likely already irrelevant).
-	notOlderThan := time.Now().Add(-r.workingMemoryMaxAge)
-	return r.memoryRepository.Find(domain.MemoryFilter{
+	notOlderThan := time.Now().Add(-f.workingMemoryMaxAge)
+	return f.memoryRepository.Find(domain.MemoryFilter{
 		Types:        []domain.MemoryType{domain.MemoryTypeDialog, domain.MemoryTypeAction},
 		Where:        where,
-		LatestCount:  r.workingMemorySize,
+		LatestCount:  f.workingMemorySize,
 		NotOlderThan: &notOlderThan,
 	})
 }
 
 // recallFromEpisodicMemory finds memories in the so-called "episodic memory", or long-term memory which may contain memories from long ago
-func (r *filter) recallFromEpisodicMemory(workingMemories []*domain.Memory) ([]*domain.Memory, error) {
+func (f *filter) recallFromEpisodicMemory(workingMemories []*domain.Memory) ([]*domain.Memory, error) {
 	if len(workingMemories) == 0 {
 		return nil, nil
 	}
 	latestMemory := workingMemories[len(workingMemories)-1] // let's recall based on the latest memory
-	embeddingsToSearch := r.getHypotheticalEmbeddings(latestMemory.What)
+	embeddingsToSearch := f.getHypotheticalEmbeddings(latestMemory.What)
 	if latestMemory.Embedding != nil {
 		embeddingsToSearch = append(embeddingsToSearch, *latestMemory.Embedding)
 	}
-	episodicMemories, err := r.memoryRepository.FindByEmbeddings(domain.EmbeddingFilter{
+	episodicMemories, err := f.memoryRepository.FindByEmbeddings(domain.EmbeddingFilter{
 		Where:               latestMemory.Where,
 		Embeddings:          embeddingsToSearch,
-		TopCount:            r.episodicMemoryFirstStageTopCount,
-		SurroundingCount:    r.episodicMemorySurroundingCount,
+		TopCount:            f.episodicMemoryFirstStageTopCount,
+		SurroundingCount:    f.episodicMemorySurroundingCount,
 		ExcludedIDs:         domain.GetMemoryIDs(workingMemories), // don't recall what's already in the input
-		SimilarityThreshold: r.episodicMemorySimilarityThreshold,
+		SimilarityThreshold: f.episodicMemorySimilarityThreshold,
 	})
 	if err != nil {
 		return nil, err
@@ -116,11 +116,11 @@ func (r *filter) recallFromEpisodicMemory(workingMemories []*domain.Memory) ([]*
 	if len(episodicMemories) == 0 {
 		return nil, nil
 	}
-	episodicMemories = r.rankMemoriesAndGetTopN(episodicMemories, latestMemory.What, latestMemory.Where)
+	episodicMemories = f.rankMemoriesAndGetTopN(episodicMemories, latestMemory.What, latestMemory.Where)
 	if len(episodicMemories) == 0 {
 		return nil, nil
 	}
-	dialogForLog := r.promptFormatterForLog.FormatDialog(domain.FilterMemoriesByTypes(episodicMemories, []domain.MemoryType{domain.MemoryTypeDialog, domain.MemoryTypeAction}))
-	r.logger.Log(fmt.Sprintf("\n======\nRecalled context:\n%s\n========\n", dialogForLog))
+	dialogForLog := f.promptFormatterForLog.FormatDialog(domain.FilterMemoriesByTypes(episodicMemories, []domain.MemoryType{domain.MemoryTypeDialog, domain.MemoryTypeAction}))
+	f.logger.Log(fmt.Sprintf("\n======\nRecalled context:\n%s\n========\n", dialogForLog))
 	return episodicMemories, nil
 }

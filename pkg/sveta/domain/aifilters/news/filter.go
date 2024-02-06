@@ -34,28 +34,28 @@ func NewFilter(
 	}
 }
 
-func (n *filter) Apply(context domain.AIFilterContext, nextAIFilterFunc domain.NextAIFilterFunc) (string, error) {
-	if !n.loaded[context.Where] {
-		n.loadNews(context.Where)
-		n.loaded[context.Where] = true
+func (f *filter) Apply(context domain.AIFilterContext, nextAIFilterFunc domain.NextAIFilterFunc) (string, error) {
+	if !f.loaded[context.Where] {
+		f.loadNews(context.Where)
+		f.loaded[context.Where] = true
 	}
 	return nextAIFilterFunc(context)
 }
 
-func (n *filter) loadNews(where string) {
-	newsItems, err := n.provider.GetNews(n.maxNewsCount)
+func (f *filter) loadNews(where string) {
+	newsItems, err := f.provider.GetNews(f.maxNewsCount)
 	if err != nil {
-		n.logger.Log("failed to load news")
+		f.logger.Log("failed to load news")
 		return
 	}
 	for index, newsItem := range newsItems {
 		line := fmt.Sprintf("Published Date: %s. Title: \"%s\". Description: \"%s\"", newsItem.PublishedDate, newsItem.Title, newsItem.Description)
-		n.logger.Log(fmt.Sprintf("Loading news #%d...\n", index))
-		memory := n.memoryFactory.NewMemory(domain.MemoryTypeDialog, "News", line, where)
+		f.logger.Log(fmt.Sprintf("Loading news #%d...\n", index))
+		memory := f.memoryFactory.NewMemory(domain.MemoryTypeDialog, "News", line, where)
 		memory.When = time.Time{}
-		err = n.memoryRepository.Store(memory)
+		err = f.memoryRepository.Store(memory)
 		if err != nil {
-			n.logger.Log("failed to store news as memory")
+			f.logger.Log("failed to store news as memory")
 			return
 		}
 	}
