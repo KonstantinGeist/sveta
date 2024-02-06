@@ -32,8 +32,8 @@ func NewFilter(
 	responseService *domain.ResponseService,
 	embedder domain.Embedder,
 	promptFormatterForLog domain.PromptFormatter,
-	logger common.Logger,
 	config *common.Config,
+	logger common.Logger,
 ) domain.AIFilter {
 	return &filter{
 		aiContext:                         aiContext,

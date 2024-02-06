@@ -78,6 +78,11 @@ func (c *Config) GetFloatOrDefault(key string, defaultValue float64) float64 {
 	return floatValue
 }
 
+// GetFloat same as GetFloatOrDefault except if nothing is found, returns 0.0
+func (c *Config) GetFloat(key string) float64 {
+	return c.GetFloatOrDefault(key, 0.0)
+}
+
 // GetDurationOrDefault returns a duration-typed parameter. If nothing is found, or if the value cannot be parsed as a duration
 // (i.e. an integer which specifies milliseconds), returns `defaultValue`.
 func (c *Config) GetDurationOrDefault(key string, defaultValue time.Duration) time.Duration {

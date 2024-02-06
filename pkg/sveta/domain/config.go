@@ -30,4 +30,8 @@ const (
 	// ConfigKeyResponseRetryCount how many times we should try retrieve an answer from an LLM in case it fails for some reason,
 	// before we finally return an error.
 	ConfigKeyResponseRetryCount = "responseRetryCount"
+	// ConfigKeyResponseTextTemperature specifies the default temperature for text-based completions
+	ConfigKeyResponseTextTemperature = "responseTextTemperature"
+	// ConfigKeyResponseJSONTemperature specifies the default temperature for completions in JSON mode
+	ConfigKeyResponseJSONTemperature = "responseJSONTemperature"
 )

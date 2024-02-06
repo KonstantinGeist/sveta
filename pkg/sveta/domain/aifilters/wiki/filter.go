@@ -26,8 +26,8 @@ func NewFilter(
 	memoryFactory domain.MemoryFactory,
 	memoryRepository domain.MemoryRepository,
 	articleProvider ArticleProvider,
-	logger common.Logger,
 	config *common.Config,
+	logger common.Logger,
 ) domain.AIFilter {
 	return &filter{
 		responseService:         responseService,

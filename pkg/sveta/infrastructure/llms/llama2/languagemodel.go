@@ -6,7 +6,7 @@ import (
 	"kgeyst.com/sveta/pkg/sveta/infrastructure/llamacpp"
 )
 
-func NewRoleplayLanguageModel(aiContext *domain.AIContext, config *common.Config) *llamacpp.LanguageModel {
+func NewRoleplayLanguageModel(aiContext *domain.AIContext, config *common.Config, logger common.Logger) *llamacpp.LanguageModel {
 	return llamacpp.NewLanguageModel(
 		aiContext,
 		"llama2-roleplay",
@@ -14,5 +14,6 @@ func NewRoleplayLanguageModel(aiContext *domain.AIContext, config *common.Config
 		[]domain.ResponseMode{domain.ResponseModeNormal},
 		NewPromptFormatter(),
 		config,
+		logger,
 	)
 }

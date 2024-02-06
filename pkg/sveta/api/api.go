@@ -55,8 +55,8 @@ func NewAPI(config *common.Config) API {
 	logger := common.NewFileLogger(config.GetStringOrDefault(ConfigKeyLogPath, "log.txt"))
 	embedder := embed4all.NewEmbedder()
 	aiContext := domain.NewAIContextFromConfig(config)
-	roleplayLLama2Model := logging.NewLanguageModelDecorator(llama2.NewRoleplayLanguageModel(aiContext, config), logger)
-	genericSolarModel := logging.NewLanguageModelDecorator(solar.NewGenericLanguageModel(aiContext, config), logger)
+	roleplayLLama2Model := logging.NewLanguageModelDecorator(llama2.NewRoleplayLanguageModel(aiContext, config, logger), logger)
+	genericSolarModel := logging.NewLanguageModelDecorator(solar.NewGenericLanguageModel(aiContext, config, logger), logger)
 	languageModelSelector := domain.NewLanguageModelSelector([]domain.LanguageModel{genericSolarModel, roleplayLLama2Model})
 	memoryRepository := inmemory.NewMemoryRepository()
 	memoryFactory := inmemory.NewMemoryFactory(memoryRepository, embedder)
@@ -93,8 +93,8 @@ func NewAPI(config *common.Config) API {
 		memoryFactory,
 		memoryRepository,
 		infrawiki.NewArticleProvider(),
-		logger,
 		config,
+		logger,
 	)
 	responseFilter := response.NewFilter(
 		aiContext,
@@ -103,8 +103,8 @@ func NewAPI(config *common.Config) API {
 		responseService,
 		embedder,
 		promptFormatterForLog,
-		logger,
 		config,
+		logger,
 	)
 	return &api{
 		aiService: domain.NewAIService(

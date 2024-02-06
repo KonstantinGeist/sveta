@@ -1,13 +1,5 @@
 package domain
 
-var DefaultCompleteOptions = CompleteOptions{}
-var CompleteOptionsWithJSONMode = CompleteOptions{JSONMode: true}
-
-type CompleteOptions struct {
-	// JSONMode makes sure the output will be a syntactically valid JSON (grammar-restricted completion)
-	JSONMode bool
-}
-
 // LanguageModel a generic interface for a large language model (LLM).
 type LanguageModel interface {
 	// Name the name of the model. Useful for debugging.

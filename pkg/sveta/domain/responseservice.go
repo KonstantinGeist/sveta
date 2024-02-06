@@ -20,6 +20,8 @@ type ResponseService struct {
 	memoryFactory         MemoryFactory
 	logger                common.Logger
 	retryCount            int
+	textTemperature       float64
+	jsonTemperature       float64
 }
 
 func NewResponseService(
@@ -37,6 +39,8 @@ func NewResponseService(
 		memoryFactory:         memoryFactory,
 		logger:                logger,
 		retryCount:            config.GetIntOrDefault(ConfigKeyResponseRetryCount, 3),
+		textTemperature:       config.GetFloat(ConfigKeyResponseTextTemperature),
+		jsonTemperature:       config.GetFloat(ConfigKeyResponseJSONTemperature),
 	}
 }
 
@@ -64,7 +68,7 @@ func (r *ResponseService) RespondToMemoriesWithText(memories []*Memory, response
 	)
 	return r.complete(
 		dialogPrompt,
-		DefaultCompleteOptions,
+		DefaultCompleteOptions.WithTemperature(r.textTemperature),
 		memories,
 		languageModel,
 	)
@@ -89,7 +93,7 @@ func (r *ResponseService) RespondToQueryWithJSON(query string, jsonObject any) e
 	)
 	response, err := r.complete(
 		dialogPrompt,
-		CompleteOptionsWithJSONMode,
+		DefaultCompleteOptions.WithJSONMode(true).WithTemperature(r.jsonTemperature),
 		queryMemories,
 		languageModel,
 	)

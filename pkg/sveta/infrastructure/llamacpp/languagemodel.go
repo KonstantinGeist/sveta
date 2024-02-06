@@ -20,8 +20,8 @@ var errUnexpectedModelOutput = errors.New("unexpected model output")
 var mutex sync.Mutex
 
 const (
-	// ConfigKeyLLMTemperature how creative the output is
-	ConfigKeyLLMTemperature = "llmTemperature"
+	// ConfigKeyLLMDefaultTemperature how creative the output is
+	ConfigKeyLLMDefaultTemperature = "llmDefaultTemperature"
 	// ConfigKeyLLMContextSize the size of the context
 	ConfigKeyLLMContextSize = "llmContextSize"
 	// ConfigKeyLLMCPUThreadCount the number of CPUs used during inference
@@ -41,7 +41,7 @@ type LanguageModel struct {
 	responseModes          []domain.ResponseMode
 	promptFormatter        domain.PromptFormatter
 	agentNameWithDelimiter string
-	temperature            float64
+	defaultTemperature     float64
 	contextSize            int
 	gpuLayerCount          int
 	cpuThreadCount         int
@@ -56,14 +56,23 @@ func (l *LanguageModel) Name() string {
 // NewLanguageModel Creates a language model as implemented by llama.cpp
 // `binPath` specifies the path to the target model relative to the bin folder (llama.cpp supports many models: Llama 2, Mistral, etc.)
 // `config` contains parameters specific to the current GPU (see the constant above)
-func NewLanguageModel(aiContext *domain.AIContext, modelName, binPath string, responseModes []domain.ResponseMode, promptFormatter domain.PromptFormatter, config *common.Config) *LanguageModel {
+func NewLanguageModel(
+	aiContext *domain.AIContext,
+	modelName,
+	binPath string,
+	responseModes []domain.ResponseMode,
+	promptFormatter domain.PromptFormatter,
+	config *common.Config,
+	logger common.Logger,
+) *LanguageModel {
 	return &LanguageModel{
 		name:                   modelName,
 		binPath:                binPath,
 		responseModes:          responseModes,
 		promptFormatter:        promptFormatter,
 		agentNameWithDelimiter: getAgentNameWithDelimiter(aiContext, promptFormatter),
-		temperature:            config.GetFloatOrDefault(ConfigKeyLLMTemperature, 0.7),
+		logger:                 logger,
+		defaultTemperature:     config.GetFloatOrDefault(ConfigKeyLLMDefaultTemperature, 0.7),
 		contextSize:            config.GetIntOrDefault(ConfigKeyLLMContextSize, 4096),
 		gpuLayerCount:          config.GetIntOrDefault(ConfigKeyLLMGPULayerCount, 40),
 		cpuThreadCount:         config.GetIntOrDefault(ConfigKeyLLMCPUThreadCount, 6),
@@ -138,9 +147,10 @@ func (l *LanguageModel) buildInferCommand(options domain.CompleteOptions) (strin
 		l.cpuThreadCount,
 		l.gpuLayerCount,
 		l.contextSize,
-		l.temperature,
+		options.TemperatureOrDefault(l.defaultTemperature),
 		l.repeatPenalty,
 	)
+	l.logger.Log(fmt.Sprintf("llama.cpp command: \"%s\"", result))
 	return result, nil
 }
 

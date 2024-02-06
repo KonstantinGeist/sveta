@@ -10,7 +10,9 @@ episodicMemorySecondStageTopCount: 3
 episodicMemorySimilarityThreshold: 0.1
 rankerMaxMemorySize: 500
 responseRetryCount: 3
-llmTemperature: 0.7
+responseTextTemperature: 0.7
+responseJSONTemperature: 0.3
+llmDefaultTemperature: 0.7
 llmContextSize: 4096
 llmGPULayerCount: 35
 llmCPUThreadCount: 6
