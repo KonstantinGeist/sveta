@@ -92,7 +92,7 @@ func (w *filter) storeMemory(what, where string) error {
 }
 
 func (w *filter) getWikiResponseService() *domain.ResponseService {
-	wikiAIContext := domain.NewAIContext("WikiLLM", "You're WikiLLM, an intelligent assistant which can find the best Wiki article for the given topic.")
+	wikiAIContext := domain.NewAIContext("WikiLLM", "You're WikiLLM, an intelligent assistant which can find the best Wiki article for the given topic.", "")
 	return w.responseService.WithAIContext(wikiAIContext)
 }
 

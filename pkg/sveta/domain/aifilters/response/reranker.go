@@ -42,7 +42,7 @@ func (f *filter) rankMemoriesAndGetTopN(memories []*domain.Memory, what, where s
 
 func (f *filter) getRankerResponseService() *domain.ResponseService {
 	// TODO internationalize
-	rankerAIContext := domain.NewAIContext("RankLLM", "You're RankLLM, an intelligent assistant that can rank passages based on their relevancy to the query.")
+	rankerAIContext := domain.NewAIContext("RankLLM", "You're RankLLM, an intelligent assistant that can rank passages based on their relevancy to the query.", "")
 	return f.responseService.WithAIContext(rankerAIContext)
 }
 

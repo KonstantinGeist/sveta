@@ -106,8 +106,13 @@ func (r *ResponseService) RespondToQueryWithJSON(query string, jsonObject any) e
 // generatePromptEndMemories creates a hanging "Sveta:" and the like, to make the completion engine produce the expected answer
 // on the AI agent's behalf.
 func (r *ResponseService) generatePromptEndMemories() []*Memory {
+	agentName := r.aiContext.AgentName
+	if r.aiContext.AgentDescriptionReminder != "" {
+		// TODO internationalize
+		agentName = fmt.Sprintf("%s (%s)", agentName, r.aiContext.AgentDescriptionReminder)
+	}
 	return []*Memory{
-		r.memoryFactory.NewMemory(MemoryTypeDialog, r.aiContext.AgentName, "", ""),
+		r.memoryFactory.NewMemory(MemoryTypeDialog, agentName, "", ""),
 	}
 }
 

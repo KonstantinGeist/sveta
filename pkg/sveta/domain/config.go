@@ -7,6 +7,8 @@ const (
 	ConfigKeyAgentName = "agentName"
 	// ConfigKeyAgentDescription a short description of the AI agent which helps it understand how it should behave
 	ConfigKeyAgentDescription = "agentDescription"
+	// ConfigKeyAgentDescriptionReminder often, a language model fails to follow the instruction set in the beginning, so we have to remind about it
+	ConfigKeyAgentDescriptionReminder = "agentDescriptionReminder"
 	// ConfigKeyLogPath file path where to save the logs
 	ConfigKeyLogPath = "logPath"
 	// ConfigKeyWorkingMemorySize the maximum number of latest dialog lines which should be considered as part of
