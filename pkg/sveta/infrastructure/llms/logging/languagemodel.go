@@ -24,14 +24,14 @@ func (l *languageModelDecorator) Name() string {
 	return l.wrappedLanguageModel.Name()
 }
 
-func (l *languageModelDecorator) Modes() []domain.ResponseMode {
-	return l.wrappedLanguageModel.Modes()
+func (l *languageModelDecorator) ResponseModes() []domain.ResponseMode {
+	return l.wrappedLanguageModel.ResponseModes()
 }
 
-func (l *languageModelDecorator) Complete(prompt string, jsonMode bool) (string, error) {
+func (l *languageModelDecorator) Complete(prompt string, options domain.CompleteOptions) (string, error) {
 	l.logger.Log(fmt.Sprintf("\n================\n raw prompt (using '%s'):\n%s\n================\n\n", l.Name(), prompt))
 	t := time.Now()
-	response, err := l.wrappedLanguageModel.Complete(prompt, jsonMode)
+	response, err := l.wrappedLanguageModel.Complete(prompt, options)
 	if err != nil {
 		return "", err
 	}

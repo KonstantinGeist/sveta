@@ -10,8 +10,8 @@ func NewLanguageModelSelector(languageModels []LanguageModel) *LanguageModelSele
 	modesToLanguageModels := make(map[ResponseMode][]LanguageModel)
 	modesToLanguageModelIndices := make(map[ResponseMode]int)
 	for _, languageModel := range languageModels {
-		for _, modes := range languageModel.Modes() {
-			modesToLanguageModels[modes] = append(modesToLanguageModels[modes], languageModel)
+		for _, responseModes := range languageModel.ResponseModes() {
+			modesToLanguageModels[responseModes] = append(modesToLanguageModels[responseModes], languageModel)
 		}
 	}
 	for _, responseMode := range ResponseModes {

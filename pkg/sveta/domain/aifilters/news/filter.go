@@ -45,7 +45,7 @@ func (n *filter) Apply(who, what, where string, nextAIFilterFunc domain.NextAIFi
 func (n *filter) loadNews(where string) {
 	newsItems, err := n.provider.GetNews(n.maxNewsCount)
 	if err != nil {
-		n.logger.Log("failed to load news from the URL")
+		n.logger.Log("failed to load news")
 		return
 	}
 	for index, newsItem := range newsItems {

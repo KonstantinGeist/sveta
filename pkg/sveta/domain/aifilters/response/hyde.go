@@ -6,7 +6,7 @@ import (
 	"kgeyst.com/sveta/pkg/sveta/domain"
 )
 
-// getHypotheticalEmbeddings an implementation of Hypothetical Document Embeddings (HyDE)
+// getHypotheticalEmbeddings a combination of Hypothetical Document Embeddings (HyDE) + Rewrite-Retrieve-Read
 func (r *filter) getHypotheticalEmbeddings(what string) []domain.Embedding {
 	if !r.isQuestion(what) { // don't use HyDE for statements -- usually it doesn't work, especially if it's just a casual conversation
 		embedding := r.getEmbedding(what)

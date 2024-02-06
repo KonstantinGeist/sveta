@@ -62,7 +62,12 @@ func (r *ResponseService) RespondToMemoriesWithText(memories []*Memory, response
 		promptFormatter.FormatAnnouncedTime(time.Now()),
 		memoriesAsString,
 	)
-	return r.complete(dialogPrompt, false, memories, languageModel)
+	return r.complete(
+		dialogPrompt,
+		CompleteOptions{},
+		memories,
+		languageModel,
+	)
 }
 
 // RespondToQueryWithJSON responds to the given query in the JSON format and automatically fills `obj`'s property.
@@ -82,7 +87,12 @@ func (r *ResponseService) RespondToQueryWithJSON(query string, jsonObject any) e
 		promptFormatter.FormatJSONRequest(string(jsonQuerySchema)),
 		memoriesAsString,
 	)
-	response, err := r.complete(dialogPrompt, true, queryMemories, languageModel)
+	response, err := r.complete(
+		dialogPrompt,
+		CompleteOptions{JSONMode: true},
+		queryMemories,
+		languageModel,
+	)
 	if err != nil {
 		return err
 	}
@@ -98,12 +108,12 @@ func (r *ResponseService) generatePromptEndMemories() []*Memory {
 }
 
 // For both RespondToMemoriesWithText(..) and RespondToQueryWithJSON(..)
-func (r *ResponseService) complete(prompt string, jsonMode bool, memories []*Memory, languageModel LanguageModel) (string, error) {
+func (r *ResponseService) complete(prompt string, completeOptions CompleteOptions, memories []*Memory, languageModel LanguageModel) (string, error) {
 	if len(memories) == 0 {
 		return "", ErrFailedToResponse
 	}
 	for i := 0; i < r.retryCount; i++ {
-		response, err := languageModel.Complete(prompt, jsonMode)
+		response, err := languageModel.Complete(prompt, completeOptions)
 		if err != nil {
 			return "", err
 		}

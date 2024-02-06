@@ -43,18 +43,6 @@ type EmbeddingFilter struct {
 	SimilarityThreshold float64
 }
 
-type MemoryRepository interface {
-	NextID() string // should be time-sortable
-	Store(memory *Memory) error
-	Find(filter MemoryFilter) ([]*Memory, error)
-	FindByEmbeddings(filter EmbeddingFilter) ([]*Memory, error)
-	RemoveAll() error
-}
-
-type MemoryFactory interface {
-	NewMemory(typ MemoryType, who string, what string, where string) *Memory
-}
-
 func NewMemory(id string, typ MemoryType, who string, when time.Time, what string, where string, embedding *Embedding) *Memory {
 	return &Memory{
 		ID:        id,
