@@ -57,12 +57,3 @@ func (f *filter) getHyDEResponseService() *domain.ResponseService {
 func (f *filter) isQuestion(what string) bool {
 	return strings.Contains(what, "?")
 }
-
-func (f *filter) getEmbedding(what string) *domain.Embedding {
-	embedding, err := f.embedder.Embed(what)
-	if err != nil {
-		f.logger.Log(err.Error())
-		return nil
-	}
-	return &embedding
-}

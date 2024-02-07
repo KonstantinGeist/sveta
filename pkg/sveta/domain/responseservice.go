@@ -129,7 +129,7 @@ func (r *ResponseService) complete(prompt string, completeOptions CompleteOption
 		dialogParticipants := r.collectDialogParticipants(memories)
 		cleanResponse := r.cleanResponse(languageModel, response, dialogParticipants)
 		// Sometimes, a model can just repeat the user's name.
-		if strings.ToLower(cleanResponse) == strings.ToLower(memories[len(memories)-1].Who) {
+		if strings.ToLower(cleanResponse) == strings.ToLower(LastMemory(memories).Who) {
 			continue
 		}
 		if cleanResponse != "" {

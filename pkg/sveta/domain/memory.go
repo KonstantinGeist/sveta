@@ -118,3 +118,7 @@ func UniqueMemories(memories []*Memory) []*Memory {
 	}
 	return result
 }
+
+func LastMemory(memories []*Memory) *Memory {
+	return memories[len(memories)-1]
+}

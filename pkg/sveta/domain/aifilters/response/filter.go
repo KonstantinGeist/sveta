@@ -97,13 +97,17 @@ func (f *filter) recallFromEpisodicMemory(workingMemories []*domain.Memory) ([]*
 	if len(workingMemories) == 0 {
 		return nil, nil
 	}
-	latestMemory := workingMemories[len(workingMemories)-1] // let's recall based on the latest memory
-	embeddingsToSearch := f.getHypotheticalEmbeddings(latestMemory.What)
-	if latestMemory.Embedding != nil {
-		embeddingsToSearch = append(embeddingsToSearch, *latestMemory.Embedding)
+	rewrittenUserQuery, rewrittenUserQueryEmbedding, err := f.rewriteUserQuery(workingMemories)
+	if err != nil {
+		return nil, err
 	}
+	embeddingsToSearch := f.getHypotheticalEmbeddings(rewrittenUserQuery)
+	if rewrittenUserQueryEmbedding != nil {
+		embeddingsToSearch = append(embeddingsToSearch, *rewrittenUserQueryEmbedding)
+	}
+	where := domain.LastMemory(workingMemories).Where
 	episodicMemories, err := f.memoryRepository.FindByEmbeddings(domain.EmbeddingFilter{
-		Where:               latestMemory.Where,
+		Where:               where,
 		Embeddings:          embeddingsToSearch,
 		TopCount:            f.episodicMemoryFirstStageTopCount,
 		SurroundingCount:    f.episodicMemorySurroundingCount,
@@ -116,11 +120,20 @@ func (f *filter) recallFromEpisodicMemory(workingMemories []*domain.Memory) ([]*
 	if len(episodicMemories) == 0 {
 		return nil, nil
 	}
-	episodicMemories = f.rankMemoriesAndGetTopN(episodicMemories, latestMemory.What, latestMemory.Where)
+	episodicMemories = f.rankMemoriesAndGetTopN(episodicMemories, rewrittenUserQuery, where)
 	if len(episodicMemories) == 0 {
 		return nil, nil
 	}
 	dialogForLog := f.promptFormatterForLog.FormatDialog(domain.FilterMemoriesByTypes(episodicMemories, []domain.MemoryType{domain.MemoryTypeDialog, domain.MemoryTypeAction}))
 	f.logger.Log(fmt.Sprintf("\n======\nRecalled context:\n%s\n========\n", dialogForLog))
 	return episodicMemories, nil
+}
+
+func (f *filter) getEmbedding(what string) *domain.Embedding {
+	embedding, err := f.embedder.Embed(what)
+	if err != nil {
+		f.logger.Log(err.Error())
+		return nil
+	}
+	return &embedding
 }
