@@ -44,7 +44,7 @@ func (f *filter) getRewriterResponseService() *domain.ResponseService {
 		"RewriteLLM",
 		"You're RewriteLLM, an intelligent assistant that rewrites a user query to be useful for vector-based search. You expand the user query by enriching it with information from the provided chat history. "+
 			"For example, if the user says \"I like them\", and previously cats were mentioned, then substitute \"it\" with \"cats\", etc. "+
-			"In a nutshell, we want the query to be as unambiguous as possible.",
+			"In a nutshell, we want the query to be as unambiguous as possible. If there are several topics in the chat history, choose the most relevant.",
 		"",
 	)
 	return f.responseService.WithAIContext(rankerAIContext)
@@ -55,7 +55,7 @@ func (f *filter) formatMemoriesForRewriter(memories []*domain.Memory) string {
 	var buf strings.Builder
 	buf.WriteString("Chat history: ```\n")
 	for _, memory := range memories {
-		buf.WriteString(fmt.Sprintf("%s: %s\n", memory.Who, memory.What))
+		buf.WriteString(fmt.Sprintf("%s: %s\n\n", memory.Who, memory.What))
 	}
 	buf.WriteString("```\n\n")
 	buf.WriteString("Using the chat history above, rewrite the following user query to make it unambiguous: \"")
