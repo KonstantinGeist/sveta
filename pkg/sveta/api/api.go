@@ -3,12 +3,14 @@ package api
 import (
 	"kgeyst.com/sveta/pkg/common"
 	"kgeyst.com/sveta/pkg/sveta/domain"
+	"kgeyst.com/sveta/pkg/sveta/domain/aifilters/bio"
 	"kgeyst.com/sveta/pkg/sveta/domain/aifilters/news"
 	"kgeyst.com/sveta/pkg/sveta/domain/aifilters/response"
 	"kgeyst.com/sveta/pkg/sveta/domain/aifilters/vision"
 	domainweb "kgeyst.com/sveta/pkg/sveta/domain/aifilters/web"
 	domainwiki "kgeyst.com/sveta/pkg/sveta/domain/aifilters/wiki"
 	"kgeyst.com/sveta/pkg/sveta/infrastructure/embed4all"
+	"kgeyst.com/sveta/pkg/sveta/infrastructure/filesystem"
 	"kgeyst.com/sveta/pkg/sveta/infrastructure/inmemory"
 	"kgeyst.com/sveta/pkg/sveta/infrastructure/llavacpp"
 	"kgeyst.com/sveta/pkg/sveta/infrastructure/llms/llama2"
@@ -80,6 +82,13 @@ func NewAPI(config *common.Config) API {
 		config,
 		logger,
 	)
+	bioFilter := bio.NewFilter(
+		aiContext,
+		filesystem.NewBioFactProvider(config),
+		memoryRepository,
+		memoryFactory,
+		logger,
+	)
 	webFilter := domainweb.NewFilter(
 		urlFinder,
 		infraweb.NewPageContentExtractor(),
@@ -113,6 +122,7 @@ func NewAPI(config *common.Config) API {
 			aiContext,
 			[]domain.AIFilter{
 				newsFilter,
+				bioFilter,
 				webFilter,
 				visionFilter,
 				wikiFilter,

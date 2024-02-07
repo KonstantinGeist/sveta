@@ -5,8 +5,8 @@ import (
 	"os"
 )
 
-// ReadLines reads all lines from the given path on disk.
-func ReadLines(path string) ([]string, error) {
+// ReadAllLines reads all lines from the given path on disk.
+func ReadAllLines(path string) ([]string, error) {
 	file, err := os.Open(path)
 	if err != nil {
 		return nil, err
