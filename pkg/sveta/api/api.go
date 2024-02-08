@@ -52,6 +52,7 @@ type API interface {
 	ClearAllMemory() error
 	// ChangeAgentDescription resets the context ("system prompt") of the AI. Useful for debugging.
 	ChangeAgentDescription(context string) error
+	GetSummary(where string) (string, error)
 }
 
 func NewAPI(config *common.Config) API {
@@ -130,6 +131,7 @@ func NewAPI(config *common.Config) API {
 		aiService: domain.NewAIService(
 			memoryRepository,
 			memoryFactory,
+			summaryRepository,
 			aiContext,
 			[]domain.AIFilter{
 				newsFilter,
@@ -162,4 +164,8 @@ func (a *api) ClearAllMemory() error {
 
 func (a *api) ChangeAgentDescription(context string) error {
 	return a.aiService.ChangeAgentDescription(context)
+}
+
+func (a *api) GetSummary(where string) (string, error) {
+	return a.aiService.GetSummary(where)
 }

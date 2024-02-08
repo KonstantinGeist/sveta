@@ -7,24 +7,27 @@ type respondFunc func(who, what, where string) (string, error)
 // AIService is the main orchestrator of the whole AI: it receives a list of AI filters and runs them one after another.
 // Additionally, it has various functions for debugging/control: remove all memory, remember actions, change context etc.\
 type AIService struct {
-	mutex            sync.Mutex
-	memoryRepository MemoryRepository
-	memoryFactory    MemoryFactory
-	aiContext        *AIContext
-	aiFilters        []AIFilter
+	mutex             sync.Mutex
+	memoryRepository  MemoryRepository
+	memoryFactory     MemoryFactory
+	summaryRepository SummaryRepository
+	aiContext         *AIContext
+	aiFilters         []AIFilter
 }
 
 func NewAIService(
 	memoryRepository MemoryRepository,
 	memoryFactory MemoryFactory,
+	summaryRepository SummaryRepository,
 	aiContext *AIContext,
 	aiFilters []AIFilter,
 ) *AIService {
 	return &AIService{
-		memoryRepository: memoryRepository,
-		memoryFactory:    memoryFactory,
-		aiContext:        aiContext,
-		aiFilters:        aiFilters,
+		memoryRepository:  memoryRepository,
+		memoryFactory:     memoryFactory,
+		summaryRepository: summaryRepository,
+		aiContext:         aiContext,
+		aiFilters:         aiFilters,
 	}
 }
 
@@ -64,6 +67,19 @@ func (a *AIService) ChangeAgentDescription(context string) error {
 	defer a.mutex.Unlock()
 	a.aiContext.AgentDescription = context
 	return nil
+}
+
+func (a *AIService) GetSummary(where string) (string, error) {
+	a.mutex.Lock()
+	defer a.mutex.Unlock()
+	summary, err := a.summaryRepository.FindByWhere(where)
+	if err != nil {
+		return "", err
+	}
+	if summary == nil {
+		return "", nil
+	}
+	return *summary, nil
 }
 
 func (a *AIService) applyAIFilterAtIndex(context AIFilterContext, index int) (string, error) {

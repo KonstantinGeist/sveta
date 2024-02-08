@@ -70,6 +70,14 @@ func mainImpl() error {
 				_ = sveta.ClearAllMemory()
 				return false
 			}
+			if what == "summary" {
+				summary, err := sveta.GetSummary(roomName)
+				if err != nil || summary == "" {
+					summary = "no summary"
+				}
+				b.Reply(m, m.From+" "+summary)
+				return false
+			}
 			if strings.HasPrefix(what, "context ") {
 				context := what[len("context "):]
 				_ = sveta.ChangeAgentDescription(context)

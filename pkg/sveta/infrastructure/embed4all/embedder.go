@@ -31,7 +31,7 @@ func NewEmbedder(
 }
 
 func (v *Embedder) Embed(sentence string) (domain.Embedding, error) {
-	v.logger.Log(fmt.Sprintf("Embedding: \"%s\"", sentence))
+	v.logger.Log(fmt.Sprintf("Embedding: \"%s\"\n", sentence))
 	if sentence == "" {
 		return domain.Embedding{}, nil
 	}
