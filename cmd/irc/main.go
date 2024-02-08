@@ -60,7 +60,7 @@ func mainImpl() error {
 				return true
 			}
 			what := strings.TrimSpace(m.Content[len(agentName):])
-			if len(what) == 0 || what[0] == '@' {
+			if len(what) == 0 || what[0] == '@' || len(m.To) == 0 || m.To[0] != '#' {
 				return false
 			}
 			if what[0] == ',' {

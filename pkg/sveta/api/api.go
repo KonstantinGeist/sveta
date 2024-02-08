@@ -55,7 +55,7 @@ type API interface {
 
 func NewAPI(config *common.Config) API {
 	logger := common.NewFileLogger(config.GetStringOrDefault(ConfigKeyLogPath, "log.txt"))
-	embedder := embed4all.NewEmbedder()
+	embedder := embed4all.NewEmbedder(config, logger)
 	aiContext := domain.NewAIContextFromConfig(config)
 	roleplayLLama2Model := logging.NewLanguageModelDecorator(llama2.NewRoleplayLanguageModel(aiContext, config, logger), logger)
 	genericSolarModel := logging.NewLanguageModelDecorator(solar.NewGenericLanguageModel(aiContext, config, logger), logger)

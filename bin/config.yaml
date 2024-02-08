@@ -20,6 +20,7 @@ llmGPULayerCount: 35
 llmCPUThreadCount: 6
 llmRepeatPenalty: 1.1
 llmResponseTimeout: 40000
+embedResponseTimeout: 20000
 wikiMaxArticleCount: 2
 wikiMaxArticleSentenceCount: 3
 wikiMessageSizeThreshold: 8

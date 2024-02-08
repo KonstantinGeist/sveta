@@ -53,7 +53,7 @@ func (f *filter) formatMemoriesForRanker(memories []*domain.Memory) string {
 		if len(what) > f.rankerMaxMemorySize {
 			what = what[0:f.rankerMaxMemorySize] + "..." // trimming it to fit huge memories in the context, at least partially
 		}
-		buf.WriteString(fmt.Sprintf("[%d] %s\n", index+1, what))
+		buf.WriteString(fmt.Sprintf("[%d] %s: %s\n", index+1, memory.Who, what))
 	}
 	return buf.String()
 }

@@ -66,9 +66,15 @@ func (r *ResponseService) RespondToMemoriesWithText(memories []*Memory, response
 		promptFormatter.FormatAnnouncedTime(time.Now()),
 		memoriesAsString,
 	)
+	completeOptions := DefaultCompleteOptions
+	if responseMode == ResponseModeNormal {
+		completeOptions = completeOptions.WithTemperature(r.textTemperature)
+	} else {
+		completeOptions = completeOptions.WithTemperature(r.jsonTemperature) // the reranker must have a lower temperature, similar to JSON
+	}
 	return r.complete(
 		dialogPrompt,
-		DefaultCompleteOptions.WithTemperature(r.textTemperature),
+		completeOptions,
 		memories,
 		languageModel,
 	)

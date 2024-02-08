@@ -42,9 +42,8 @@ func (f *filter) getRewriterResponseService() *domain.ResponseService {
 	// TODO internationalize
 	rankerAIContext := domain.NewAIContext(
 		"RewriteLLM",
-		"You're RewriteLLM, an intelligent assistant that rewrites a user query to be useful for vector-based search. You expand the user query by enriching it with information from the provided chat history. "+
-			"For example, if the user says \"I like them\", and previously cats were mentioned, then substitute \"it\" with \"cats\", etc. "+
-			"In a nutshell, we want the query to be as unambiguous as possible. If there are several topics in the chat history, choose the most relevant.",
+		"You're RewriteLLM, an intelligent assistant that rewrites a user query to be useful for vector-based search. You must replace pronouns and other ambiguouos  words with exact nouns & verbs from the provided chat history. "+
+			"For example, if the user says \"I like them\", and previously cats were mentioned, then substitute \"it\" with \"cats\", etc. ",
 		"",
 	)
 	return f.responseService.WithAIContext(rankerAIContext)
@@ -61,5 +60,6 @@ func (f *filter) formatMemoriesForRewriter(memories []*domain.Memory) string {
 	buf.WriteString("Using the chat history above, rewrite the following user query to make it unambiguous: \"")
 	buf.WriteString(domain.LastMemory(memories).What)
 	buf.WriteString("\"")
+	buf.WriteString(" The rewritten query MUST consist of a single short sentence WITHOUT subordinate clauses.")
 	return buf.String()
 }
