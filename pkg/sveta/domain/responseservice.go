@@ -18,6 +18,7 @@ type ResponseService struct {
 	languageModelSelector *LanguageModelSelector
 	embedder              Embedder
 	memoryFactory         MemoryFactory
+	summaryRepository     SummaryRepository
 	logger                common.Logger
 	retryCount            int
 	textTemperature       float64
@@ -29,6 +30,7 @@ func NewResponseService(
 	languageModelSelector *LanguageModelSelector,
 	embedder Embedder,
 	memoryFactory MemoryFactory,
+	summaryRepository SummaryRepository,
 	config *common.Config,
 	logger common.Logger,
 ) *ResponseService {
@@ -37,6 +39,7 @@ func NewResponseService(
 		languageModelSelector: languageModelSelector,
 		embedder:              embedder,
 		memoryFactory:         memoryFactory,
+		summaryRepository:     summaryRepository,
 		logger:                logger,
 		retryCount:            config.GetIntOrDefault(ConfigKeyResponseRetryCount, 3),
 		textTemperature:       config.GetFloat(ConfigKeyResponseTextTemperature),
@@ -61,11 +64,15 @@ func (r *ResponseService) RespondToMemoriesWithText(memories []*Memory, response
 	promptEndMemories := r.generatePromptEndMemories()
 	memoriesAsString := promptFormatter.FormatDialog(MergeMemories(dialogAndActionMemories, promptEndMemories...))
 	dialogPrompt := fmt.Sprintf(
-		"%s %s.\n\n%s",
+		"%s %s.\n\n",
 		r.aiContext.AgentDescription,
 		promptFormatter.FormatAnnouncedTime(time.Now()),
-		memoriesAsString,
 	)
+	summary := r.getSummary(memories)
+	if summary != "" {
+		dialogPrompt += fmt.Sprintf("%s\n\n", summary)
+	}
+	dialogPrompt += memoriesAsString
 	completeOptions := DefaultCompleteOptions
 	if responseMode == ResponseModeNormal {
 		completeOptions = completeOptions.WithTemperature(r.textTemperature)
@@ -179,6 +186,19 @@ func (r *ResponseService) collectDialogParticipants(memories []*Memory) []string
 		participants = append(participants, participant)
 	}
 	return participants
+}
+
+func (r *ResponseService) getSummary(memories []*Memory) string {
+	where := LastMemory(memories).Where
+	summary, err := r.summaryRepository.FindByWhere(where)
+	if err != nil {
+		r.logger.Log(err.Error())
+		return ""
+	}
+	if summary == nil {
+		return ""
+	}
+	return *summary
 }
 
 // For cleanResponse(..)

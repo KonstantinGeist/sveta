@@ -6,6 +6,7 @@ import (
 	"kgeyst.com/sveta/pkg/sveta/domain/aifilters/bio"
 	"kgeyst.com/sveta/pkg/sveta/domain/aifilters/news"
 	"kgeyst.com/sveta/pkg/sveta/domain/aifilters/response"
+	"kgeyst.com/sveta/pkg/sveta/domain/aifilters/summary"
 	"kgeyst.com/sveta/pkg/sveta/domain/aifilters/vision"
 	domainweb "kgeyst.com/sveta/pkg/sveta/domain/aifilters/web"
 	domainwiki "kgeyst.com/sveta/pkg/sveta/domain/aifilters/wiki"
@@ -62,11 +63,13 @@ func NewAPI(config *common.Config) API {
 	languageModelSelector := domain.NewLanguageModelSelector([]domain.LanguageModel{genericSolarModel, roleplayLLama2Model})
 	memoryRepository := inmemory.NewMemoryRepository()
 	memoryFactory := inmemory.NewMemoryFactory(memoryRepository, embedder)
+	summaryRepository := inmemory.NewSummaryRepository()
 	responseService := domain.NewResponseService(
 		aiContext,
 		languageModelSelector,
 		embedder,
 		memoryFactory,
+		summaryRepository,
 		config,
 		logger,
 	)
@@ -115,6 +118,14 @@ func NewAPI(config *common.Config) API {
 		config,
 		logger,
 	)
+	summaryFilter := summary.NewFilter(
+		aiContext,
+		memoryRepository,
+		summaryRepository,
+		responseService,
+		config,
+		logger,
+	)
 	return &api{
 		aiService: domain.NewAIService(
 			memoryRepository,
@@ -127,6 +138,7 @@ func NewAPI(config *common.Config) API {
 				visionFilter,
 				wikiFilter,
 				responseFilter,
+				summaryFilter,
 			},
 		),
 	}
