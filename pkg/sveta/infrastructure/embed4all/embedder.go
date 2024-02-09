@@ -79,7 +79,7 @@ func (v *Embedder) Embed(sentence string) (domain.Embedding, error) {
 	result = result[beginIndex+len(beginTag) : endIndex]
 	embedding, err := domain.NewEmbeddingFromFormattedValues(result)
 	if embedding.DimensionCount() != embeddingDimensionCount {
-		v.logger.Log("wrong dimemsion count")
+		v.logger.Log("wrong dimension count")
 		return domain.Embedding{}, nil
 	}
 	return embedding, err

@@ -14,7 +14,7 @@ type filter struct {
 	memoryRepository      domain.MemoryRepository
 	summaryRepository     domain.SummaryRepository
 	responseService       *domain.ResponseService
-	languageModeljobQueue *common.JobQueue
+	languageModelJobQueue *common.JobQueue
 	logger                common.Logger
 	workingMemorySize     int
 	workingMemoryMaxAge   time.Duration
@@ -34,7 +34,7 @@ func NewFilter(
 		memoryRepository:      memoryRepository,
 		summaryRepository:     summaryRepository,
 		responseService:       responseService,
-		languageModeljobQueue: languageModelJobQueue,
+		languageModelJobQueue: languageModelJobQueue,
 		logger:                logger,
 		workingMemorySize:     config.GetIntOrDefault(domain.ConfigKeyWorkingMemorySize, 5),
 		workingMemoryMaxAge:   config.GetDurationOrDefault(domain.ConfigKeyWorkingMemoryMaxAge, time.Hour),
@@ -53,7 +53,7 @@ func (f *filter) Apply(context domain.AIFilterContext, nextAIFilterFunc domain.N
 		return nextAIFilterFunc(context)
 	}
 	formattedForSummarizer := f.formatMemoriesForSummarizer(summary, workingMemories)
-	f.languageModeljobQueue.Enqueue(func() error {
+	f.languageModelJobQueue.Enqueue(func() error {
 		var output struct {
 			Summary1 string `json:"summary1"`
 			Summary2 string `json:"summary2"`
