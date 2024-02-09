@@ -23,7 +23,7 @@ llmResponseTimeout: 40000
 wikiMaxArticleCount: 2
 wikiMaxArticleSentenceCount: 3
 wikiWordSizeThreshold: 2
-wikiWordFrequencyPositionThreshold: 5000
+wikiWordFrequencyPositionThreshold: 4000
 htmlMaxPageContentSize: 1000
 newsMaxCount: 50
 newsSourceURL: http://www.independent.co.uk/rss

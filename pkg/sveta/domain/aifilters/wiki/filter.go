@@ -45,7 +45,7 @@ func NewFilter(
 		maxArticleCount:                config.GetIntOrDefault("wikiMaxArticleCount", 2),
 		maxArticleSentenceCount:        config.GetIntOrDefault("wikiMaxArticleSentenceCount", 3),
 		wordSizeThreshold:              config.GetIntOrDefault("wikiWordSizeThreshold", 2),
-		wordFrequencyPositionThreshold: config.GetIntOrDefault("wikiWordFrequencyPositionThreshold", 5000),
+		wordFrequencyPositionThreshold: config.GetIntOrDefault("wikiWordFrequencyPositionThreshold", 4000),
 	}
 }
 
@@ -102,7 +102,7 @@ func (f *filter) shouldApply(what string) bool {
 			continue
 		}
 		position := f.wordFrequencyProvider.GetPosition(word)
-		if position > f.wordFrequencyPositionThreshold {
+		if position > f.wordFrequencyPositionThreshold || position == -1 {
 			return true
 		}
 	}
