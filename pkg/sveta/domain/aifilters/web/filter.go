@@ -51,7 +51,7 @@ func (f *filter) Apply(context domain.AIFilterContext, nextAIFilterFunc domain.N
 		// It's important to add `couldntLoadURLFormatMessage` so that the main LLM correctly respond that the URL doesn't load.
 		return nextAIFilterFunc(context.WithWhat(fmt.Sprintf(couldntLoadURLFormatMessage, context.What)))
 	}
-	pageContent = f.processPageContent(pageContent)
+	pageContent = f.preprocessPageContent(pageContent)
 	if pageContent == "" {
 		return nextAIFilterFunc(context.WithWhat(fmt.Sprintf(couldntLoadURLFormatMessage, context.What)))
 	}
@@ -59,7 +59,7 @@ func (f *filter) Apply(context domain.AIFilterContext, nextAIFilterFunc domain.N
 	return nextAIFilterFunc(context.WithWhat(fmt.Sprintf(urlDescriptionFormatMessage, url, pageContent, whatWithoutURL)))
 }
 
-func (f *filter) processPageContent(pageContent string) string {
+func (f *filter) preprocessPageContent(pageContent string) string {
 	if len(pageContent) > f.maxContentSize {
 		pageContent = pageContent[0:f.maxContentSize]
 	}

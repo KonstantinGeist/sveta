@@ -114,6 +114,7 @@ func NewAPI(config *common.Config) (API, common.Stopper) {
 		memoryFactory,
 		memoryRepository,
 		infrawiki.NewArticleProvider(),
+		filesystem.NewWordFrequencyProvider(config, logger),
 		config,
 		logger,
 	)

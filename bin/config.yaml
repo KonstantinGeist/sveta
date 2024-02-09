@@ -22,8 +22,10 @@ llmRepeatPenalty: 1.1
 llmResponseTimeout: 40000
 wikiMaxArticleCount: 2
 wikiMaxArticleSentenceCount: 3
-wikiMessageSizeThreshold: 8
+wikiWordSizeThreshold: 2
+wikiWordFrequencyPositionThreshold: 5000
 htmlMaxPageContentSize: 1000
 newsMaxCount: 50
 newsSourceURL: http://www.independent.co.uk/rss
 imageMemoryDecayDuration: 3
+wordFrequencyFilePath: word_frequencies.txt
