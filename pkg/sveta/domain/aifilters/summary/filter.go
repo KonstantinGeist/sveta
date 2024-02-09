@@ -10,14 +10,14 @@ import (
 )
 
 type filter struct {
-	aiContext           *domain.AIContext
-	memoryRepository    domain.MemoryRepository
-	summaryRepository   domain.SummaryRepository
-	responseService     *domain.ResponseService
-	jobQueue            *common.JobQueue
-	logger              common.Logger
-	workingMemorySize   int
-	workingMemoryMaxAge time.Duration
+	aiContext             *domain.AIContext
+	memoryRepository      domain.MemoryRepository
+	summaryRepository     domain.SummaryRepository
+	responseService       *domain.ResponseService
+	languageModeljobQueue *common.JobQueue
+	logger                common.Logger
+	workingMemorySize     int
+	workingMemoryMaxAge   time.Duration
 }
 
 func NewFilter(
@@ -25,19 +25,19 @@ func NewFilter(
 	memoryRepository domain.MemoryRepository,
 	summaryRepository domain.SummaryRepository,
 	responseService *domain.ResponseService,
-	jobQueue *common.JobQueue,
+	languageModelJobQueue *common.JobQueue,
 	config *common.Config,
 	logger common.Logger,
 ) domain.AIFilter {
 	return &filter{
-		aiContext:           aiContext,
-		memoryRepository:    memoryRepository,
-		summaryRepository:   summaryRepository,
-		responseService:     responseService,
-		jobQueue:            jobQueue,
-		logger:              logger,
-		workingMemorySize:   config.GetIntOrDefault(domain.ConfigKeyWorkingMemorySize, 5),
-		workingMemoryMaxAge: config.GetDurationOrDefault(domain.ConfigKeyWorkingMemoryMaxAge, time.Hour),
+		aiContext:             aiContext,
+		memoryRepository:      memoryRepository,
+		summaryRepository:     summaryRepository,
+		responseService:       responseService,
+		languageModeljobQueue: languageModelJobQueue,
+		logger:                logger,
+		workingMemorySize:     config.GetIntOrDefault(domain.ConfigKeyWorkingMemorySize, 5),
+		workingMemoryMaxAge:   config.GetDurationOrDefault(domain.ConfigKeyWorkingMemoryMaxAge, time.Hour),
 	}
 }
 
@@ -53,7 +53,7 @@ func (f *filter) Apply(context domain.AIFilterContext, nextAIFilterFunc domain.N
 		return nextAIFilterFunc(context)
 	}
 	formattedForSummarizer := f.formatMemoriesForSummarizer(summary, workingMemories)
-	f.jobQueue.Enqueue(func() error {
+	f.languageModeljobQueue.Enqueue(func() error {
 		var output struct {
 			Summary1 string `json:"summary1"`
 			Summary2 string `json:"summary2"`

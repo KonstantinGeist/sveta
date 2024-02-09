@@ -57,7 +57,7 @@ type API interface {
 
 func NewAPI(config *common.Config) (API, common.Stoppable) {
 	logger := common.NewFileLogger(config.GetStringOrDefault(ConfigKeyLogPath, "log.txt"))
-	jobQueue := common.NewJobQueue(logger)
+	languageModelJobQueue := common.NewJobQueue(logger)
 	tempFileProvider := filesystem.NewTempFilePathProvider(config)
 	embedder := embed4all.NewEmbedder(config, logger)
 	aiContext := domain.NewAIContextFromConfig(config)
@@ -132,7 +132,7 @@ func NewAPI(config *common.Config) (API, common.Stoppable) {
 		memoryRepository,
 		summaryRepository,
 		responseService,
-		jobQueue,
+		languageModelJobQueue,
 		config,
 		logger,
 	)
@@ -152,7 +152,7 @@ func NewAPI(config *common.Config) (API, common.Stoppable) {
 				summaryFilter,
 			},
 		),
-	}, jobQueue
+	}, languageModelJobQueue
 }
 
 func (a *api) Respond(who string, what string, where string) (string, error) {
