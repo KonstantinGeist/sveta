@@ -60,7 +60,7 @@ func (f *filter) Apply(context domain.AIFilterContext, nextAIFilterFunc domain.N
 			Summary3 string `json:"summary3"`
 		}
 		err = f.getSummarizerResponseService().RespondToQueryWithJSON(
-			fmt.Sprintf("%s\nSummarize the chat history above into 3 summaries maximum (if possible).", formattedForSummarizer),
+			fmt.Sprintf("%s\nSummarize the chat history above into 3 short summaries at most (if possible).", formattedForSummarizer),
 			&output,
 		)
 		if err != nil {

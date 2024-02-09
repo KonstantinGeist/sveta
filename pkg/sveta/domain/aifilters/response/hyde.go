@@ -21,7 +21,7 @@ func (f *filter) getHypotheticalEmbeddings(what string) []domain.Embedding {
 		Response3 string `json:"response3"`
 	}
 	err := f.getHyDEResponseService().RespondToQueryWithJSON(
-		"Imagine 3 possible responses to the following user query as if you knew the answer: \""+what+"\"",
+		"Imagine 3 possible short responses to the following user query as if you knew the answer: \""+what+"\"",
 		&output,
 	)
 	if err != nil {

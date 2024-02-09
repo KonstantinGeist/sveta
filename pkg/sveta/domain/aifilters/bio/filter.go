@@ -50,7 +50,7 @@ func (f *filter) loadBioFacts(where string) {
 	}
 	for index, bioFact := range bioFacts {
 		f.logger.Log(fmt.Sprintf("Loading bio fact #%d...\n", index))
-		memory := f.memoryFactory.NewMemory(domain.MemoryTypeDialog, f.aiContext.AgentName+"Biography", bioFact, where)
+		memory := f.memoryFactory.NewMemory(domain.MemoryTypeDialog, f.aiContext.AgentName, bioFact, where)
 		memory.When = time.Time{}
 		err = f.memoryRepository.Store(memory)
 		if err != nil {
