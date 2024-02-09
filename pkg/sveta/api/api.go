@@ -55,8 +55,9 @@ type API interface {
 	GetSummary(where string) (string, error)
 }
 
-func NewAPI(config *common.Config) API {
+func NewAPI(config *common.Config) (API, common.Stoppable) {
 	logger := common.NewFileLogger(config.GetStringOrDefault(ConfigKeyLogPath, "log.txt"))
+	jobQueue := common.NewJobQueue(logger)
 	embedder := embed4all.NewEmbedder(config, logger)
 	aiContext := domain.NewAIContextFromConfig(config)
 	roleplayLLama2Model := logging.NewLanguageModelDecorator(llama2.NewRoleplayLanguageModel(aiContext, config, logger), logger)
@@ -124,6 +125,7 @@ func NewAPI(config *common.Config) API {
 		memoryRepository,
 		summaryRepository,
 		responseService,
+		jobQueue,
 		config,
 		logger,
 	)
@@ -143,7 +145,7 @@ func NewAPI(config *common.Config) API {
 				summaryFilter,
 			},
 		),
-	}
+	}, jobQueue
 }
 
 func (a *api) Respond(who string, what string, where string) (string, error) {

@@ -14,6 +14,7 @@ type filter struct {
 	memoryRepository    domain.MemoryRepository
 	summaryRepository   domain.SummaryRepository
 	responseService     *domain.ResponseService
+	jobQueue            *common.JobQueue
 	logger              common.Logger
 	workingMemorySize   int
 	workingMemoryMaxAge time.Duration
@@ -24,6 +25,7 @@ func NewFilter(
 	memoryRepository domain.MemoryRepository,
 	summaryRepository domain.SummaryRepository,
 	responseService *domain.ResponseService,
+	jobQueue *common.JobQueue,
 	config *common.Config,
 	logger common.Logger,
 ) domain.AIFilter {
@@ -32,6 +34,7 @@ func NewFilter(
 		memoryRepository:    memoryRepository,
 		summaryRepository:   summaryRepository,
 		responseService:     responseService,
+		jobQueue:            jobQueue,
 		logger:              logger,
 		workingMemorySize:   config.GetIntOrDefault(domain.ConfigKeyWorkingMemorySize, 5),
 		workingMemoryMaxAge: config.GetDurationOrDefault(domain.ConfigKeyWorkingMemoryMaxAge, time.Hour),
@@ -39,11 +42,6 @@ func NewFilter(
 }
 
 func (f *filter) Apply(context domain.AIFilterContext, nextAIFilterFunc domain.NextAIFilterFunc) (string, error) {
-	var output struct {
-		Summary1 string `json:"summary1"`
-		Summary2 string `json:"summary2"`
-		Summary3 string `json:"summary3"`
-	}
 	workingMemories, err := f.recallFromWorkingMemory(context.Where)
 	if err != nil {
 		f.logger.Log("failed to summarize: " + err.Error())
@@ -55,28 +53,31 @@ func (f *filter) Apply(context domain.AIFilterContext, nextAIFilterFunc domain.N
 		return nextAIFilterFunc(context)
 	}
 	formattedForSummarizer := f.formatMemoriesForSummarizer(summary, workingMemories)
-	err = f.getSummarizerResponseService().RespondToQueryWithJSON(
-		fmt.Sprintf("%s\nSummarize the chat history above into 3 summaries maximum (if possible).", formattedForSummarizer),
-		&output,
-	)
-	if err != nil {
-		f.logger.Log("failed to summarize: " + err.Error())
-		return nextAIFilterFunc(context)
-	}
-	var summaries []string
-	if output.Summary1 != "" {
-		summaries = append(summaries, output.Summary1)
-	}
-	if output.Summary2 != "" {
-		summaries = append(summaries, output.Summary2)
-	}
-	if output.Summary3 != "" {
-		summaries = append(summaries, output.Summary3)
-	}
-	err = f.summaryRepository.Store(context.Where, strings.TrimSpace(strings.Join(summaries, " ")))
-	if err != nil {
-		f.logger.Log("failed to summarize: " + err.Error())
-	}
+	f.jobQueue.Enqueue(func() error {
+		var output struct {
+			Summary1 string `json:"summary1"`
+			Summary2 string `json:"summary2"`
+			Summary3 string `json:"summary3"`
+		}
+		err = f.getSummarizerResponseService().RespondToQueryWithJSON(
+			fmt.Sprintf("%s\nSummarize the chat history above into 3 summaries maximum (if possible).", formattedForSummarizer),
+			&output,
+		)
+		if err != nil {
+			return err
+		}
+		var summaries []string
+		if output.Summary1 != "" {
+			summaries = append(summaries, output.Summary1)
+		}
+		if output.Summary2 != "" {
+			summaries = append(summaries, output.Summary2)
+		}
+		if output.Summary3 != "" {
+			summaries = append(summaries, output.Summary3)
+		}
+		return f.summaryRepository.Store(context.Where, strings.TrimSpace(strings.Join(summaries, " ")))
+	})
 	return nextAIFilterFunc(context)
 }
 

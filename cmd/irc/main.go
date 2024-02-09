@@ -26,7 +26,8 @@ func mainImpl() error {
 	roomName := config.GetStringOrDefault("roomName", "JohnRoom")
 	serverName := config.GetStringOrDefault("serverName", "irc.euirc.net:6667")
 	lowerAgentName := strings.ToLower(agentName)
-	sveta := api.NewAPI(config)
+	sveta, stoppable := api.NewAPI(config)
+	defer stoppable.Stop()
 	context := config.GetString(api.ConfigKeyAgentDescription)
 	if context != "" {
 		err := sveta.ChangeAgentDescription(context)

@@ -31,14 +31,14 @@ func (n *NewsProvider) GetNews(maxNewsCount int) ([]news.Item, error) {
 	}
 	result := make([]news.Item, 0, len(rssFeed.Items))
 	for index, item := range rssFeed.Items {
+		if index >= maxNewsCount {
+			break
+		}
 		result = append(result, news.Item{
 			PublishedDate: item.PubDate,
 			Title:         strings.TrimSpace(removeKnownTags(item.Title)),
 			Description:   strings.TrimSpace(removeKnownTags(item.Description)),
 		})
-		if index > maxNewsCount {
-			break
-		}
 	}
 	return result, nil
 }
