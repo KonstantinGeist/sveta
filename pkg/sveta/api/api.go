@@ -55,11 +55,11 @@ type API interface {
 	GetSummary(where string) (string, error)
 }
 
-func NewAPI(config *common.Config) (API, common.Stoppable) {
+func NewAPI(config *common.Config) (API, common.Stopper) {
 	logger := common.NewFileLogger(config.GetStringOrDefault(ConfigKeyLogPath, "log.txt"))
 	languageModelJobQueue := common.NewJobQueue(logger)
 	tempFileProvider := filesystem.NewTempFilePathProvider(config)
-	embedder := embed4all.NewEmbedder(config, logger)
+	embedder := embed4all.NewEmbedder(logger)
 	aiContext := domain.NewAIContextFromConfig(config)
 	roleplayLLama2Model := logging.NewLanguageModelDecorator(llama2.NewRoleplayLanguageModel(aiContext, config, logger), logger)
 	genericSolarModel := logging.NewLanguageModelDecorator(solar.NewGenericLanguageModel(aiContext, config, logger), logger)

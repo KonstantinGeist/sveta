@@ -1,9 +1,17 @@
 from gpt4all import GPT4All, Embed4All
 import sys
-query = sys.argv[1]
+
 embedder = Embed4All()
-embedding = embedder.embed(query)
-for value in embedding:
-    print(str(value), end="")
-    print(" ", end="")
-print("\n", end="")
+
+while True:
+    try:
+        query = input()
+        if query:
+            embedding = embedder.embed(query)
+            print("<begin>")
+            for value in embedding:
+                print(str(value), end="")
+                print(" ", end="")
+            print("<end>", end="")
+    except Exception as e:
+        print(e)

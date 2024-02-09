@@ -64,3 +64,7 @@ func (a Embedding) GetBestSimilarityTo(bs []Embedding) float64 {
 	}
 	return bestSimilarity
 }
+
+func (a Embedding) DimensionCount() int {
+	return len(a.values)
+}
