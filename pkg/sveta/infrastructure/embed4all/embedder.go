@@ -21,7 +21,6 @@ type Embedder struct {
 	cmd       *exec.Cmd
 	stdin     io.Writer
 	stdout    io.Reader
-	stderr    io.Reader
 	outBuffer []byte
 	logger    common.Logger
 }
