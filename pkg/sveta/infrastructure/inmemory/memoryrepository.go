@@ -2,6 +2,7 @@ package inmemory
 
 import (
 	"sort"
+	"sync"
 
 	"github.com/google/uuid"
 
@@ -10,6 +11,7 @@ import (
 )
 
 type MemoryRepository struct {
+	mutex    sync.Mutex
 	memories []*domain.Memory
 }
 
@@ -22,11 +24,15 @@ func (r *MemoryRepository) NextID() string {
 }
 
 func (r *MemoryRepository) Store(memory *domain.Memory) error {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
 	r.memories = append(r.memories, memory)
 	return nil
 }
 
 func (r *MemoryRepository) Find(filter domain.MemoryFilter) ([]*domain.Memory, error) {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
 	if filter.LatestCount < 0 || filter.LatestCount > len(r.memories) {
 		filter.LatestCount = len(r.memories)
 	}
@@ -51,6 +57,8 @@ func (r *MemoryRepository) Find(filter domain.MemoryFilter) ([]*domain.Memory, e
 }
 
 func (r *MemoryRepository) FindByEmbeddings(filter domain.EmbeddingFilter) ([]*domain.Memory, error) {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
 	var similarities []struct {
 		Memory     *domain.Memory
 		Index      int
@@ -98,6 +106,8 @@ func (r *MemoryRepository) FindByEmbeddings(filter domain.EmbeddingFilter) ([]*d
 }
 
 func (r *MemoryRepository) RemoveAll() error {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
 	var newMems []*domain.Memory
 	for _, mem := range r.memories {
 		if mem.When.IsZero() {

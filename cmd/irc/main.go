@@ -75,7 +75,7 @@ func mainImpl() error {
 				if err != nil || summary == "" {
 					summary = "no summary"
 				}
-				b.Reply(m, m.From+" "+summary)
+				b.Reply(m, m.From+" SUMMARY: "+summary)
 				return false
 			}
 			if strings.HasPrefix(what, "context ") {
