@@ -58,7 +58,11 @@ func (a *AIService) RememberDialog(who, what, where string) error {
 func (a *AIService) ClearAllMemory() error {
 	a.mutex.Lock()
 	defer a.mutex.Unlock()
-	return a.memoryRepository.RemoveAll()
+	err := a.memoryRepository.RemoveAll()
+	if err != nil {
+		return err
+	}
+	return a.summaryRepository.RemoveAll()
 }
 
 // ChangeAgentDescription see API.ChangeAgentDescription

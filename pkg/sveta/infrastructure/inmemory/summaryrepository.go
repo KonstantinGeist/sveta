@@ -29,3 +29,10 @@ func (s *SummaryRepository) Store(where, summary string) error {
 	s.summaries[where] = summary
 	return nil
 }
+
+func (s *SummaryRepository) RemoveAll() error {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	s.summaries = make(map[string]string)
+	return nil
+}
