@@ -46,7 +46,6 @@ func (w *filter) Apply(context domain.AIFilterContext, nextAIFilterFunc domain.N
 		return nextAIFilterFunc(context)
 	}
 	var output struct {
-		Reasoning   string `json:"reasoning"`
 		ArticleName string `json:"articleName"`
 	}
 	err := w.getWikiResponseService().RespondToQueryWithJSON(w.formatQuery(context.What), &output)
