@@ -16,6 +16,7 @@ const imageDescriptionFormatMessage = "%s\nContext (description of the image): \
 type filter struct {
 	urlFinder               common.URLFinder
 	visionModel             Model
+	tempFilePathProvider    common.TempFilePathProvider
 	whereToRememberedImages map[string]*rememberedImageData
 	logger                  common.Logger
 	memoryDecayDuration     int
@@ -30,12 +31,14 @@ type rememberedImageData struct {
 func NewFilter(
 	urlFinder common.URLFinder,
 	visionModel Model,
+	tempFilePathProvider common.TempFilePathProvider,
 	config *common.Config,
 	logger common.Logger,
 ) domain.AIFilter {
 	return &filter{
 		urlFinder:               urlFinder,
 		visionModel:             visionModel,
+		tempFilePathProvider:    tempFilePathProvider,
 		whereToRememberedImages: make(map[string]*rememberedImageData),
 		logger:                  logger,
 		memoryDecayDuration:     config.GetIntOrDefault("imageMemoryDecayDuration", 3),
@@ -85,7 +88,7 @@ func (f *filter) getRememberedImage(where string) *rememberedImageData {
 func (f *filter) rememberImage(where, url string) (*rememberedImageData, error) {
 	result := &rememberedImageData{
 		OriginalURL:      url,
-		FilePath:         os.TempDir() + "/svpc_" + common.Hash(where),
+		FilePath:         f.tempFilePathProvider.GetTempFilePath("image_" + common.Hash(where)),
 		MemoryDecayIndex: f.memoryDecayDuration,
 	}
 	err := common.DownloadFromURL(url, result.FilePath)

@@ -58,6 +58,7 @@ type API interface {
 func NewAPI(config *common.Config) (API, common.Stoppable) {
 	logger := common.NewFileLogger(config.GetStringOrDefault(ConfigKeyLogPath, "log.txt"))
 	jobQueue := common.NewJobQueue(logger)
+	tempFileProvider := filesystem.NewTempFilePathProvider(config)
 	embedder := embed4all.NewEmbedder(config, logger)
 	aiContext := domain.NewAIContextFromConfig(config)
 	roleplayLLama2Model := logging.NewLanguageModelDecorator(llama2.NewRoleplayLanguageModel(aiContext, config, logger), logger)
@@ -101,7 +102,13 @@ func NewAPI(config *common.Config) (API, common.Stoppable) {
 		logger,
 	)
 	visionModel := llavacpp.NewVisionModel()
-	visionFilter := vision.NewFilter(urlFinder, visionModel, config, logger)
+	visionFilter := vision.NewFilter(
+		urlFinder,
+		visionModel,
+		tempFileProvider,
+		config,
+		logger,
+	)
 	wikiFilter := domainwiki.NewFilter(
 		responseService,
 		memoryFactory,

@@ -160,7 +160,7 @@ func (l *LanguageModel) buildInferCommand(options domain.CompleteOptions) (strin
 // - full isolation (for privacy)
 // - fault-tolerance: crashes in llama.cpp (out of memory, segfaults, etc.) do not crash the AI agent altogether
 func runInferCommand(cmdstr, prompt string, responseTimeout time.Duration, processLineFunc func(s string) bool) error {
-	args := strings.Fields(cmdstr)
+	args := strings.Fields(cmdstr) // TODO probably unsafe, pass the arguments like we do it in llava.cpp
 	args = append(args, prompt)
 	ctx, cancelFunc := context.WithDeadline(context.Background(), time.Now().Add(responseTimeout))
 	defer cancelFunc()
