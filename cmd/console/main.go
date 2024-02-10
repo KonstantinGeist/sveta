@@ -46,19 +46,11 @@ func mainImpl() error {
 			break
 		}
 		line = strings.TrimSpace(line)
-		if strings.HasPrefix(line, ":") {
-			line = line[1:]
-			err := sveta.RememberAction(userName, line, roomName)
-			if err != nil {
-				fmt.Println(err)
-			}
-		} else {
-			response, err := sveta.Respond(userName, line, roomName)
-			if err != nil {
-				response = "I'm borked :("
-			}
-			fmt.Println(response)
+		response, err := sveta.Respond(userName, line, roomName)
+		if err != nil {
+			response = "I'm borked :("
 		}
+		fmt.Println(response)
 	}
 	return nil
 }

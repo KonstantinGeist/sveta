@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/whyrusleeping/hellabot"
@@ -40,20 +39,6 @@ func mainImpl() error {
 			return true
 		},
 		func(b *hbot.Bot, m *hbot.Message) bool {
-			if m.Command == "JOIN" && m.From != agentName {
-				err := sveta.RememberAction(m.From, "I joined the chat", m.Content[1:])
-				if err != nil {
-					fmt.Println(err)
-				}
-				return true
-			}
-			if m.Command == "PART" && m.From != agentName {
-				err := sveta.RememberAction(m.From, "I left the chat", m.Content[1:])
-				if err != nil {
-					fmt.Println(err)
-				}
-				return true
-			}
 			if m.Command != "PRIVMSG" {
 				return true
 			}

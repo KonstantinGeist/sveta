@@ -37,8 +37,12 @@ func NewFilter(
 	}
 }
 
-func (f *filter) Apply(context domain.AIFilterContext, nextAIFilterFunc domain.NextAIFilterFunc) (string, error) {
-	urls := f.urlFinder.FindURLs(context.What)
+func (f *filter) Apply(context *domain.AIFilterContext, nextAIFilterFunc domain.NextAIFilterFunc) error {
+	inputMemory := context.Memory(domain.DataKeyInput)
+	if inputMemory == nil {
+		return nextAIFilterFunc(context)
+	}
+	urls := f.urlFinder.FindURLs(inputMemory.What)
 	if len(urls) == 0 {
 		return nextAIFilterFunc(context)
 	}
@@ -49,14 +53,17 @@ func (f *filter) Apply(context domain.AIFilterContext, nextAIFilterFunc domain.N
 	pageContent, err := f.pageContentExtractor.ExtractPageContentFromURL(url)
 	if err != nil {
 		// It's important to add `couldntLoadURLFormatMessage` so that the main LLM correctly respond that the URL doesn't load.
-		return nextAIFilterFunc(context.WithWhat(fmt.Sprintf(couldntLoadURLFormatMessage, context.What)))
+		inputMemory.What = fmt.Sprintf(couldntLoadURLFormatMessage, inputMemory.What)
+		return nextAIFilterFunc(context.WithMemory(domain.DataKeyInput, inputMemory))
 	}
 	pageContent = f.preprocessPageContent(pageContent)
 	if pageContent == "" {
-		return nextAIFilterFunc(context.WithWhat(fmt.Sprintf(couldntLoadURLFormatMessage, context.What)))
+		inputMemory.What = fmt.Sprintf(couldntLoadURLFormatMessage, inputMemory.What)
+		return nextAIFilterFunc(context.WithMemory(domain.DataKeyInput, inputMemory))
 	}
-	whatWithoutURL := f.removeURL(context.What, url)
-	return nextAIFilterFunc(context.WithWhat(fmt.Sprintf(urlDescriptionFormatMessage, url, pageContent, whatWithoutURL)))
+	whatWithoutURL := f.removeURL(inputMemory.What, url)
+	inputMemory.What = fmt.Sprintf(urlDescriptionFormatMessage, url, pageContent, whatWithoutURL)
+	return nextAIFilterFunc(context.WithMemory(domain.DataKeyInput, inputMemory))
 }
 
 func (f *filter) preprocessPageContent(pageContent string) string {

@@ -34,10 +34,14 @@ func NewFilter(
 	}
 }
 
-func (f *filter) Apply(context domain.AIFilterContext, nextAIFilterFunc domain.NextAIFilterFunc) (string, error) {
-	if !f.loaded[context.Where] {
-		f.loadBioFacts(context.Where)
-		f.loaded[context.Where] = true
+func (f *filter) Apply(context *domain.AIFilterContext, nextAIFilterFunc domain.NextAIFilterFunc) error {
+	inputMemory := context.Memory(domain.DataKeyInput)
+	if inputMemory == nil {
+		return nextAIFilterFunc(context)
+	}
+	if !f.loaded[inputMemory.Where] {
+		f.loadBioFacts(inputMemory.Where)
+		f.loaded[inputMemory.Where] = true
 	}
 	return nextAIFilterFunc(context)
 }

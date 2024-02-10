@@ -49,14 +49,18 @@ func NewFilter(
 	}
 }
 
-func (f *filter) Apply(context domain.AIFilterContext, nextAIFilterFunc domain.NextAIFilterFunc) (string, error) {
-	if !f.shouldApply(context.What) {
+func (f *filter) Apply(context *domain.AIFilterContext, nextAIFilterFunc domain.NextAIFilterFunc) error {
+	inputMemory := context.Memory(domain.DataKeyInput)
+	if inputMemory == nil {
+		return nextAIFilterFunc(context)
+	}
+	if !f.shouldApply(inputMemory.What) {
 		return nextAIFilterFunc(context)
 	}
 	var output struct {
 		ArticleName string `json:"articleName"`
 	}
-	err := f.getWikiResponseService().RespondToQueryWithJSON(f.formatQuery(context.What), &output)
+	err := f.getWikiResponseService().RespondToQueryWithJSON(f.formatQuery(inputMemory.What), &output)
 	if err != nil {
 		f.logger.Log(err.Error())
 		return nextAIFilterFunc(context)
@@ -81,17 +85,19 @@ func (f *filter) Apply(context domain.AIFilterContext, nextAIFilterFunc domain.N
 			continue
 		}
 		summary = "\"" + summary + "\""
-		if !f.memoryExists(summary, context.Where) {
-			err = f.storeMemory(summary, context.Where)
+		if !f.memoryExists(summary, inputMemory.Where) {
+			err = f.storeMemory(summary, inputMemory.Where)
 			if err != nil {
 				f.logger.Log(err.Error())
-				return "", err
+				return nextAIFilterFunc(context)
 			}
 		}
 	}
 	return nextAIFilterFunc(context)
 }
 
+// shouldApply a heuristic to avoid looking for information in a Wikipedia article if the message is very trivial/banal,
+// i.e. contains only most popular words
 func (f *filter) shouldApply(what string) bool {
 	what = strings.ToLower(what)
 	what = strings.ReplaceAll(what, "\n", " ")

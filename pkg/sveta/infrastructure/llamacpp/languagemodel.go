@@ -191,7 +191,7 @@ func runInferCommand(cmdstr, prompt string, responseTimeout time.Duration, proce
 }
 
 func getAgentNameWithDelimiter(aiContext *domain.AIContext, promptFormatter domain.PromptFormatter) string {
-	memories := []*domain.Memory{domain.NewMemory("", domain.MemoryTypeAction, aiContext.AgentName, time.Now(), "", "", nil)}
+	memories := []*domain.Memory{domain.NewMemory("", domain.MemoryTypeDialog, aiContext.AgentName, time.Now(), "", "", nil)}
 	result := strings.TrimSpace(promptFormatter.FormatDialog(memories))
 	return result
 }

@@ -4,8 +4,11 @@ import (
 	"kgeyst.com/sveta/pkg/common"
 	"kgeyst.com/sveta/pkg/sveta/domain"
 	"kgeyst.com/sveta/pkg/sveta/domain/aifilters/bio"
+	"kgeyst.com/sveta/pkg/sveta/domain/aifilters/memory"
 	"kgeyst.com/sveta/pkg/sveta/domain/aifilters/news"
+	"kgeyst.com/sveta/pkg/sveta/domain/aifilters/remember"
 	"kgeyst.com/sveta/pkg/sveta/domain/aifilters/response"
+	"kgeyst.com/sveta/pkg/sveta/domain/aifilters/rewrite"
 	"kgeyst.com/sveta/pkg/sveta/domain/aifilters/summary"
 	"kgeyst.com/sveta/pkg/sveta/domain/aifilters/vision"
 	domainweb "kgeyst.com/sveta/pkg/sveta/domain/aifilters/web"
@@ -41,9 +44,6 @@ type API interface {
 	// tell between users in a shared chat and could respond intelligently). Parameter `where` specifies a shared virtual "room"
 	// (useful for isolating dialogs from each other).
 	Respond(who string, what string, where string) (string, error)
-	// RememberAction remembers a certain action (not a reply) in the chat: for example, that a certain user entered the chat.
-	// The AI can use this information for enriching the context of the dialog.
-	RememberAction(who string, what string, where string) error
 	// RememberDialog remembers a certain utterance in the chat. The AI can use this information for enriching the context
 	// of the dialog without directly responding to it (as is usual with Respond(..)
 	RememberDialog(who string, what string, where string) error
@@ -80,6 +80,17 @@ func NewAPI(config *common.Config) (API, common.Stopper) {
 	urlFinder := infraweb.NewURLFinder()
 	newsProvider := rss.NewNewsProvider(
 		config.GetStringOrDefault("newsSourceURL", "http://www.independent.co.uk/rss"),
+	)
+	memoryFilter := memory.NewFilter(
+		memoryRepository,
+		memoryFactory,
+		config,
+		logger,
+	)
+	rewriteFilter := rewrite.NewFilter(
+		memoryFactory,
+		responseService,
+		logger,
 	)
 	newsFilter := news.NewFilter(
 		newsProvider,
@@ -128,13 +139,11 @@ func NewAPI(config *common.Config) (API, common.Stopper) {
 		config,
 		logger,
 	)
+	rememberFilter := remember.NewFilter(memoryRepository)
 	summaryFilter := summary.NewFilter(
-		aiContext,
-		memoryRepository,
 		summaryRepository,
 		responseService,
 		languageModelJobQueue,
-		config,
 		logger,
 	)
 	return &api{
@@ -146,10 +155,13 @@ func NewAPI(config *common.Config) (API, common.Stopper) {
 			[]domain.AIFilter{
 				newsFilter,
 				bioFilter,
+				memoryFilter,
+				rewriteFilter,
 				webFilter,
 				visionFilter,
 				wikiFilter,
 				responseFilter,
+				rememberFilter,
 				summaryFilter,
 			},
 		),
@@ -158,10 +170,6 @@ func NewAPI(config *common.Config) (API, common.Stopper) {
 
 func (a *api) Respond(who string, what string, where string) (string, error) {
 	return a.aiService.Respond(who, what, where)
-}
-
-func (a *api) RememberAction(who string, what string, where string) error {
-	return a.aiService.RememberAction(who, what, where)
 }
 
 func (a *api) RememberDialog(who string, what string, where string) error {

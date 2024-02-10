@@ -3,56 +3,46 @@ package summary
 import (
 	"fmt"
 	"strings"
-	"time"
 
 	"kgeyst.com/sveta/pkg/common"
 	"kgeyst.com/sveta/pkg/sveta/domain"
+	"kgeyst.com/sveta/pkg/sveta/domain/aifilters/memory"
 )
 
 type filter struct {
-	aiContext             *domain.AIContext
-	memoryRepository      domain.MemoryRepository
 	summaryRepository     domain.SummaryRepository
 	responseService       *domain.ResponseService
 	languageModelJobQueue *common.JobQueue
 	logger                common.Logger
-	workingMemorySize     int
-	workingMemoryMaxAge   time.Duration
 }
 
 func NewFilter(
-	aiContext *domain.AIContext,
-	memoryRepository domain.MemoryRepository,
 	summaryRepository domain.SummaryRepository,
 	responseService *domain.ResponseService,
 	languageModelJobQueue *common.JobQueue,
-	config *common.Config,
 	logger common.Logger,
 ) domain.AIFilter {
 	return &filter{
-		aiContext:             aiContext,
-		memoryRepository:      memoryRepository,
 		summaryRepository:     summaryRepository,
 		responseService:       responseService,
 		languageModelJobQueue: languageModelJobQueue,
 		logger:                logger,
-		workingMemorySize:     config.GetIntOrDefault(domain.ConfigKeyWorkingMemorySize, 5),
-		workingMemoryMaxAge:   config.GetDurationOrDefault(domain.ConfigKeyWorkingMemoryMaxAge, time.Hour),
 	}
 }
 
-func (f *filter) Apply(context domain.AIFilterContext, nextAIFilterFunc domain.NextAIFilterFunc) (string, error) {
-	workingMemories, err := f.recallFromWorkingMemory(context.Where)
+func (f *filter) Apply(context *domain.AIFilterContext, nextAIFilterFunc domain.NextAIFilterFunc) error {
+	inputMemory := context.Memory(domain.DataKeyInput)
+	outputMemory := context.Memory(domain.DataKeyOutput)
+	if inputMemory == nil || outputMemory == nil {
+		return nextAIFilterFunc(context)
+	}
+	workingMemories := context.Memories(memory.DataKeyWorkingMemory)
+	summary, err := f.summaryRepository.FindByWhere(inputMemory.Where)
 	if err != nil {
 		f.logger.Log("failed to summarize: " + err.Error())
 		return nextAIFilterFunc(context)
 	}
-	summary, err := f.summaryRepository.FindByWhere(context.Where)
-	if err != nil {
-		f.logger.Log("failed to summarize: " + err.Error())
-		return nextAIFilterFunc(context)
-	}
-	formattedForSummarizer := f.formatMemoriesForSummarizer(summary, workingMemories)
+	formattedMemories := f.formatMemories(summary, domain.MergeMemories(workingMemories, []*domain.Memory{inputMemory, outputMemory}...))
 	f.languageModelJobQueue.Enqueue(func() error {
 		var output struct {
 			Summary1 string `json:"summary1"`
@@ -60,7 +50,7 @@ func (f *filter) Apply(context domain.AIFilterContext, nextAIFilterFunc domain.N
 			Summary3 string `json:"summary3"`
 		}
 		err = f.getSummarizerResponseService().RespondToQueryWithJSON(
-			fmt.Sprintf("%s\nSummarize the chat history above into 3 short summaries at most (if possible).", formattedForSummarizer),
+			fmt.Sprintf("%s\nSummarize the chat history above into 3 short summaries at most (if possible).", formattedMemories),
 			&output,
 		)
 		if err != nil {
@@ -76,20 +66,9 @@ func (f *filter) Apply(context domain.AIFilterContext, nextAIFilterFunc domain.N
 		if output.Summary3 != "" {
 			summaries = append(summaries, output.Summary3)
 		}
-		return f.summaryRepository.Store(context.Where, strings.TrimSpace(strings.Join(summaries, " ")))
+		return f.summaryRepository.Store(inputMemory.Where, strings.TrimSpace(strings.Join(summaries, " ")))
 	})
 	return nextAIFilterFunc(context)
-}
-
-func (f *filter) recallFromWorkingMemory(where string) ([]*domain.Memory, error) {
-	// Note that we don't want to recall the latest entries if they're too old (they're most likely already irrelevant).
-	notOlderThan := time.Now().Add(-f.workingMemoryMaxAge)
-	return f.memoryRepository.Find(domain.MemoryFilter{
-		Types:        []domain.MemoryType{domain.MemoryTypeDialog, domain.MemoryTypeAction},
-		Where:        where,
-		LatestCount:  f.workingMemorySize,
-		NotOlderThan: &notOlderThan,
-	})
 }
 
 func (f *filter) getSummarizerResponseService() *domain.ResponseService {
@@ -104,7 +83,7 @@ func (f *filter) getSummarizerResponseService() *domain.ResponseService {
 	return f.responseService.WithAIContext(rankerAIContext)
 }
 
-func (f *filter) formatMemoriesForSummarizer(summary *string, memories []*domain.Memory) string {
+func (f *filter) formatMemories(summary *string, memories []*domain.Memory) string {
 	var buf strings.Builder
 	buf.WriteString("Chat history: ```\n")
 	for _, memory := range memories {

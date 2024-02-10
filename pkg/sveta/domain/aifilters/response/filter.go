@@ -2,11 +2,14 @@ package response
 
 import (
 	"fmt"
-	"time"
 
 	"kgeyst.com/sveta/pkg/common"
 	"kgeyst.com/sveta/pkg/sveta/domain"
+	"kgeyst.com/sveta/pkg/sveta/domain/aifilters/memory"
+	"kgeyst.com/sveta/pkg/sveta/domain/aifilters/rewrite"
 )
+
+const DataKeyOutput = "output"
 
 type filter struct {
 	aiContext                         *domain.AIContext
@@ -16,8 +19,6 @@ type filter struct {
 	embedder                          domain.Embedder
 	promptFormatterForLog             domain.PromptFormatter
 	logger                            common.Logger
-	workingMemorySize                 int
-	workingMemoryMaxAge               time.Duration
 	episodicMemoryFirstStageTopCount  int
 	episodicMemorySecondStageTopCount int
 	episodicMemorySurroundingCount    int
@@ -43,8 +44,6 @@ func NewFilter(
 		embedder:                          embedder,
 		promptFormatterForLog:             promptFormatterForLog,
 		logger:                            logger,
-		workingMemorySize:                 config.GetIntOrDefault(domain.ConfigKeyWorkingMemorySize, 5),
-		workingMemoryMaxAge:               config.GetDurationOrDefault(domain.ConfigKeyWorkingMemoryMaxAge, time.Hour),
 		episodicMemoryFirstStageTopCount:  config.GetIntOrDefault(domain.ConfigKeyEpisodicMemoryFirstStageTopCount, 10),
 		episodicMemorySecondStageTopCount: config.GetIntOrDefault(domain.ConfigKeyEpisodicMemorySecondStageTopCount, 3),
 		episodicMemorySurroundingCount:    config.GetIntOrDefault(domain.ConfigKeyEpisodicMemorySurroundingCount, 1),
@@ -53,57 +52,34 @@ func NewFilter(
 	}
 }
 
-func (f *filter) Apply(context domain.AIFilterContext, nextAIFilterFunc domain.NextAIFilterFunc) (string, error) {
-	err := f.memoryRepository.Store(f.memoryFactory.NewMemory(domain.MemoryTypeDialog, context.Who, context.What, context.Where))
-	if err != nil {
-		return "", err
+func (f *filter) Apply(context *domain.AIFilterContext, nextAIFilterFunc domain.NextAIFilterFunc) error {
+	inputMemory := context.MemoryCoalesced([]string{rewrite.DataKeyRewrittenInput, domain.DataKeyInput})
+	if inputMemory == nil {
+		return nextAIFilterFunc(context)
 	}
-	workingMemories, err := f.recallFromWorkingMemory(context.Where)
+	workingMemories := context.Memories(memory.DataKeyWorkingMemory)
+	episodicMemories, err := f.recallFromEpisodicMemory(workingMemories, inputMemory)
 	if err != nil {
-		return "", err
-	}
-	episodicMemories, err := f.recallFromEpisodicMemory(workingMemories)
-	if err != nil {
-		return "", err
+		return err
 	}
 	memories := domain.MergeMemories(episodicMemories, workingMemories...)
+	memories = domain.MergeMemories(memories, inputMemory)
 	response, err := f.responseService.RespondToMemoriesWithText(memories, domain.ResponseModeNormal)
 	if err != nil {
-		return "", err
+		return err
 	}
-	err = f.memoryRepository.Store(f.memoryFactory.NewMemory(domain.MemoryTypeDialog, f.aiContext.AgentName, response, context.Where))
-	if err != nil {
-		return "", err
-	}
-	return nextAIFilterFunc(domain.NewAIFilterContext(f.aiContext.AgentName, response, context.Where))
-}
-
-// recallFromWorkingMemory finds memories from the so-called "working memory" -- it's simply N latest memories (depends on
-// `workingMemorySize` specified in the context). Working memory is the basis for building proper dialog contexts
-// (so that AI could hold continuous dialogs).
-func (f *filter) recallFromWorkingMemory(where string) ([]*domain.Memory, error) {
-	// Note that we don't want to recall the latest entries if they're too old (they're most likely already irrelevant).
-	notOlderThan := time.Now().Add(-f.workingMemoryMaxAge)
-	return f.memoryRepository.Find(domain.MemoryFilter{
-		Types:        []domain.MemoryType{domain.MemoryTypeDialog, domain.MemoryTypeAction},
-		Where:        where,
-		LatestCount:  f.workingMemorySize,
-		NotOlderThan: &notOlderThan,
-	})
+	responseMemory := f.memoryFactory.NewMemory(domain.MemoryTypeDialog, f.aiContext.AgentName, response, inputMemory.Where)
+	return nextAIFilterFunc(context.WithMemory(DataKeyOutput, responseMemory))
 }
 
 // recallFromEpisodicMemory finds memories in the so-called "episodic memory", or long-term memory which may contain memories from long ago
-func (f *filter) recallFromEpisodicMemory(workingMemories []*domain.Memory) ([]*domain.Memory, error) {
+func (f *filter) recallFromEpisodicMemory(workingMemories []*domain.Memory, inputMemory *domain.Memory) ([]*domain.Memory, error) {
 	if len(workingMemories) == 0 {
 		return nil, nil
 	}
-	rewrittenUserQuery, rewrittenUserQueryEmbedding, err := f.rewriteUserQuery(workingMemories)
-	if err != nil {
-		return nil, err
-	}
-	embeddingsToSearch := f.getHypotheticalEmbeddings(rewrittenUserQuery)
-	if rewrittenUserQueryEmbedding != nil {
-		embeddingsToSearch = append(embeddingsToSearch, *rewrittenUserQueryEmbedding)
+	embeddingsToSearch := f.getHypotheticalEmbeddings(inputMemory)
+	if inputMemory.Embedding != nil {
+		embeddingsToSearch = append(embeddingsToSearch, *inputMemory.Embedding)
 	}
 	where := domain.LastMemory(workingMemories).Where
 	episodicMemories, err := f.memoryRepository.FindByEmbeddings(domain.EmbeddingFilter{
@@ -120,11 +96,11 @@ func (f *filter) recallFromEpisodicMemory(workingMemories []*domain.Memory) ([]*
 	if len(episodicMemories) == 0 {
 		return nil, nil
 	}
-	episodicMemories = f.rankMemoriesAndGetTopN(episodicMemories, rewrittenUserQuery, where)
+	episodicMemories = f.rankMemoriesAndGetTopN(episodicMemories, inputMemory.What, where)
 	if len(episodicMemories) == 0 {
 		return nil, nil
 	}
-	dialogForLog := f.promptFormatterForLog.FormatDialog(domain.FilterMemoriesByTypes(episodicMemories, []domain.MemoryType{domain.MemoryTypeDialog, domain.MemoryTypeAction}))
+	dialogForLog := f.promptFormatterForLog.FormatDialog(domain.FilterMemoriesByTypes(episodicMemories, []domain.MemoryType{domain.MemoryTypeDialog}))
 	f.logger.Log(fmt.Sprintf("\n======\nRecalled context:\n%s\n========\n", dialogForLog))
 	return episodicMemories, nil
 }

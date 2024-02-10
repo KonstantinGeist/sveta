@@ -10,8 +10,6 @@ type MemoryType int
 const (
 	// MemoryTypeDialog an utterance in the chat
 	MemoryTypeDialog = MemoryType(iota)
-	// MemoryTypeAction an action (for example, "I entered the chat")
-	MemoryTypeAction
 )
 
 type Memory struct {

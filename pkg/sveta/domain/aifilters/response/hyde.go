@@ -7,11 +7,10 @@ import (
 )
 
 // getHypotheticalEmbeddings a combination of Hypothetical Document Embeddings (HyDE) + Rewrite-Retrieve-Read
-func (f *filter) getHypotheticalEmbeddings(what string) []domain.Embedding {
-	if !f.isQuestion(what) { // don't use HyDE for statements -- usually it doesn't work, especially if it's just a casual conversation
-		embedding := f.getEmbedding(what)
-		if embedding != nil {
-			return []domain.Embedding{*embedding}
+func (f *filter) getHypotheticalEmbeddings(inputMemory *domain.Memory) []domain.Embedding {
+	if !f.isQuestion(inputMemory.What) { // don't use HyDE for statements -- usually it doesn't work, especially if it's just a casual conversation
+		if inputMemory.Embedding != nil {
+			return []domain.Embedding{*inputMemory.Embedding}
 		}
 		return nil
 	}
@@ -21,7 +20,7 @@ func (f *filter) getHypotheticalEmbeddings(what string) []domain.Embedding {
 		Response3 string `json:"response3"`
 	}
 	err := f.getHyDEResponseService().RespondToQueryWithJSON(
-		"Imagine 3 possible short responses to the following user query as if you knew the answer: \""+what+"\"",
+		"Imagine 3 possible short responses to the following user query as if you knew the answer: \""+inputMemory.What+"\"",
 		&output,
 	)
 	if err != nil {

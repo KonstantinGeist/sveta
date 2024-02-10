@@ -45,32 +45,39 @@ func NewFilter(
 	}
 }
 
-func (f *filter) Apply(context domain.AIFilterContext, nextAIFilterFunc domain.NextAIFilterFunc) (string, error) {
+func (f *filter) Apply(context *domain.AIFilterContext, nextAIFilterFunc domain.NextAIFilterFunc) error {
+	inputMemory := context.Memory(domain.DataKeyInput)
+	if inputMemory == nil {
+		return nextAIFilterFunc(context)
+	}
 	var err error
-	rememberedImage := f.getRememberedImage(context.Where)
-	whatWithoutURL := context.What // first initialization, will be changed later
-	urls := f.urlFinder.FindURLs(context.What)
+	rememberedImage := f.getRememberedImage(inputMemory.Where)
+	whatWithoutURL := inputMemory.What // first initialization, will be changed later
+	urls := f.urlFinder.FindURLs(inputMemory.What)
 	if len(urls) != 0 {
 		url := urls[0] // let's do it with only one image so far
 		if !common.IsImageFormat(url) {
 			return nextAIFilterFunc(context)
 		}
-		rememberedImage, err = f.rememberImage(context.Where, url)
+		rememberedImage, err = f.rememberImage(inputMemory.Where, url)
 		if err != nil {
 			f.logger.Log(err.Error())
-			return nextAIFilterFunc(context.WithWhat(fmt.Sprintf(couldntLoadImageFormatMessage, context.What)))
+			inputMemory.What = fmt.Sprintf(couldntLoadImageFormatMessage, inputMemory.What)
+			return nextAIFilterFunc(context.WithMemory(domain.DataKeyInput, inputMemory))
 		}
-		whatWithoutURL = f.removeURL(context.What, url)
+		whatWithoutURL = f.removeURL(inputMemory.What, url)
 	}
 	if rememberedImage == nil || !rememberedImage.fileExists() {
 		return nextAIFilterFunc(context)
 	}
-	response, err := f.visionModel.Infer(rememberedImage.FilePath, context.What)
+	response, err := f.visionModel.Infer(rememberedImage.FilePath, inputMemory.What)
 	if err != nil {
 		f.logger.Log(err.Error())
-		return nextAIFilterFunc(context.WithWhat(fmt.Sprintf(couldntLoadImageFormatMessage, context.What)))
+		inputMemory.What = fmt.Sprintf(couldntLoadImageFormatMessage, inputMemory.What)
+		return nextAIFilterFunc(context.WithMemory(domain.DataKeyInput, inputMemory))
 	}
-	return nextAIFilterFunc(context.WithWhat(fmt.Sprintf(imageDescriptionFormatMessage, rememberedImage.OriginalURL, response, whatWithoutURL)))
+	inputMemory.What = fmt.Sprintf(imageDescriptionFormatMessage, rememberedImage.OriginalURL, response, whatWithoutURL)
+	return nextAIFilterFunc(context.WithMemory(domain.DataKeyInput, inputMemory))
 }
 
 func (f *filter) getRememberedImage(where string) *rememberedImageData {

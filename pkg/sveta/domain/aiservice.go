@@ -1,6 +1,11 @@
 package domain
 
-import "sync"
+import (
+	"errors"
+	"sync"
+)
+
+var errFailedToResponse = errors.New("failed to respond")
 
 type respondFunc func(who, what, where string) (string, error)
 
@@ -35,15 +40,17 @@ func NewAIService(
 func (a *AIService) Respond(who, what, where string) (string, error) {
 	a.mutex.Lock()
 	defer a.mutex.Unlock()
-	return a.applyAIFilterAtIndex(NewAIFilterContext(who, what, where), 0)
-}
-
-// RememberAction see API.RememberAction
-func (a *AIService) RememberAction(who, what, where string) error {
-	a.mutex.Lock()
-	defer a.mutex.Unlock()
-	memory := a.memoryFactory.NewMemory(MemoryTypeAction, who, what, where)
-	return a.memoryRepository.Store(memory)
+	inputMemory := a.memoryFactory.NewMemory(MemoryTypeDialog, who, what, where)
+	aiFilterContext := NewAIFilterContext().WithMemory(DataKeyInput, inputMemory)
+	err := a.applyAIFilterAtIndex(aiFilterContext, 0)
+	if err != nil {
+		return "", err
+	}
+	outputMemory := aiFilterContext.Memory(DataKeyOutput)
+	if outputMemory == nil {
+		return "", errFailedToResponse
+	}
+	return outputMemory.What, nil
 }
 
 // RememberDialog see API.RememberDialog
@@ -86,15 +93,15 @@ func (a *AIService) GetSummary(where string) (string, error) {
 	return *summary, nil
 }
 
-func (a *AIService) applyAIFilterAtIndex(context AIFilterContext, index int) (string, error) {
+func (a *AIService) applyAIFilterAtIndex(context *AIFilterContext, index int) error {
 	var nextAIFilterFunc NextAIFilterFunc
 	if index < len(a.aiFilters)-1 {
-		nextAIFilterFunc = func(context AIFilterContext) (string, error) {
+		nextAIFilterFunc = func(context *AIFilterContext) error {
 			return a.applyAIFilterAtIndex(context, index+1)
 		}
 	} else {
-		nextAIFilterFunc = func(context AIFilterContext) (string, error) {
-			return context.What, nil
+		nextAIFilterFunc = func(context *AIFilterContext) error {
+			return nil
 		}
 	}
 	return a.aiFilters[index].Apply(context, nextAIFilterFunc)

@@ -58,7 +58,7 @@ func (r *ResponseService) RespondToMemoriesWithText(memories []*Memory, response
 	if len(memories) == 0 {
 		return "", nil
 	}
-	dialogAndActionMemories := FilterMemoriesByTypes(memories, []MemoryType{MemoryTypeDialog, MemoryTypeAction})
+	dialogAndActionMemories := FilterMemoriesByTypes(memories, []MemoryType{MemoryTypeDialog})
 	languageModel := r.languageModelSelector.Select(memories, responseMode)
 	promptFormatter := languageModel.PromptFormatter()
 	promptEndMemories := r.generatePromptEndMemories()
@@ -177,7 +177,7 @@ func (r *ResponseService) collectDialogParticipants(memories []*Memory) []string
 	resultSet := make(map[string]struct{})
 	resultSet[r.aiContext.AgentName] = struct{}{}
 	for _, memory := range memories {
-		if (memory.Type == MemoryTypeDialog || memory.Type == MemoryTypeAction) && memory.Who != "" {
+		if (memory.Type == MemoryTypeDialog) && memory.Who != "" {
 			resultSet[memory.Who] = struct{}{}
 		}
 	}
@@ -203,7 +203,7 @@ func (r *ResponseService) getSummary(memories []*Memory) string {
 
 // For cleanResponse(..)
 func getAgentNameWithDelimiter(agentName string, promptFormatter PromptFormatter) string {
-	memories := []*Memory{NewMemory("", MemoryTypeAction, agentName, time.Now(), "", "", nil)}
+	memories := []*Memory{NewMemory("", MemoryTypeDialog, agentName, time.Now(), "", "", nil)}
 	result := strings.TrimSpace(promptFormatter.FormatDialog(memories))
 	return result
 }
