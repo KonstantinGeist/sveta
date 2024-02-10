@@ -6,7 +6,7 @@ import (
 
 	"kgeyst.com/sveta/pkg/common"
 	"kgeyst.com/sveta/pkg/sveta/domain"
-	"kgeyst.com/sveta/pkg/sveta/domain/aifilters/memory"
+	"kgeyst.com/sveta/pkg/sveta/domain/aifilters/workingmemory"
 )
 
 const DataKeyRewrittenInput = "rewrittenInput"
@@ -34,7 +34,7 @@ func (f *filter) Apply(context *domain.AIFilterContext, nextAIFilterFunc domain.
 	if inputMemory == nil {
 		return nextAIFilterFunc(context)
 	}
-	workingMemories := context.Memories(memory.DataKeyWorkingMemory)
+	workingMemories := context.Memories(workingmemory.DataKeyWorkingMemory)
 	if len(workingMemories) == 0 { // there's nothing really to rewrite with only 1 working memory
 		return nextAIFilterFunc(context)
 	}

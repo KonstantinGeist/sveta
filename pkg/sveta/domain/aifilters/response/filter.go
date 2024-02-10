@@ -5,8 +5,8 @@ import (
 
 	"kgeyst.com/sveta/pkg/common"
 	"kgeyst.com/sveta/pkg/sveta/domain"
-	"kgeyst.com/sveta/pkg/sveta/domain/aifilters/memory"
 	"kgeyst.com/sveta/pkg/sveta/domain/aifilters/rewrite"
+	"kgeyst.com/sveta/pkg/sveta/domain/aifilters/workingmemory"
 )
 
 const DataKeyOutput = "output"
@@ -53,22 +53,23 @@ func NewFilter(
 }
 
 func (f *filter) Apply(context *domain.AIFilterContext, nextAIFilterFunc domain.NextAIFilterFunc) error {
-	inputMemory := context.MemoryCoalesced([]string{rewrite.DataKeyRewrittenInput, domain.DataKeyInput})
-	if inputMemory == nil {
+	inputMemoryForRecall := context.MemoryCoalesced([]string{rewrite.DataKeyRewrittenInput, domain.DataKeyInput})
+	if inputMemoryForRecall == nil {
 		return nextAIFilterFunc(context)
 	}
-	workingMemories := context.Memories(memory.DataKeyWorkingMemory)
-	episodicMemories, err := f.recallFromEpisodicMemory(workingMemories, inputMemory)
+	inputMemoryForResponse := context.Memory(domain.DataKeyInput)
+	workingMemories := context.Memories(workingmemory.DataKeyWorkingMemory)
+	episodicMemories, err := f.recallFromEpisodicMemory(workingMemories, inputMemoryForRecall)
 	if err != nil {
 		return err
 	}
 	memories := domain.MergeMemories(episodicMemories, workingMemories...)
-	memories = domain.MergeMemories(memories, inputMemory)
+	memories = domain.MergeMemories(memories, inputMemoryForResponse)
 	response, err := f.responseService.RespondToMemoriesWithText(memories, domain.ResponseModeNormal)
 	if err != nil {
 		return err
 	}
-	responseMemory := f.memoryFactory.NewMemory(domain.MemoryTypeDialog, f.aiContext.AgentName, response, inputMemory.Where)
+	responseMemory := f.memoryFactory.NewMemory(domain.MemoryTypeDialog, f.aiContext.AgentName, response, inputMemoryForResponse.Where)
 	return nextAIFilterFunc(context.WithMemory(DataKeyOutput, responseMemory))
 }
 

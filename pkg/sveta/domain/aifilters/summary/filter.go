@@ -6,7 +6,7 @@ import (
 
 	"kgeyst.com/sveta/pkg/common"
 	"kgeyst.com/sveta/pkg/sveta/domain"
-	"kgeyst.com/sveta/pkg/sveta/domain/aifilters/memory"
+	"kgeyst.com/sveta/pkg/sveta/domain/aifilters/workingmemory"
 )
 
 type filter struct {
@@ -36,7 +36,7 @@ func (f *filter) Apply(context *domain.AIFilterContext, nextAIFilterFunc domain.
 	if inputMemory == nil || outputMemory == nil {
 		return nextAIFilterFunc(context)
 	}
-	workingMemories := context.Memories(memory.DataKeyWorkingMemory)
+	workingMemories := context.Memories(workingmemory.DataKeyWorkingMemory)
 	summary, err := f.summaryRepository.FindByWhere(inputMemory.Where)
 	if err != nil {
 		f.logger.Log("failed to summarize: " + err.Error())

@@ -4,7 +4,6 @@ import (
 	"kgeyst.com/sveta/pkg/common"
 	"kgeyst.com/sveta/pkg/sveta/domain"
 	"kgeyst.com/sveta/pkg/sveta/domain/aifilters/bio"
-	"kgeyst.com/sveta/pkg/sveta/domain/aifilters/memory"
 	"kgeyst.com/sveta/pkg/sveta/domain/aifilters/news"
 	"kgeyst.com/sveta/pkg/sveta/domain/aifilters/remember"
 	"kgeyst.com/sveta/pkg/sveta/domain/aifilters/response"
@@ -13,6 +12,7 @@ import (
 	"kgeyst.com/sveta/pkg/sveta/domain/aifilters/vision"
 	domainweb "kgeyst.com/sveta/pkg/sveta/domain/aifilters/web"
 	domainwiki "kgeyst.com/sveta/pkg/sveta/domain/aifilters/wiki"
+	"kgeyst.com/sveta/pkg/sveta/domain/aifilters/workingmemory"
 	"kgeyst.com/sveta/pkg/sveta/infrastructure/embed4all"
 	"kgeyst.com/sveta/pkg/sveta/infrastructure/filesystem"
 	"kgeyst.com/sveta/pkg/sveta/infrastructure/inmemory"
@@ -81,7 +81,7 @@ func NewAPI(config *common.Config) (API, common.Stopper) {
 	newsProvider := rss.NewNewsProvider(
 		config.GetStringOrDefault("newsSourceURL", "http://www.independent.co.uk/rss"),
 	)
-	memoryFilter := memory.NewFilter(
+	workingMemoryFilter := workingmemory.NewFilter(
 		memoryRepository,
 		memoryFactory,
 		config,
@@ -155,7 +155,7 @@ func NewAPI(config *common.Config) (API, common.Stopper) {
 			[]domain.AIFilter{
 				newsFilter,
 				bioFilter,
-				memoryFilter,
+				workingMemoryFilter,
 				rewriteFilter,
 				webFilter,
 				visionFilter,

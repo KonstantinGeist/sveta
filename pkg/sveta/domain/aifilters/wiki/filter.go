@@ -9,6 +9,7 @@ import (
 
 	"kgeyst.com/sveta/pkg/common"
 	"kgeyst.com/sveta/pkg/sveta/domain"
+	"kgeyst.com/sveta/pkg/sveta/domain/aifilters/rewrite"
 )
 
 var nonAlphanumericRegex = regexp.MustCompile(`[^a-zA-Z0-9 ]+`)
@@ -50,17 +51,21 @@ func NewFilter(
 }
 
 func (f *filter) Apply(context *domain.AIFilterContext, nextAIFilterFunc domain.NextAIFilterFunc) error {
-	inputMemory := context.Memory(domain.DataKeyInput)
-	if inputMemory == nil {
+	inputMemoryForResponse := context.MemoryCoalesced([]string{rewrite.DataKeyRewrittenInput, domain.DataKeyInput})
+	if inputMemoryForResponse == nil {
 		return nextAIFilterFunc(context)
 	}
-	if !f.shouldApply(inputMemory.What) {
+	intputMemoryForApply := context.Memory(domain.DataKeyInput)
+	if intputMemoryForApply == nil {
+		return nextAIFilterFunc(context)
+	}
+	if !f.shouldApply(intputMemoryForApply.What) {
 		return nextAIFilterFunc(context)
 	}
 	var output struct {
 		ArticleName string `json:"articleName"`
 	}
-	err := f.getWikiResponseService().RespondToQueryWithJSON(f.formatQuery(inputMemory.What), &output)
+	err := f.getWikiResponseService().RespondToQueryWithJSON(f.formatQuery(inputMemoryForResponse.What), &output)
 	if err != nil {
 		f.logger.Log(err.Error())
 		return nextAIFilterFunc(context)
@@ -85,8 +90,8 @@ func (f *filter) Apply(context *domain.AIFilterContext, nextAIFilterFunc domain.
 			continue
 		}
 		summary = "\"" + summary + "\""
-		if !f.memoryExists(summary, inputMemory.Where) {
-			err = f.storeMemory(summary, inputMemory.Where)
+		if !f.memoryExists(summary, inputMemoryForResponse.Where) {
+			err = f.storeMemory(summary, inputMemoryForResponse.Where)
 			if err != nil {
 				f.logger.Log(err.Error())
 				return nextAIFilterFunc(context)
