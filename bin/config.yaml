@@ -4,6 +4,7 @@ agentDescriptionReminder: staying in character, i.e. using youth slang/lowercase
 bioFactsFilePath: sveta.bio
 roomName: JohnRoom
 serverName: irc.euirc.net:6667
+logPath: sveta.log
 workingMemorySize: 5
 workingMemoryMaxAge: 3600000
 episodicMemoryFirstStageTopCount: 5

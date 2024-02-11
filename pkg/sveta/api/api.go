@@ -56,7 +56,7 @@ type API interface {
 }
 
 func NewAPI(config *common.Config) (API, common.Stopper) {
-	logger := common.NewFileLogger(config.GetStringOrDefault(ConfigKeyLogPath, "log.txt"))
+	logger := common.NewFileLogger(config.GetStringOrDefault(ConfigKeyLogPath, "sveta.log"))
 	languageModelJobQueue := common.NewJobQueue(logger)
 	tempFileProvider := filesystem.NewTempFilePathProvider(config)
 	embedder := embed4all.NewEmbedder(logger)

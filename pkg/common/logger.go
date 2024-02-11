@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"sync"
 )
 
 type Logger interface {
@@ -11,6 +12,7 @@ type Logger interface {
 }
 
 type fileLogger struct {
+	mutex      sync.Mutex
 	path       string
 	fileWriter *bufio.Writer
 }
@@ -23,6 +25,8 @@ func NewFileLogger(path string) Logger {
 }
 
 func (f *fileLogger) Log(message string) {
+	f.mutex.Lock()
+	defer f.mutex.Unlock()
 	if f.fileWriterReady() {
 		_, err := f.fileWriter.WriteString(message)
 		if err != nil {
