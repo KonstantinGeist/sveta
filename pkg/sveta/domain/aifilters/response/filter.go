@@ -75,16 +75,12 @@ func (f *filter) Apply(context *domain.AIFilterContext, nextAIFilterFunc domain.
 
 // recallFromEpisodicMemory finds memories in the so-called "episodic memory", or long-term memory which may contain memories from long ago
 func (f *filter) recallFromEpisodicMemory(workingMemories []*domain.Memory, inputMemory *domain.Memory) ([]*domain.Memory, error) {
-	if len(workingMemories) == 0 {
-		return nil, nil
-	}
 	embeddingsToSearch := f.getHypotheticalEmbeddings(inputMemory)
 	if inputMemory.Embedding != nil {
 		embeddingsToSearch = append(embeddingsToSearch, *inputMemory.Embedding)
 	}
-	where := domain.LastMemory(workingMemories).Where
 	episodicMemories, err := f.memoryRepository.FindByEmbeddings(domain.EmbeddingFilter{
-		Where:               where,
+		Where:               inputMemory.Where,
 		Embeddings:          embeddingsToSearch,
 		TopCount:            f.episodicMemoryFirstStageTopCount,
 		SurroundingCount:    f.episodicMemorySurroundingCount,
@@ -97,7 +93,7 @@ func (f *filter) recallFromEpisodicMemory(workingMemories []*domain.Memory, inpu
 	if len(episodicMemories) == 0 {
 		return nil, nil
 	}
-	episodicMemories = f.rankMemoriesAndGetTopN(episodicMemories, inputMemory.What, where)
+	episodicMemories = f.rankMemoriesAndGetTopN(episodicMemories, inputMemory.What, inputMemory.Where)
 	if len(episodicMemories) == 0 {
 		return nil, nil
 	}
