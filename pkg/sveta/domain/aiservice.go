@@ -7,8 +7,6 @@ import (
 
 var errFailedToResponse = errors.New("failed to respond")
 
-type respondFunc func(who, what, where string) (string, error)
-
 // AIService is the main orchestrator of the whole AI: it receives a list of AI filters and runs them one after another.
 // Additionally, it has various functions for debugging/control: remove all memory, remember actions, change context etc.\
 type AIService struct {
@@ -16,6 +14,7 @@ type AIService struct {
 	memoryRepository  MemoryRepository
 	memoryFactory     MemoryFactory
 	summaryRepository SummaryRepository
+	functionService   *FunctionService
 	aiContext         *AIContext
 	aiFilters         []AIFilter
 }
@@ -24,6 +23,7 @@ func NewAIService(
 	memoryRepository MemoryRepository,
 	memoryFactory MemoryFactory,
 	summaryRepository SummaryRepository,
+	functionService *FunctionService,
 	aiContext *AIContext,
 	aiFilters []AIFilter,
 ) *AIService {
@@ -31,6 +31,7 @@ func NewAIService(
 		memoryRepository:  memoryRepository,
 		memoryFactory:     memoryFactory,
 		summaryRepository: summaryRepository,
+		functionService:   functionService,
 		aiContext:         aiContext,
 		aiFilters:         aiFilters,
 	}
@@ -48,7 +49,7 @@ func (a *AIService) Respond(who, what, where string) (string, error) {
 	}
 	outputMemory := aiFilterContext.Memory(DataKeyOutput)
 	if outputMemory == nil {
-		return "", errFailedToResponse
+		return "", nil
 	}
 	return outputMemory.What, nil
 }
@@ -73,10 +74,17 @@ func (a *AIService) ClearAllMemory() error {
 }
 
 // ChangeAgentDescription see API.ChangeAgentDescription
-func (a *AIService) ChangeAgentDescription(context string) error {
+func (a *AIService) ChangeAgentDescription(description string) error {
 	a.mutex.Lock()
 	defer a.mutex.Unlock()
-	a.aiContext.AgentDescription = context
+	a.aiContext.AgentDescription = description
+	return nil
+}
+
+func (a *AIService) ChangeAgentName(name string) error {
+	a.mutex.Lock()
+	defer a.mutex.Unlock()
+	a.aiContext.AgentName = name
 	return nil
 }
 
@@ -91,6 +99,12 @@ func (a *AIService) GetSummary(where string) (string, error) {
 		return "", nil
 	}
 	return *summary, nil
+}
+
+func (a *AIService) RegisterFunction(functionDesc FunctionDesc) error {
+	a.mutex.Lock()
+	defer a.mutex.Unlock()
+	return a.functionService.RegisterFunction(functionDesc)
 }
 
 func (a *AIService) applyAIFilterAtIndex(context *AIFilterContext, index int) error {

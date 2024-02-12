@@ -4,6 +4,7 @@ import (
 	"kgeyst.com/sveta/pkg/common"
 	"kgeyst.com/sveta/pkg/sveta/domain"
 	"kgeyst.com/sveta/pkg/sveta/domain/aifilters/bio"
+	"kgeyst.com/sveta/pkg/sveta/domain/aifilters/function"
 	"kgeyst.com/sveta/pkg/sveta/domain/aifilters/news"
 	"kgeyst.com/sveta/pkg/sveta/domain/aifilters/remember"
 	"kgeyst.com/sveta/pkg/sveta/domain/aifilters/response"
@@ -24,6 +25,8 @@ import (
 	infraweb "kgeyst.com/sveta/pkg/sveta/infrastructure/web"
 	infrawiki "kgeyst.com/sveta/pkg/sveta/infrastructure/wiki"
 )
+
+type FunctionDesc = domain.FunctionDesc
 
 type api struct {
 	aiService *domain.AIService
@@ -51,13 +54,16 @@ type API interface {
 	// Note that it removes all memory loaded previously with LoadMemory.
 	ClearAllMemory() error
 	// ChangeAgentDescription resets the context ("system prompt") of the AI. Useful for debugging.
-	ChangeAgentDescription(context string) error
+	ChangeAgentDescription(description string) error
+	ChangeAgentName(name string) error
 	GetSummary(where string) (string, error)
+	RegisterFunction(functionDesc FunctionDesc) error
 }
 
 func NewAPI(config *common.Config) (API, common.Stopper) {
 	logger := common.NewFileLogger(config.GetStringOrDefault(ConfigKeyLogPath, "sveta.log"))
 	languageModelJobQueue := common.NewJobQueue(logger)
+	functionJobQueue := common.NewJobQueue(logger)
 	tempFileProvider := filesystem.NewTempFilePathProvider(config)
 	embedder := embed4all.NewEmbedder(logger)
 	aiContext := domain.NewAIContextFromConfig(config)
@@ -76,6 +82,7 @@ func NewAPI(config *common.Config) (API, common.Stopper) {
 		config,
 		logger,
 	)
+	functionService := domain.NewFunctionService(aiContext, responseService)
 	promptFormatterForLog := llama2.NewPromptFormatter()
 	urlFinder := infraweb.NewURLFinder()
 	newsProvider := rss.NewNewsProvider(
@@ -129,6 +136,7 @@ func NewAPI(config *common.Config) (API, common.Stopper) {
 		config,
 		logger,
 	)
+	functionFilter := function.NewFilter(functionService, functionJobQueue, logger)
 	responseFilter := response.NewFilter(
 		aiContext,
 		memoryFactory,
@@ -151,6 +159,7 @@ func NewAPI(config *common.Config) (API, common.Stopper) {
 			memoryRepository,
 			memoryFactory,
 			summaryRepository,
+			functionService,
 			aiContext,
 			[]domain.AIFilter{
 				newsFilter,
@@ -160,6 +169,7 @@ func NewAPI(config *common.Config) (API, common.Stopper) {
 				webFilter,
 				visionFilter,
 				wikiFilter,
+				functionFilter,
 				responseFilter,
 				rememberFilter,
 				summaryFilter,
@@ -180,10 +190,18 @@ func (a *api) ClearAllMemory() error {
 	return a.aiService.ClearAllMemory()
 }
 
-func (a *api) ChangeAgentDescription(context string) error {
-	return a.aiService.ChangeAgentDescription(context)
+func (a *api) ChangeAgentDescription(description string) error {
+	return a.aiService.ChangeAgentDescription(description)
+}
+
+func (a *api) ChangeAgentName(name string) error {
+	return a.aiService.ChangeAgentName(name)
 }
 
 func (a *api) GetSummary(where string) (string, error) {
 	return a.aiService.GetSummary(where)
+}
+
+func (a *api) RegisterFunction(functionDesc FunctionDesc) error {
+	return a.aiService.RegisterFunction(functionDesc)
 }

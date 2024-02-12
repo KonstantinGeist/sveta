@@ -26,5 +26,5 @@ func FormatAnnouncedTimeInEnglish(t time.Time) string {
 }
 
 func FormatJSONRequestInEnglish(jsonQuerySchema string) string {
-	return "Answer using JSON using the following JSON schema: " + jsonQuerySchema
+	return "Answer using JSON using the following JSON schema: ```\n" + jsonQuerySchema + "\n```"
 }

@@ -8,6 +8,7 @@ import (
 
 	"kgeyst.com/sveta/pkg/common"
 	"kgeyst.com/sveta/pkg/sveta/api"
+	"kgeyst.com/sveta/pkg/sveta/domain"
 )
 
 func main() {
@@ -33,6 +34,11 @@ func mainImpl() error {
 			return err
 		}
 	}
+	var shouldStop bool
+	err = registerFuctions(sveta, &shouldStop)
+	if err != nil {
+		return err
+	}
 	rl, err := readline.New("> ")
 	if err != nil {
 		return err
@@ -40,7 +46,7 @@ func mainImpl() error {
 	defer func() {
 		_ = rl.Close()
 	}()
-	for {
+	for !shouldStop {
 		line, err := rl.Readline()
 		if err != nil { // io.EOF
 			break
@@ -50,7 +56,30 @@ func mainImpl() error {
 		if err != nil {
 			response = "I'm borked :("
 		}
-		fmt.Println(response)
+		if response != "" {
+			fmt.Println(response)
+		}
 	}
 	return nil
+}
+
+func registerFuctions(sveta api.API, shouldStop *bool) error {
+	return sveta.RegisterFunction(api.FunctionDesc{
+		Name:        "leave",
+		Description: "allows to leave the chat and say the farewell message if insulted",
+		Parameters: []domain.FunctionParameterDesc{
+			{
+				Name:        "finalMessage",
+				Description: "the final message a user says before leaving",
+			},
+		},
+		Body: func(context *domain.FunctionBodyContext) error {
+			finalMessage := context.Arguments["finalMessage"]
+			if finalMessage != "" {
+				fmt.Println(finalMessage)
+			}
+			*shouldStop = true
+			return nil
+		},
+	})
 }

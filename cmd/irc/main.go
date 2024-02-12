@@ -1,12 +1,14 @@
 package main
 
 import (
+	"regexp"
 	"strings"
 
 	"github.com/whyrusleeping/hellabot"
 
 	"kgeyst.com/sveta/pkg/common"
 	"kgeyst.com/sveta/pkg/sveta/api"
+	"kgeyst.com/sveta/pkg/sveta/domain"
 )
 
 func main() {
@@ -24,7 +26,6 @@ func mainImpl() error {
 	agentName := config.GetStringOrDefault(api.ConfigKeyAgentName, "Sveta")
 	roomName := config.GetStringOrDefault("roomName", "JohnRoom")
 	serverName := config.GetStringOrDefault("serverName", "irc.euirc.net:6667")
-	lowerAgentName := strings.ToLower(agentName)
 	sveta, stoppable := api.NewAPI(config)
 	defer stoppable.Stop()
 	context := config.GetString(api.ConfigKeyAgentDescription)
@@ -34,6 +35,14 @@ func mainImpl() error {
 			return err
 		}
 	}
+	ircBot, err := hbot.NewBot(serverName, agentName)
+	if err != nil {
+		return err
+	}
+	err = registerFuctions(sveta, &agentName, ircBot)
+	if err != nil {
+		return err
+	}
 	var trigger = hbot.Trigger{
 		func(b *hbot.Bot, m *hbot.Message) bool {
 			return true
@@ -42,7 +51,7 @@ func mainImpl() error {
 			if m.Command != "PRIVMSG" {
 				return true
 			}
-			if !strings.HasPrefix(strings.ToLower(m.Content), lowerAgentName) {
+			if !strings.HasPrefix(strings.ToLower(m.Content), strings.ToLower(agentName)) {
 				return true
 			}
 			what := strings.TrimSpace(m.Content[len(agentName):])
@@ -73,16 +82,64 @@ func mainImpl() error {
 			if err != nil {
 				response = "I'm borked :("
 			}
-			b.Reply(m, m.From+" "+response)
+			if response != "" {
+				b.Reply(m, m.From+" "+response)
+			}
 			return true
 		},
-	}
-	ircBot, err := hbot.NewBot(serverName, agentName)
-	if err != nil {
-		panic(err)
 	}
 	ircBot.AddTrigger(trigger)
 	ircBot.Channels = []string{"#" + roomName}
 	ircBot.Run()
 	return nil
+}
+
+func registerFuctions(sveta api.API, agentName *string, ircBot *hbot.Bot) error {
+	err := sveta.RegisterFunction(
+		api.FunctionDesc{
+			Name:        "rename",
+			Description: "allows to change the nickname if asked by the user AND all the conditions in the user query are met",
+			Parameters: []domain.FunctionParameterDesc{
+				{
+					Name:        "newNickName",
+					Description: "the new nickname",
+				},
+			},
+			Body: func(context *domain.FunctionBodyContext) error {
+				newName := context.Arguments["newNickName"]
+				if newName != "" {
+					var nonAlphanumericRegex = regexp.MustCompile(`[^a-zA-Z0-9]+`)
+					newName = nonAlphanumericRegex.ReplaceAllString(newName, "")
+					ircBot.SetNick(newName)
+					err := sveta.ChangeAgentName(newName)
+					*agentName = newName
+					if err != nil {
+						return err
+					}
+				}
+				return nil
+			},
+		},
+	)
+	if err != nil {
+		return err
+	}
+	return sveta.RegisterFunction(api.FunctionDesc{
+		Name:        "leave",
+		Description: "allows to leave the chat and say the farewell message if and only if someone's mother is insulted",
+		Parameters: []domain.FunctionParameterDesc{
+			{
+				Name:        "finalMessage",
+				Description: "the final message a user says before leaving",
+			},
+		},
+		Body: func(context *domain.FunctionBodyContext) error {
+			finalMessage := context.Arguments["finalMessage"]
+			if finalMessage != "" {
+				ircBot.Msg("#annagf", finalMessage)
+			}
+			ircBot.Part("#annagf", finalMessage)
+			return nil
+		},
+	})
 }
