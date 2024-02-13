@@ -7,6 +7,7 @@ require (
 	github.com/chzyer/readline v1.5.1
 	github.com/google/uuid v1.5.0
 	github.com/mmcdole/gofeed v1.2.1
+	github.com/mnogu/go-calculator v0.0.1
 	github.com/mvdan/xurls v1.1.0
 	github.com/trietmn/go-wiki v1.0.3
 	github.com/whyrusleeping/hellabot v0.0.0-20230331073038-70f5dd5c40d9
@@ -20,7 +21,7 @@ require (
 	github.com/go-stack/stack v1.8.0 // indirect
 	github.com/inconshreveable/log15 v0.0.0-20200109203555-b30bc20e4fd1 // indirect
 	github.com/kr/pretty v0.1.0 // indirect
-	github.com/mattn/go-colorable v0.1.6 // indirect
+	github.com/mattn/go-colorable v0.1.7 // indirect
 	github.com/mattn/go-isatty v0.0.12 // indirect
 	github.com/mmcdole/goxpp v1.1.0 // indirect
 	golang.org/x/net v0.7.0 // indirect

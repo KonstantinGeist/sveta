@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/mnogu/go-calculator"
 	"github.com/whyrusleeping/hellabot"
 
 	"kgeyst.com/sveta/pkg/common"
@@ -104,7 +105,7 @@ func registerFuctions(sveta api.API, agentName *string, ircBot *hbot.Bot) error 
 	if err != nil {
 		return err
 	}
-	return sveta.RegisterFunction(api.FunctionDesc{
+	err = sveta.RegisterFunction(api.FunctionDesc{
 		Name:        "weather",
 		Description: "allows to return information about weather if prompted by user",
 		Parameters: []domain.FunctionParameterDesc{
@@ -144,6 +145,32 @@ func registerFuctions(sveta api.API, agentName *string, ircBot *hbot.Bot) error 
 			}
 			return domain.FunctionOutput{
 				Output: fmt.Sprintf("Temperature in %s is currently %sC", city, strconv.FormatFloat(output.Current.Temperature, 'f', -1, 64)),
+			}, nil
+		},
+	})
+	if err != nil {
+		return err
+	}
+	return sveta.RegisterFunction(api.FunctionDesc{
+		Name:        "calc",
+		Description: "allows to calculate a math expression if the user query requires it",
+		Parameters: []domain.FunctionParameterDesc{
+			{
+				Name:        "mathExpression",
+				Description: "math expression, such as (2 + 3 * 4)",
+			},
+		},
+		Body: func(context *api.FunctionInput) (api.FunctionOutput, error) {
+			mathExpression := context.Arguments["mathExpression"]
+			if mathExpression == "" {
+				return domain.FunctionOutput{NoOutput: true}, nil
+			}
+			value, err := calculator.Calculate(mathExpression)
+			if err != nil {
+				return domain.FunctionOutput{NoOutput: true}, nil
+			}
+			return domain.FunctionOutput{
+				Output: fmt.Sprintf("Result of the math calculation is %s", strconv.FormatFloat(value, 'f', -1, 64)),
 			}, nil
 		},
 	})

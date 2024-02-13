@@ -79,7 +79,7 @@ func registerFuctions(sveta api.API, shouldStop *bool) error {
 				fmt.Println(finalMessage)
 			}
 			*shouldStop = true
-			return api.FunctionOutput{}, nil
+			return api.FunctionOutput{NoOutput: true, Stop: true}, nil
 		},
 	})
 }
