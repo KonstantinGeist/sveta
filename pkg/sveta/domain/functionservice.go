@@ -13,20 +13,28 @@ type FunctionDesc struct {
 	Body        FunctionBody
 }
 
-type FunctionBody func(context *FunctionBodyContext) error
+type FunctionBody func(context *FunctionInput) (FunctionOutput, error)
 
 type FunctionParameterDesc struct {
 	Name        string
 	Description string
 }
 
-type FunctionBodyContext struct {
+type FunctionInput struct {
 	Arguments map[string]string
+	Input     string
+}
+
+type FunctionOutput struct {
+	Output   string
+	NoOutput bool
+	Stop     bool
 }
 
 type Closure struct {
 	Name      string
 	Arguments map[string]string
+	Input     string
 	Body      FunctionBody
 }
 
@@ -81,7 +89,7 @@ func (f *FunctionService) CreateClosures(input string) ([]*Closure, error) {
 	})
 	output.Functions[0].Arguments = append(output.Functions[0].Arguments, argumentOutput{
 		Name:  "argumentName",
-		Value: "valueAsString",
+		Value: "value",
 	})
 	err := f.getFunctionResponseService().RespondToQueryWithJSON(query, &output)
 	if err != nil {
@@ -102,15 +110,19 @@ func (f *FunctionService) CreateClosures(input string) ([]*Closure, error) {
 		closures = append(closures, &Closure{
 			Name:      function.Name,
 			Arguments: argMap,
+			Input:     input,
 			Body:      functionDesc.Body,
 		})
 	}
 	return closures, nil
 }
 
-func (c *Closure) Invoke() error {
-	context := &FunctionBodyContext{Arguments: c.Arguments}
-	return c.Body(context)
+func (c *Closure) Invoke() (FunctionOutput, error) {
+	input := &FunctionInput{
+		Arguments: c.Arguments,
+		Input:     c.Input,
+	}
+	return c.Body(input)
 }
 
 func (f *FunctionService) getQuery(input string) string {

@@ -73,13 +73,13 @@ func registerFuctions(sveta api.API, shouldStop *bool) error {
 				Description: "the final message a user says before leaving",
 			},
 		},
-		Body: func(context *domain.FunctionBodyContext) error {
+		Body: func(context *api.FunctionInput) (api.FunctionOutput, error) {
 			finalMessage := context.Arguments["finalMessage"]
 			if finalMessage != "" {
 				fmt.Println(finalMessage)
 			}
 			*shouldStop = true
-			return nil
+			return api.FunctionOutput{}, nil
 		},
 	})
 }

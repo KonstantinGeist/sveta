@@ -1,7 +1,12 @@
 package main
 
 import (
-	"regexp"
+	"encoding/csv"
+	"encoding/json"
+	"fmt"
+	"os"
+	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/whyrusleeping/hellabot"
@@ -95,51 +100,80 @@ func mainImpl() error {
 }
 
 func registerFuctions(sveta api.API, agentName *string, ircBot *hbot.Bot) error {
-	err := sveta.RegisterFunction(
-		api.FunctionDesc{
-			Name:        "rename",
-			Description: "allows to change the nickname if asked by the user AND all the conditions in the user query are met",
-			Parameters: []domain.FunctionParameterDesc{
-				{
-					Name:        "newNickName",
-					Description: "the new nickname",
-				},
-			},
-			Body: func(context *domain.FunctionBodyContext) error {
-				newName := context.Arguments["newNickName"]
-				if newName != "" {
-					var nonAlphanumericRegex = regexp.MustCompile(`[^a-zA-Z0-9]+`)
-					newName = nonAlphanumericRegex.ReplaceAllString(newName, "")
-					ircBot.SetNick(newName)
-					err := sveta.ChangeAgentName(newName)
-					*agentName = newName
-					if err != nil {
-						return err
-					}
-				}
-				return nil
-			},
-		},
-	)
+	latitudesAndLongitudesMap, err := readLatitudesAndLongitudes()
 	if err != nil {
 		return err
 	}
 	return sveta.RegisterFunction(api.FunctionDesc{
-		Name:        "leave",
-		Description: "allows to leave the chat and say the farewell message if and only if someone's mother is insulted",
+		Name:        "weather",
+		Description: "allows to return information about weather if prompted by user",
 		Parameters: []domain.FunctionParameterDesc{
 			{
-				Name:        "finalMessage",
-				Description: "the final message a user says before leaving",
+				Name:        "city",
+				Description: "the name of the city for which weather information is required",
 			},
 		},
-		Body: func(context *domain.FunctionBodyContext) error {
-			finalMessage := context.Arguments["finalMessage"]
-			if finalMessage != "" {
-				ircBot.Msg("#annagf", finalMessage)
+		Body: func(context *api.FunctionInput) (api.FunctionOutput, error) {
+			city := context.Arguments["city"]
+			city = common.RemoveDoubleQuotesIfAny(city)
+			city = common.RemoveSingleQuotesIfAny(city)
+			spaceIndex := strings.Index(city, " ")
+			if spaceIndex != -1 { // for stuff like "Washington, DC"
+				city = city[0:spaceIndex]
+				city = strings.ReplaceAll(city, ",", " ")
 			}
-			ircBot.Part("#annagf", finalMessage)
-			return nil
+			if city == "" {
+				return domain.FunctionOutput{NoOutput: true}, nil // current=temperature_1ly=temperature_1m,relative_humidity_1m,wind_speed_1m"y_1m,wind_speed_1m
+			}
+			latitudesAndLongitudes, ok := latitudesAndLongitudesMap[strings.ToLower(city)]
+			if !ok {
+				return domain.FunctionOutput{NoOutput: true}, nil
+			}
+			rawData, err := common.ReadAllFromURL(fmt.Sprintf("https://api.open-meteo.com/v1/forecast?latitude=%s&longitude=%s&current=temperature_2m", latitudesAndLongitudes[0], latitudesAndLongitudes[1]))
+			if err != nil {
+				return domain.FunctionOutput{}, err
+			}
+			var output struct {
+				Current struct {
+					Temperature float64 `json:"temperature_2m"`
+				} `json:"current"`
+			}
+			err = json.Unmarshal(rawData, &output)
+			if err != nil {
+				return domain.FunctionOutput{}, err
+			}
+			return domain.FunctionOutput{
+				Output: fmt.Sprintf("Temperature in %s is currently %sC", city, strconv.FormatFloat(output.Current.Temperature, 'f', -1, 64)),
+			}, nil
 		},
 	})
+}
+
+func readLatitudesAndLongitudes() (map[string][]string, error) {
+	path, err := filepath.Abs("../data/worldcities.csv")
+	if err != nil {
+		return nil, err
+	}
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		_ = f.Close()
+	}()
+	result := make(map[string][]string)
+	csvReader := csv.NewReader(f)
+	records, err := csvReader.ReadAll()
+	if err != nil {
+		return nil, err
+	}
+	for _, record := range records {
+		city := strings.ToLower(record[0])
+		_, ok := result[city]
+		if ok {
+			continue
+		}
+		result[city] = []string{record[1], record[2]}
+	}
+	return result, nil
 }

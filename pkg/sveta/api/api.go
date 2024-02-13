@@ -27,6 +27,8 @@ import (
 )
 
 type FunctionDesc = domain.FunctionDesc
+type FunctionInput = domain.FunctionInput
+type FunctionOutput = domain.FunctionOutput
 
 type api struct {
 	aiService *domain.AIService
@@ -63,7 +65,6 @@ type API interface {
 func NewAPI(config *common.Config) (API, common.Stopper) {
 	logger := common.NewFileLogger(config.GetStringOrDefault(ConfigKeyLogPath, "sveta.log"))
 	languageModelJobQueue := common.NewJobQueue(logger)
-	functionJobQueue := common.NewJobQueue(logger)
 	tempFileProvider := filesystem.NewTempFilePathProvider(config)
 	embedder := embed4all.NewEmbedder(logger)
 	aiContext := domain.NewAIContextFromConfig(config)
@@ -136,7 +137,7 @@ func NewAPI(config *common.Config) (API, common.Stopper) {
 		config,
 		logger,
 	)
-	functionFilter := function.NewFilter(functionService, functionJobQueue, logger)
+	functionFilter := function.NewFilter(memoryFactory, functionService, logger)
 	responseFilter := response.NewFilter(
 		aiContext,
 		memoryFactory,

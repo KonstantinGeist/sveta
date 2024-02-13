@@ -2,6 +2,7 @@ package function
 
 import (
 	"fmt"
+	"strings"
 
 	"kgeyst.com/sveta/pkg/common"
 	"kgeyst.com/sveta/pkg/sveta/domain"
@@ -9,20 +10,20 @@ import (
 )
 
 type filter struct {
-	functionService  *domain.FunctionService
-	functionJobQueue *common.JobQueue
-	logger           common.Logger
+	memoryFactory   domain.MemoryFactory
+	functionService *domain.FunctionService
+	logger          common.Logger
 }
 
 func NewFilter(
+	memoryFactory domain.MemoryFactory,
 	functionService *domain.FunctionService,
-	functionJobQueue *common.JobQueue,
 	logger common.Logger,
 ) domain.AIFilter {
 	return &filter{
-		functionService:  functionService,
-		functionJobQueue: functionJobQueue,
-		logger:           logger,
+		memoryFactory:   memoryFactory,
+		functionService: functionService,
+		logger:          logger,
 	}
 }
 
@@ -36,22 +37,39 @@ func (f *filter) Apply(context *domain.AIFilterContext, nextAIFilterFunc domain.
 		f.logger.Log("failed to create closures: " + err.Error())
 		return nextAIFilterFunc(context)
 	}
-	if len(closures) > 0 {
-		// We schedule the function asynchronously to
-		// a) avoid running potentially heavyweight operations on the same goroutine
-		// b) avoid recursive mutexes, since we maybe already under a mutex here who knows
-		// what mutex the client code in the Body lambda locks
-		f.functionJobQueue.Enqueue(func() error {
-			for _, closure := range closures {
-				err = closure.Invoke()
-				if err != nil {
-					f.logger.Log(fmt.Sprintf("failed to invoke closure \"%s\": %s", closure.Name, err.Error()))
-				}
-			}
-			return nil
-		})
-		// If successful, stops the entire chain of AI filters for now.
+	if len(closures) == 0 { // if no closures are matched, just pass it through
+		return nextAIFilterFunc(context)
+	}
+	var outputs []string
+	var stops int
+	for _, closure := range closures {
+		output, err := closure.Invoke()
+		if err != nil {
+			f.logger.Log(fmt.Sprintf("failed to invoke closure \"%s\": %s", closure.Name, err.Error()))
+			continue
+		}
+		if output.Output != "" {
+			outputs = append(outputs, output.Output)
+		}
+		if output.Stop {
+			stops++
+		}
+	}
+	if stops > 0 {
 		return nil
 	}
-	return nextAIFilterFunc(context)
+	if len(outputs) == 0 {
+		return nextAIFilterFunc(context) // if there are no outputs, just pass it through
+	}
+	// TODO internationalize
+	output := fmt.Sprintf(
+		"Additional information to use when answering: \"%s\" (use it if it's relevant to the question below).\n%s (respond in the style of your persona)",
+		strings.Join(outputs, " "),
+		inputMemory.What,
+	)
+	outputMemory := f.memoryFactory.NewMemory(domain.MemoryTypeDialog, inputMemory.Who, output, inputMemory.Where)
+	return nextAIFilterFunc(context.
+		WithMemory(rewrite.DataKeyRewrittenInput, outputMemory).
+		WithMemory(domain.DataKeyInput, outputMemory),
+	)
 }

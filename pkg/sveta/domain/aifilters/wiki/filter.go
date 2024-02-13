@@ -152,8 +152,8 @@ func (f *filter) formatQuery(what string) string {
 
 func (f *filter) fixArticleName(articleName string) string {
 	articleName = f.removeWikiURLPrefixIfAny(articleName)
-	articleName = f.removeDoubleQuotesIfAny(articleName)
-	return f.removeSingleQuotesIfAny(articleName)
+	articleName = common.RemoveDoubleQuotesIfAny(articleName)
+	return common.RemoveSingleQuotesIfAny(articleName)
 }
 
 func (f *filter) removeWikiURLPrefixIfAny(articleName string) string {
@@ -161,22 +161,6 @@ func (f *filter) removeWikiURLPrefixIfAny(articleName string) string {
 	const wikiURLPrefix = "https://en.wikipedia.org/wiki/"
 	if strings.HasPrefix(articleName, wikiURLPrefix) {
 		articleName = articleName[len(wikiURLPrefix):]
-	}
-	return articleName
-}
-
-func (f *filter) removeSingleQuotesIfAny(articleName string) string {
-	// Sometimes, the model returns the article name as "'Hello'"
-	if len(articleName) > 2 && articleName[0] == '\'' && articleName[len(articleName)-1] == '\'' {
-		articleName = articleName[1 : len(articleName)-2]
-	}
-	return articleName
-}
-
-func (f *filter) removeDoubleQuotesIfAny(articleName string) string {
-	// Sometimes, the model returns the article name as "\"Hello\""
-	if len(articleName) > 2 && articleName[0] == '"' && articleName[len(articleName)-1] == '"' {
-		articleName = articleName[1 : len(articleName)-2]
 	}
 	return articleName
 }
