@@ -104,6 +104,7 @@ func NewAPI(config *common.Config) (API, common.Stopper) {
 		newsProvider,
 		memoryRepository,
 		memoryFactory,
+		summaryRepository,
 		config,
 		logger,
 	)
@@ -150,6 +151,7 @@ func NewAPI(config *common.Config) (API, common.Stopper) {
 	)
 	rememberFilter := remember.NewFilter(memoryRepository)
 	summaryFilter := summary.NewFilter(
+		aiContext,
 		summaryRepository,
 		responseService,
 		languageModelJobQueue,
@@ -163,9 +165,9 @@ func NewAPI(config *common.Config) (API, common.Stopper) {
 			functionService,
 			aiContext,
 			[]domain.AIFilter{
+				workingMemoryFilter,
 				newsFilter,
 				bioFilter,
-				workingMemoryFilter,
 				rewriteFilter,
 				webFilter,
 				visionFilter,

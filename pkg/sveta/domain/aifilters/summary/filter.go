@@ -10,6 +10,7 @@ import (
 )
 
 type filter struct {
+	aiContext             *domain.AIContext
 	summaryRepository     domain.SummaryRepository
 	responseService       *domain.ResponseService
 	languageModelJobQueue *common.JobQueue
@@ -17,12 +18,14 @@ type filter struct {
 }
 
 func NewFilter(
+	aiContext *domain.AIContext,
 	summaryRepository domain.SummaryRepository,
 	responseService *domain.ResponseService,
 	languageModelJobQueue *common.JobQueue,
 	logger common.Logger,
 ) domain.AIFilter {
 	return &filter{
+		aiContext:             aiContext,
 		summaryRepository:     summaryRepository,
 		responseService:       responseService,
 		languageModelJobQueue: languageModelJobQueue,
@@ -45,12 +48,15 @@ func (f *filter) Apply(context *domain.AIFilterContext, nextAIFilterFunc domain.
 	formattedMemories := f.formatMemories(summary, domain.MergeMemories(workingMemories, []*domain.Memory{inputMemory, outputMemory}...))
 	f.languageModelJobQueue.Enqueue(func() error {
 		var output struct {
-			Summary1 string `json:"summary1"`
-			Summary2 string `json:"summary2"`
-			Summary3 string `json:"summary3"`
+			Summary1              string `json:"summary1"`
+			Summary2              string `json:"summary2"`
+			Summary3              string `json:"summary3"`
+			Summary4              string `json:"summary4"`
+			Summary5              string `json:"summary5"`
+			OpinionOnPeopleInChat string `json:"opinionOnPeopleInChat"`
 		}
 		err = f.getSummarizerResponseService().RespondToQueryWithJSON(
-			fmt.Sprintf("%s\nSummarize the chat history above into 3 short summaries at most (if possible).", formattedMemories),
+			fmt.Sprintf("%s\nSummarize the chat history above into 5 short summaries at most (if possible). Additionally, provide your your opinion on people in the chat using only adjectives. Example: \"User is friendly.\".", formattedMemories),
 			&output,
 		)
 		if err != nil {
@@ -66,7 +72,17 @@ func (f *filter) Apply(context *domain.AIFilterContext, nextAIFilterFunc domain.
 		if output.Summary3 != "" {
 			summaries = append(summaries, output.Summary3)
 		}
-		return f.summaryRepository.Store(inputMemory.Where, strings.TrimSpace(strings.Join(summaries, " ")))
+		if output.Summary4 != "" {
+			summaries = append(summaries, output.Summary4)
+		}
+		if output.Summary5 != "" {
+			summaries = append(summaries, output.Summary5)
+		}
+		finalSummary := strings.TrimSpace(strings.Join(summaries, " "))
+		if output.OpinionOnPeopleInChat != "" {
+			finalSummary += fmt.Sprintf("\n%s's opinion on people in the chat: \"%s\".", f.aiContext.AgentName, output.OpinionOnPeopleInChat)
+		}
+		return f.summaryRepository.Store(inputMemory.Where, finalSummary)
 	})
 	return nextAIFilterFunc(context)
 }
