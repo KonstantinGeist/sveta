@@ -1,9 +1,12 @@
 package main
 
 import (
+	"context"
 	"encoding/csv"
 	"encoding/json"
+	"flag"
 	"fmt"
+	"math/rand"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -11,6 +14,8 @@ import (
 
 	"github.com/mnogu/go-calculator"
 	"github.com/whyrusleeping/hellabot"
+	"google.golang.org/api/option"
+	"google.golang.org/api/youtube/v3"
 
 	"kgeyst.com/sveta/pkg/common"
 	"kgeyst.com/sveta/pkg/sveta/api"
@@ -45,7 +50,7 @@ func mainImpl() error {
 	if err != nil {
 		return err
 	}
-	err = registerFuctions(sveta, &agentName, ircBot)
+	err = registerFuctions(sveta, &agentName, config, ircBot)
 	if err != nil {
 		return err
 	}
@@ -100,7 +105,7 @@ func mainImpl() error {
 	return nil
 }
 
-func registerFuctions(sveta api.API, agentName *string, ircBot *hbot.Bot) error {
+func registerFuctions(sveta api.API, agentName *string, config *common.Config, ircBot *hbot.Bot) error {
 	latitudesAndLongitudesMap, err := readLatitudesAndLongitudes()
 	if err != nil {
 		return err
@@ -151,7 +156,7 @@ func registerFuctions(sveta api.API, agentName *string, ircBot *hbot.Bot) error 
 	if err != nil {
 		return err
 	}
-	return sveta.RegisterFunction(api.FunctionDesc{
+	err = sveta.RegisterFunction(api.FunctionDesc{
 		Name:        "calc",
 		Description: "allows to calculate a math expression if the user query requires it",
 		Parameters: []domain.FunctionParameterDesc{
@@ -173,6 +178,59 @@ func registerFuctions(sveta api.API, agentName *string, ircBot *hbot.Bot) error 
 			}
 			return domain.FunctionOutput{
 				Output: fmt.Sprintf("According to the calculator, the result of the user query below is %s (calculated based on the math formula \"%s\", which is needed to answer the user query). This result takes precedence over any other possible result. Never calculate the result yourself, just cite the result as is, because it's the only correct option. Never mention the calculator, pretend as if you came to this result all by yourself.", strconv.FormatFloat(value, 'f', -1, 64), mathExpression),
+			}, nil
+		},
+	})
+	if err != nil {
+		return err
+	}
+	youtubeAPIKey := config.GetString("youtubeAPIKey")
+	if youtubeAPIKey == "" {
+		return nil
+	}
+	youtubeService, err := youtube.NewService(context.Background(), option.WithAPIKey(youtubeAPIKey))
+	if err != nil {
+		return err
+	}
+	return sveta.RegisterFunction(api.FunctionDesc{
+		Name:        "youtube",
+		Description: "allows to search for a video on Youtube if the user is looking for a video or music",
+		Parameters: []domain.FunctionParameterDesc{
+			{
+				Name:        "searchQuery",
+				Description: "the query to use",
+			},
+		},
+		Body: func(context *api.FunctionInput) (api.FunctionOutput, error) {
+			searchQuery := context.Arguments["searchQuery"]
+			if searchQuery == "" {
+				return api.FunctionOutput{NoOutput: true}, nil
+			}
+			youtubeQuery := flag.String("query", searchQuery, "Search term")
+			maxResults := flag.Int64("max-results", 20, "Max YouTube results")
+			searchList := youtubeService.Search.List([]string{"id", "snippet"}).Q(*youtubeQuery).MaxResults(*maxResults)
+			searchListResponse, err := searchList.Do()
+			if err != nil {
+				return api.FunctionOutput{NoOutput: true}, nil
+			}
+			if len(searchListResponse.Items) == 0 {
+				return api.FunctionOutput{NoOutput: true}, nil
+			}
+			var items []*youtube.SearchResult
+			for _, item := range searchListResponse.Items {
+				if item.Id.VideoId != "" {
+					items = append(items, item)
+					if len(items) == 3 {
+						break
+					}
+				}
+			}
+			if len(items) == 0 {
+				return api.FunctionOutput{NoOutput: true}, nil
+			}
+			item := items[rand.Intn(len(items))]
+			return api.FunctionOutput{
+				Output: fmt.Sprintf("According to Youtube search, here's a relevant video: https://youtube.com/watch?v=%s (title: \"%s\"). You MUST cite the video URL as is, so that the user could click on it.", item.Id.VideoId, item.Snippet.Title),
 			}, nil
 		},
 	})
