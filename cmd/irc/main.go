@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/csv"
 	"encoding/json"
-	"flag"
 	"fmt"
 	"math/rand"
 	"os"
@@ -206,9 +205,7 @@ func registerFuctions(sveta api.API, agentName *string, config *common.Config, i
 			if searchQuery == "" {
 				return api.FunctionOutput{NoOutput: true}, nil
 			}
-			youtubeQuery := flag.String("query", searchQuery, "Search term")
-			maxResults := flag.Int64("max-results", 20, "Max YouTube results")
-			searchList := youtubeService.Search.List([]string{"id", "snippet"}).Q(*youtubeQuery).MaxResults(*maxResults)
+			searchList := youtubeService.Search.List([]string{"id", "snippet"}).Q(searchQuery).MaxResults(20)
 			searchListResponse, err := searchList.Do()
 			if err != nil {
 				return api.FunctionOutput{NoOutput: true}, nil
