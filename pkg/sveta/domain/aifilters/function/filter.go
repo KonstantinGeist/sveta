@@ -28,11 +28,16 @@ func NewFilter(
 }
 
 func (f *filter) Apply(context *domain.AIFilterContext, nextAIFilterFunc domain.NextAIFilterFunc) error {
-	inputMemory := context.MemoryCoalesced([]string{rewrite.DataKeyRewrittenInput, domain.DataKeyInput})
+	inputMemory := context.Memory(domain.DataKeyInput)
 	if inputMemory == nil {
 		return nextAIFilterFunc(context)
 	}
-	closures, err := f.functionService.CreateClosures(inputMemory.What)
+	rewrittenInputMemory := context.Memory(rewrite.DataKeyRewrittenInput)
+	input := f.getInput(inputMemory, rewrittenInputMemory)
+	if input == "" {
+		return nextAIFilterFunc(context)
+	}
+	closures, err := f.functionService.CreateClosures(input)
 	if err != nil {
 		f.logger.Log("failed to create closures: " + err.Error())
 		return nextAIFilterFunc(context)
@@ -71,4 +76,18 @@ func (f *filter) Apply(context *domain.AIFilterContext, nextAIFilterFunc domain.
 		WithMemory(rewrite.DataKeyRewrittenInput, outputMemory).
 		WithMemory(domain.DataKeyInput, outputMemory),
 	)
+}
+
+func (f *filter) getInput(inputMemory, rewrittenInputMemory *domain.Memory) string {
+	var input strings.Builder
+	if rewrittenInputMemory != nil {
+		input.WriteString(rewrittenInputMemory.What)
+	}
+	if inputMemory != nil {
+		if rewrittenInputMemory != nil {
+			input.WriteString(" In other words, ")
+		}
+		input.WriteString(inputMemory.What)
+	}
+	return input.String()
 }

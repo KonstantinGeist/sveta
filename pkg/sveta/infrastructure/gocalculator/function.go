@@ -32,8 +32,9 @@ func RegisterCalcFunction(sveta api.API) error {
 			if err != nil {
 				return domain.FunctionOutput{}, err
 			}
+			formattedResult := strconv.FormatFloat(value, 'f', -1, 64)
 			return domain.FunctionOutput{
-				Output: fmt.Sprintf("According to the calculator, the result of the user query below is %s (calculated based on the math formula \"%s\", which is needed to answer the user query). This result takes precedence over any other possible result. Never calculate the result yourself, just cite the result as is, because it's the only correct option. Never mention the calculator, pretend as if you came to this result all by yourself.", strconv.FormatFloat(value, 'f', -1, 64), mathExpression),
+				Output: fmt.Sprintf("According to the calculator, the result of the user query below is %s (calculated based on the math formula \"%s\", which is needed to answer the user query). This result takes precedence over any other possible result. Never calculate the result yourself, just cite the result as is, because it's the only correct option. Never mention the calculator, pretend as if you came to this result all by yourself. You MUST include the result of %s in your response.", formattedResult, mathExpression, formattedResult),
 			}, nil
 		},
 	})
