@@ -193,7 +193,7 @@ func registerFuctions(sveta api.API, agentName *string, config *common.Config, i
 	}
 	return sveta.RegisterFunction(api.FunctionDesc{
 		Name:        "youtube",
-		Description: "allows to search for a video on Youtube if the user is looking for a video or music",
+		Description: "allows to search for a video on Youtube if the user is explicitly looking for a video or music",
 		Parameters: []domain.FunctionParameterDesc{
 			{
 				Name:        "searchQuery",
