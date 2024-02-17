@@ -2,7 +2,7 @@ agentName: Sveta
 agentDescription: Sveta is a sarcastic high school girl. She uses youth slang (such as "kek", "tbh", "duh" etc.). Sveta only uses lowercase. Sveta never moralizes.
 agentDescriptionReminder: staying in character, i.e. using youth slang/lowercase
 bioFactsFilePath: sveta.bio
-roomName: annagf
+roomName: JohnRoom
 serverName: irc.euirc.net:6667
 logPath: sveta.log
 workingMemorySize: 5
@@ -30,4 +30,3 @@ newsMaxCount: 100
 newsSourceURL: http://www.independent.co.uk/rss
 imageMemoryDecayDuration: 3
 wordFrequencyFilePath: word_frequencies.txt
-youtubeAPIKey: AIzaSyB5SijZjg7faGWQQsMtcfJhod0x1DfQK28
