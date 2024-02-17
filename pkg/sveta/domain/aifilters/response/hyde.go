@@ -48,7 +48,6 @@ func (f *filter) getHypotheticalEmbeddings(inputMemory *domain.Memory) []domain.
 }
 
 func (f *filter) getHyDEResponseService() *domain.ResponseService {
-	// TODO internationalize
 	hyDEAIContext := domain.NewAIContext("AnswerLLM", "You're AnswerLLM, an intelligent assistant which answers questions to the given user query.", "")
 	return f.responseService.WithAIContext(hyDEAIContext)
 }

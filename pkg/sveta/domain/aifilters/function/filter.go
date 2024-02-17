@@ -61,7 +61,6 @@ func (f *filter) Apply(context *domain.AIFilterContext, nextAIFilterFunc domain.
 	if len(outputs) == 0 {
 		return nextAIFilterFunc(context) // if there are no outputs, just pass it through
 	}
-	// TODO internationalize
 	output := fmt.Sprintf(
 		"Additional information to use when answering: \"%s\" (use it if it's relevant to the question below).\n%s (respond in the style of your persona)",
 		strings.Join(outputs, " "),

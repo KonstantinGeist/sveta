@@ -8,7 +8,9 @@ import (
 
 	"kgeyst.com/sveta/pkg/common"
 	"kgeyst.com/sveta/pkg/sveta/api"
-	"kgeyst.com/sveta/pkg/sveta/domain"
+	"kgeyst.com/sveta/pkg/sveta/infrastructure/gocalculator"
+	"kgeyst.com/sveta/pkg/sveta/infrastructure/openmeteo"
+	"kgeyst.com/sveta/pkg/sveta/infrastructure/youtube"
 )
 
 func main() {
@@ -27,15 +29,15 @@ func mainImpl() error {
 	roomName := config.GetStringOrDefault("roomName", "JohnRoom")
 	sveta, stoppable := api.NewAPI(config)
 	defer stoppable.Stop()
-	context := config.GetString(api.ConfigKeyAgentDescription)
-	if context != "" {
-		err := sveta.ChangeAgentDescription(context)
+	agentDescription := config.GetString(api.ConfigKeyAgentDescription)
+	if agentDescription != "" {
+		err := sveta.ChangeAgentDescription(agentDescription)
 		if err != nil {
 			return err
 		}
 	}
 	var shouldStop bool
-	err = registerFuctions(sveta, &shouldStop)
+	err = registerFuctions(sveta, config)
 	if err != nil {
 		return err
 	}
@@ -63,23 +65,14 @@ func mainImpl() error {
 	return nil
 }
 
-func registerFuctions(sveta api.API, shouldStop *bool) error {
-	return sveta.RegisterFunction(api.FunctionDesc{
-		Name:        "leave",
-		Description: "allows to leave the chat and say the farewell message if insulted",
-		Parameters: []domain.FunctionParameterDesc{
-			{
-				Name:        "finalMessage",
-				Description: "the final message a user says before leaving",
-			},
-		},
-		Body: func(context *api.FunctionInput) (api.FunctionOutput, error) {
-			finalMessage := context.Arguments["finalMessage"]
-			if finalMessage != "" {
-				fmt.Println(finalMessage)
-			}
-			*shouldStop = true
-			return api.FunctionOutput{NoOutput: true, Stop: true}, nil
-		},
-	})
+func registerFuctions(sveta api.API, config *common.Config) error {
+	err := openmeteo.RegisterWeatherFunction(sveta)
+	if err != nil {
+		return err
+	}
+	err = gocalculator.RegisterCalcFunction(sveta)
+	if err != nil {
+		return err
+	}
+	return youtube.RegisterYoutubeSearchFunction(sveta, config)
 }

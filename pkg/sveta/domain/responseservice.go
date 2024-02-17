@@ -121,7 +121,6 @@ func (r *ResponseService) RespondToQueryWithJSON(query string, jsonObject any) e
 func (r *ResponseService) generatePromptEndMemories() []*Memory {
 	agentName := r.aiContext.AgentName
 	if r.aiContext.AgentDescriptionReminder != "" {
-		// TODO internationalize
 		agentName = fmt.Sprintf("%s (%s)", agentName, r.aiContext.AgentDescriptionReminder)
 	}
 	return []*Memory{

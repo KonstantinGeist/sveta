@@ -9,7 +9,6 @@ import (
 	"kgeyst.com/sveta/pkg/sveta/domain"
 )
 
-// TODO internationalize
 const couldntLoadImageFormatMessage = "%s Description: \"no description because the URL failed to load\""
 const imageDescriptionFormatMessage = "%s\nContext (description of the image): \"%s\"\nQuery: \"%s\" (if it's a question about the picture, use the provided context/description as is and nothing else, but slightly reformulate it in the language of your persona; otherwise, ignore the description)"
 

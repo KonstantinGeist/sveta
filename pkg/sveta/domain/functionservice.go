@@ -26,9 +26,8 @@ type FunctionInput struct {
 }
 
 type FunctionOutput struct {
-	Output   string
-	NoOutput bool
-	Stop     bool
+	Output string
+	Stop   bool
 }
 
 type Closure struct {
@@ -103,7 +102,7 @@ func (f *FunctionService) CreateClosures(input string) ([]*Closure, error) {
 		}
 		argMap := make(map[string]string)
 		for _, argument := range function.Arguments {
-			if argument.Name != "argumentName" && argument.Value != "valueAsString" { // it may repeat the examples as is
+			if argument.Name != "argumentName" && argument.Value != "value" { // it may repeat the examples as is
 				argMap[argument.Name] = argument.Value
 			}
 		}
@@ -143,7 +142,6 @@ func (f *FunctionService) getQuery(input string) string {
 }
 
 func (f *FunctionService) getFunctionResponseService() *ResponseService {
-	// TODO internationalize
 	rankerAIContext := NewAIContext(
 		f.aiContext.AgentName,
 		"You're an intelligent assistant that tells which existing functions to call (if it's possible at all) based on the user query and a list of available Go functions. "+

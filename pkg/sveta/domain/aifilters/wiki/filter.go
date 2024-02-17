@@ -146,7 +146,6 @@ func (f *filter) memoryExists(what, where string) bool {
 }
 
 func (f *filter) formatQuery(what string) string {
-	// TODO internationalize
 	return fmt.Sprintf("In what Wikipedia article can we find information related to this sentence: \"%s\" ?", what)
 }
 

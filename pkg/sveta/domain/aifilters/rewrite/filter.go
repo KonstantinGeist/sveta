@@ -52,7 +52,6 @@ func (f *filter) Apply(context *domain.AIFilterContext, nextAIFilterFunc domain.
 }
 
 func (f *filter) getRewriteResponseService() *domain.ResponseService {
-	// TODO internationalize
 	rankerAIContext := domain.NewAIContext(
 		"RewriteLLM",
 		"You're RewriteLLM, an intelligent assistant that rewrites a user query to be useful for vector-based search. You must replace pronouns and other ambiguouos words with exact nouns & verbs from the provided chat history. "+
@@ -62,7 +61,6 @@ func (f *filter) getRewriteResponseService() *domain.ResponseService {
 	return f.responseService.WithAIContext(rankerAIContext)
 }
 
-// TODO internationalize
 func (f *filter) formatMemories(workingMemories []*domain.Memory, what string) string {
 	var buf strings.Builder
 	buf.WriteString("Chat history: ```\n")

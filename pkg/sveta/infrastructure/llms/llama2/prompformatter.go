@@ -18,7 +18,6 @@ func (p *PromptFormatter) FormatDialog(memories []*domain.Memory) string {
 }
 
 func (p *PromptFormatter) FormatAnnouncedTime(t time.Time) string {
-	// TODO internationalize here and in other such instances as well
 	return common.FormatAnnouncedTimeInEnglish(t)
 }
 

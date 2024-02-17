@@ -8,7 +8,6 @@ import (
 	"kgeyst.com/sveta/pkg/sveta/domain"
 )
 
-// TODO internationalize
 const couldntLoadURLFormatMessage = "%s Description: \"no description because the URL failed to load\""
 const urlDescriptionFormatMessage = "%s\nContext found at the URL: \"%s\"\nQuery: \"%s\" (answer using the provided context, but slightly reformulate it in the language of your persona)"
 

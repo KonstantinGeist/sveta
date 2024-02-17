@@ -10,7 +10,6 @@ import (
 
 func (f *filter) rankMemoriesAndGetTopN(memories []*domain.Memory, what, where string) []*domain.Memory {
 	memoriesFormattedForRanker := f.formatMemoriesForRanker(memories)
-	// TODO internationalize
 	query := fmt.Sprintf(
 		"I will provide you with %d passages, each indicated by a numerical identifier [].\nRank the passages based on their relevance to the search query: \"%s\".\n\n%s\nSearch Query: \"%s\".\nRank the %d passages above based on their relevance to the search query. All the passages should be included and listed using identifiers, in descending order of relevance. The output format should be [] > [],\ne.g., [4] > [2]. Only respond with the ranking results, do not say any word or explain.",
 		len(memories),
@@ -41,7 +40,6 @@ func (f *filter) rankMemoriesAndGetTopN(memories []*domain.Memory, what, where s
 }
 
 func (f *filter) getRankerResponseService() *domain.ResponseService {
-	// TODO internationalize
 	rankerAIContext := domain.NewAIContext("RankLLM", "You're RankLLM, an intelligent assistant that can rank passages based on their relevancy to the query.", "")
 	return f.responseService.WithAIContext(rankerAIContext)
 }

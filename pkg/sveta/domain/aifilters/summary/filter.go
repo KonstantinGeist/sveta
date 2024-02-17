@@ -88,7 +88,6 @@ func (f *filter) Apply(context *domain.AIFilterContext, nextAIFilterFunc domain.
 }
 
 func (f *filter) getSummarizerResponseService() *domain.ResponseService {
-	// TODO internationalize
 	rankerAIContext := domain.NewAIContext(
 		"SummaryLLM",
 		"You're SummaryLLM, an intelligent assistant that summarizes the provided chat history by also taking the previous summary in consideration, if it exists. "+
