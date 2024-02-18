@@ -8,6 +8,8 @@ import (
 	"kgeyst.com/sveta/pkg/sveta/domain"
 )
 
+const bioCapabillity = "bio"
+
 type filter struct {
 	aiContext        *domain.AIContext
 	provider         Provider
@@ -37,7 +39,7 @@ func NewFilter(
 func (f *filter) Capabilities() []domain.AIFilterCapability {
 	return []domain.AIFilterCapability{
 		{
-			Name:        "bio",
+			Name:        bioCapabillity,
 			Description: "retrieves personal biography if an answer to the user query can potentially be found in the biography",
 			CanBeMasked: true,
 		},
@@ -45,6 +47,9 @@ func (f *filter) Capabilities() []domain.AIFilterCapability {
 }
 
 func (f *filter) Apply(context *domain.AIFilterContext, nextAIFilterFunc domain.NextAIFilterFunc) error {
+	if !context.IsCapabilityEnabled(bioCapabillity) {
+		return nextAIFilterFunc(context)
+	}
 	inputMemory := context.Memory(domain.DataKeyInput)
 	if inputMemory == nil {
 		return nextAIFilterFunc(context)

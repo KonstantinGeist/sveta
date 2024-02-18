@@ -11,6 +11,11 @@ import (
 
 const DataKeyOutput = "output"
 
+const responseCapability = "response"
+const episodicMemoryCapability = "episodicMemory"
+const rerankCapability = "rerank"
+const hydeCapability = "hyde"
+
 type filter struct {
 	aiContext                         *domain.AIContext
 	memoryFactory                     domain.MemoryFactory
@@ -55,32 +60,35 @@ func NewFilter(
 func (f *filter) Capabilities() []domain.AIFilterCapability {
 	return []domain.AIFilterCapability{
 		{
-			Name:        "response",
+			Name:        responseCapability,
 			Description: "generates a response to the user query",
 		},
 		{
-			Name:        "episodicMemory",
+			Name:        episodicMemoryCapability,
 			Description: "enriches the user query with information recalled from the episodic memory",
 		},
 		{
-			Name:        "rerank",
+			Name:        rerankCapability,
 			Description: "rerankers the recalled memory according to the relevance to the user query",
 		},
 		{
-			Name:        "hyde",
+			Name:        hydeCapability,
 			Description: "improves episodic memory recall by reformulating the user query in several different ways",
 		},
 	}
 }
 
 func (f *filter) Apply(context *domain.AIFilterContext, nextAIFilterFunc domain.NextAIFilterFunc) error {
+	if !context.IsCapabilityEnabled(responseCapability) {
+		return nextAIFilterFunc(context)
+	}
 	inputMemoryForRecall := context.MemoryCoalesced([]string{rewrite.DataKeyRewrittenInput, domain.DataKeyInput})
 	if inputMemoryForRecall == nil {
 		return nextAIFilterFunc(context)
 	}
 	inputMemoryForResponse := context.Memory(domain.DataKeyInput)
 	workingMemories := context.Memories(workingmemory.DataKeyWorkingMemory)
-	episodicMemories, err := f.recallFromEpisodicMemory(workingMemories, inputMemoryForRecall)
+	episodicMemories, err := f.recallFromEpisodicMemory(context, workingMemories, inputMemoryForRecall)
 	if err != nil {
 		return err
 	}
@@ -95,8 +103,11 @@ func (f *filter) Apply(context *domain.AIFilterContext, nextAIFilterFunc domain.
 }
 
 // recallFromEpisodicMemory finds memories in the so-called "episodic memory", or long-term memory which may contain memories from long ago
-func (f *filter) recallFromEpisodicMemory(workingMemories []*domain.Memory, inputMemory *domain.Memory) ([]*domain.Memory, error) {
-	embeddingsToSearch := f.getHypotheticalEmbeddings(inputMemory)
+func (f *filter) recallFromEpisodicMemory(context *domain.AIFilterContext, workingMemories []*domain.Memory, inputMemory *domain.Memory) ([]*domain.Memory, error) {
+	if !context.IsCapabilityEnabled(responseCapability) {
+		return nil, nil
+	}
+	embeddingsToSearch := f.getHypotheticalEmbeddings(context, inputMemory)
 	if inputMemory.Embedding != nil {
 		embeddingsToSearch = append(embeddingsToSearch, *inputMemory.Embedding)
 	}
@@ -114,7 +125,7 @@ func (f *filter) recallFromEpisodicMemory(workingMemories []*domain.Memory, inpu
 	if len(episodicMemories) == 0 {
 		return nil, nil
 	}
-	episodicMemories = f.rankMemoriesAndGetTopN(episodicMemories, inputMemory.What, inputMemory.Where)
+	episodicMemories = f.rankMemoriesAndGetTopN(context, episodicMemories, inputMemory.What, inputMemory.Where)
 	if len(episodicMemories) == 0 {
 		return nil, nil
 	}

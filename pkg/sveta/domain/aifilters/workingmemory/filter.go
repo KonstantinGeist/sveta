@@ -9,6 +9,8 @@ import (
 
 const DataKeyWorkingMemory = "workingMemory"
 
+const workingMemoryCapability = "workingMemory"
+
 type filter struct {
 	memoryRepository    domain.MemoryRepository
 	memoryFactory       domain.MemoryFactory
@@ -38,13 +40,16 @@ func NewFilter(
 func (f *filter) Capabilities() []domain.AIFilterCapability {
 	return []domain.AIFilterCapability{
 		{
-			Name:        "workingMemory",
+			Name:        workingMemoryCapability,
 			Description: "retrieves the working memory",
 		},
 	}
 }
 
 func (f *filter) Apply(context *domain.AIFilterContext, nextAIFilterFunc domain.NextAIFilterFunc) error {
+	if !context.IsCapabilityEnabled(workingMemoryCapability) {
+		return nextAIFilterFunc(context)
+	}
 	inputMemory := context.Memory(domain.DataKeyInput)
 	if inputMemory == nil {
 		return nextAIFilterFunc(context)

@@ -7,7 +7,10 @@ import (
 )
 
 // getHypotheticalEmbeddings a combination of Hypothetical Document Embeddings (HyDE) + Rewrite-Retrieve-Read
-func (f *filter) getHypotheticalEmbeddings(inputMemory *domain.Memory) []domain.Embedding {
+func (f *filter) getHypotheticalEmbeddings(context *domain.AIFilterContext, inputMemory *domain.Memory) []domain.Embedding {
+	if !context.IsCapabilityEnabled(hydeCapability) {
+		return nil
+	}
 	if !f.isQuestion(inputMemory.What) { // don't use HyDE for statements -- usually it doesn't work, especially if it's just a casual conversation
 		if inputMemory.Embedding != nil {
 			return []domain.Embedding{*inputMemory.Embedding}

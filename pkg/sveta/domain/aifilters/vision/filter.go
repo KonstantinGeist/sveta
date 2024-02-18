@@ -12,6 +12,8 @@ import (
 const couldntLoadImageFormatMessage = "%s Description: \"no description because the URL failed to load\""
 const imageDescriptionFormatMessage = "%s\nContext (description of the image): \"%s\"\nQuery: \"%s\" (if it's a question about the picture, use the provided context/description as is and nothing else, but slightly reformulate it in the language of your persona; otherwise, ignore the description)"
 
+const visionCapability = "vision"
+
 type filter struct {
 	urlFinder               common.URLFinder
 	visionModel             Model
@@ -47,13 +49,16 @@ func NewFilter(
 func (f *filter) Capabilities() []domain.AIFilterCapability {
 	return []domain.AIFilterCapability{
 		{
-			Name:        "vision",
+			Name:        visionCapability,
 			Description: "answers the user query by analyzing pictures (if provided)",
 		},
 	}
 }
 
 func (f *filter) Apply(context *domain.AIFilterContext, nextAIFilterFunc domain.NextAIFilterFunc) error {
+	if !context.IsCapabilityEnabled(visionCapability) {
+		return nextAIFilterFunc(context)
+	}
 	inputMemory := context.Memory(domain.DataKeyInput)
 	if inputMemory == nil {
 		return nextAIFilterFunc(context)

@@ -1,11 +1,14 @@
 package domain
 
 import (
-	"errors"
+	"sort"
 	"sync"
 )
 
-var errFailedToResponse = errors.New("failed to respond")
+type capability struct {
+	Name      string
+	IsEnabled bool
+}
 
 // AIService is the main orchestrator of the whole AI: it receives a list of AI filters and runs them one after another.
 // Additionally, it has various functions for debugging/control: remove all memory, remember actions, change context etc.\
@@ -17,6 +20,7 @@ type AIService struct {
 	functionService   *FunctionService
 	aiContext         *AIContext
 	aiFilters         []AIFilter
+	capabilities      []capability
 }
 
 func NewAIService(
@@ -27,6 +31,15 @@ func NewAIService(
 	aiContext *AIContext,
 	aiFilters []AIFilter,
 ) *AIService {
+	var capabilities []capability
+	for _, filter := range aiFilters {
+		for _, c := range filter.Capabilities() {
+			capabilities = append(capabilities, capability{
+				Name:      c.Name,
+				IsEnabled: true,
+			})
+		}
+	}
 	return &AIService{
 		memoryRepository:  memoryRepository,
 		memoryFactory:     memoryFactory,
@@ -34,6 +47,7 @@ func NewAIService(
 		functionService:   functionService,
 		aiContext:         aiContext,
 		aiFilters:         aiFilters,
+		capabilities:      capabilities,
 	}
 }
 
@@ -43,6 +57,7 @@ func (a *AIService) Respond(who, what, where string) (string, error) {
 	defer a.mutex.Unlock()
 	inputMemory := a.memoryFactory.NewMemory(MemoryTypeDialog, who, what, where)
 	aiFilterContext := NewAIFilterContext().WithMemory(DataKeyInput, inputMemory)
+	aiFilterContext.EnabledCapabilities = a.listEnabledCapabilities()
 	err := a.applyAIFilterAtIndex(aiFilterContext, 0)
 	if err != nil {
 		return "", err
@@ -108,13 +123,36 @@ func (a *AIService) RegisterFunction(functionDesc FunctionDesc) error {
 }
 
 func (a *AIService) ListCapabilities() []string {
+	a.mutex.Lock()
+	defer a.mutex.Unlock()
 	var result []string
-	for _, filter := range a.aiFilters {
-		capabilities := filter.Capabilities()
-		for _, capability := range capabilities {
-			result = append(result, capability.Name)
+	for _, c := range a.capabilities {
+		result = append(result, c.Name)
+	}
+	sort.Strings(result)
+	return result
+}
+
+func (a *AIService) EnableCapability(name string, value bool) error {
+	a.mutex.Lock()
+	defer a.mutex.Unlock()
+	for i, c := range a.capabilities {
+		if c.Name == name {
+			a.capabilities[i].IsEnabled = value
+			break
 		}
 	}
+	return nil
+}
+
+func (a *AIService) listEnabledCapabilities() []string {
+	var result []string
+	for _, c := range a.capabilities {
+		if c.IsEnabled {
+			result = append(result, c.Name)
+		}
+	}
+	sort.Strings(result)
 	return result
 }
 

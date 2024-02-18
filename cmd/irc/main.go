@@ -84,6 +84,11 @@ func mainImpl() error {
 				_ = sveta.ChangeAgentDescription(context)
 				return false
 			}
+			if strings.HasPrefix(what, "disable capability ") {
+				capability := what[len("disable capability "):]
+				_ = sveta.EnableCapability(capability, false)
+				return false
+			}
 			response, err := sveta.Respond(strings.TrimSpace(m.From), what, roomName)
 			if err != nil {
 				response = "I'm borked :("

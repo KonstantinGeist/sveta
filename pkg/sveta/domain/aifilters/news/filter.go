@@ -9,6 +9,8 @@ import (
 	"kgeyst.com/sveta/pkg/sveta/domain/aifilters/workingmemory"
 )
 
+const newsCapabillity = "news"
+
 type filter struct {
 	provider          Provider
 	memoryRepository  domain.MemoryRepository
@@ -41,7 +43,7 @@ func NewFilter(
 func (f *filter) Capabilities() []domain.AIFilterCapability {
 	return []domain.AIFilterCapability{
 		{
-			Name:        "news",
+			Name:        newsCapabillity,
 			Description: "retrieves the latest world news if an answer to the user query can potentially be found in the news",
 			CanBeMasked: true,
 		},
@@ -49,6 +51,9 @@ func (f *filter) Capabilities() []domain.AIFilterCapability {
 }
 
 func (f *filter) Apply(context *domain.AIFilterContext, nextAIFilterFunc domain.NextAIFilterFunc) error {
+	if !context.IsCapabilityEnabled(newsCapabillity) {
+		return nextAIFilterFunc(context)
+	}
 	inputMemory := context.Memory(domain.DataKeyInput)
 	if inputMemory == nil {
 		return nextAIFilterFunc(context)

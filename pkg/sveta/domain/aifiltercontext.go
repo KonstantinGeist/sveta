@@ -5,13 +5,23 @@ const DataKeyOutput = "output"
 
 type AIFilterContext struct {
 	// Data a map of arbitrary values which can be passed from filter to filter.
-	Data map[string]any
+	Data                map[string]any
+	EnabledCapabilities []string
 }
 
 func NewAIFilterContext() *AIFilterContext {
 	return &AIFilterContext{
 		Data: make(map[string]any),
 	}
+}
+
+func (a *AIFilterContext) IsCapabilityEnabled(name string) bool {
+	for _, capability := range a.EnabledCapabilities {
+		if capability == name {
+			return true
+		}
+	}
+	return false
 }
 
 func (a *AIFilterContext) Memories(key string) []*Memory {

@@ -14,6 +14,8 @@ import (
 
 var nonAlphanumericRegex = regexp.MustCompile(`[^a-zA-Z0-9 ]+`)
 
+const wikiCapability = "wiki"
+
 type filter struct {
 	responseService                *domain.ResponseService
 	memoryFactory                  domain.MemoryFactory
@@ -53,13 +55,16 @@ func NewFilter(
 func (f *filter) Capabilities() []domain.AIFilterCapability {
 	return []domain.AIFilterCapability{
 		{
-			Name:        "wiki",
+			Name:        wikiCapability,
 			Description: "answers the user query by searching on Wikipedia (if required)",
 		},
 	}
 }
 
 func (f *filter) Apply(context *domain.AIFilterContext, nextAIFilterFunc domain.NextAIFilterFunc) error {
+	if !context.IsCapabilityEnabled(wikiCapability) {
+		return nextAIFilterFunc(context)
+	}
 	inputMemoryForResponse := context.MemoryCoalesced([]string{rewrite.DataKeyRewrittenInput, domain.DataKeyInput})
 	if inputMemoryForResponse == nil {
 		return nextAIFilterFunc(context)

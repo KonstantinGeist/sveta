@@ -8,7 +8,10 @@ import (
 	"kgeyst.com/sveta/pkg/sveta/domain"
 )
 
-func (f *filter) rankMemoriesAndGetTopN(memories []*domain.Memory, what, where string) []*domain.Memory {
+func (f *filter) rankMemoriesAndGetTopN(context *domain.AIFilterContext, memories []*domain.Memory, what, where string) []*domain.Memory {
+	if !context.IsCapabilityEnabled(rerankCapability) {
+		return nil
+	}
 	memoriesFormattedForRanker := f.formatMemoriesForRanker(memories)
 	query := fmt.Sprintf(
 		"I will provide you with %d passages, each indicated by a numerical identifier [].\nRank the passages based on their relevance to the search query: \"%s\".\n\n%s\nSearch Query: \"%s\".\nRank the %d passages above based on their relevance to the search query. All the passages should be included and listed using identifiers, in descending order of relevance. The output format should be [] > [],\ne.g., [4] > [2]. Only respond with the ranking results, do not say any word or explain.",

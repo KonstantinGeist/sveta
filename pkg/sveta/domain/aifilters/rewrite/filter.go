@@ -11,6 +11,8 @@ import (
 
 const DataKeyRewrittenInput = "rewrittenInput"
 
+const rewriteCapability = "rewrite"
+
 type filter struct {
 	memoryFactory   domain.MemoryFactory
 	responseService *domain.ResponseService
@@ -32,13 +34,16 @@ func NewFilter(
 func (f *filter) Capabilities() []domain.AIFilterCapability {
 	return []domain.AIFilterCapability{
 		{
-			Name:        "rewrite",
+			Name:        rewriteCapability,
 			Description: "rewrites the user query to make it less ambiguous by enriching it with the working memory",
 		},
 	}
 }
 
 func (f *filter) Apply(context *domain.AIFilterContext, nextAIFilterFunc domain.NextAIFilterFunc) error {
+	if !context.IsCapabilityEnabled(rewriteCapability) {
+		return nextAIFilterFunc(context)
+	}
 	inputMemory := context.Memory(domain.DataKeyInput)
 	if inputMemory == nil {
 		return nextAIFilterFunc(context)

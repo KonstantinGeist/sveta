@@ -61,6 +61,7 @@ type API interface {
 	GetSummary(where string) (string, error)
 	RegisterFunction(functionDesc FunctionDesc) error
 	ListCapabilities() []string
+	EnableCapability(name string, value bool) error
 }
 
 func NewAPI(config *common.Config) (API, common.Stopper) {
@@ -212,4 +213,8 @@ func (a *api) RegisterFunction(functionDesc FunctionDesc) error {
 
 func (a *api) ListCapabilities() []string {
 	return a.aiService.ListCapabilities()
+}
+
+func (a *api) EnableCapability(name string, value bool) error {
+	return a.aiService.EnableCapability(name, value)
 }

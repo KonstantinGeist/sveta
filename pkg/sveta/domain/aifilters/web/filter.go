@@ -11,6 +11,8 @@ import (
 const couldntLoadURLFormatMessage = "%s Description: \"no description because the URL failed to load\""
 const urlDescriptionFormatMessage = "%s\nContext found at the URL: \"%s\"\nQuery: \"%s\" (answer using the provided context, but slightly reformulate it in the language of your persona)"
 
+const webCapability = "web"
+
 type filter struct {
 	urlFinder            common.URLFinder
 	pageContentExtractor PageContentExtractor
@@ -39,13 +41,16 @@ func NewFilter(
 func (f *filter) Capabilities() []domain.AIFilterCapability {
 	return []domain.AIFilterCapability{
 		{
-			Name:        "web",
+			Name:        webCapability,
 			Description: "answers the user query by analyzing web pages (if URLs are provided)",
 		},
 	}
 }
 
 func (f *filter) Apply(context *domain.AIFilterContext, nextAIFilterFunc domain.NextAIFilterFunc) error {
+	if !context.IsCapabilityEnabled(webCapability) {
+		return nextAIFilterFunc(context)
+	}
 	inputMemory := context.Memory(domain.DataKeyInput)
 	if inputMemory == nil {
 		return nextAIFilterFunc(context)

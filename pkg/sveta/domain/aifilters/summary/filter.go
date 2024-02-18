@@ -9,6 +9,8 @@ import (
 	"kgeyst.com/sveta/pkg/sveta/domain/aifilters/workingmemory"
 )
 
+const summaryCapability = "summary"
+
 type filter struct {
 	aiContext             *domain.AIContext
 	summaryRepository     domain.SummaryRepository
@@ -36,13 +38,16 @@ func NewFilter(
 func (f *filter) Capabilities() []domain.AIFilterCapability {
 	return []domain.AIFilterCapability{
 		{
-			Name:        "summary",
+			Name:        summaryCapability,
 			Description: "summarizes the current conversation to have a better understanding of a long conversation",
 		},
 	}
 }
 
 func (f *filter) Apply(context *domain.AIFilterContext, nextAIFilterFunc domain.NextAIFilterFunc) error {
+	if !context.IsCapabilityEnabled(summaryCapability) {
+		return nextAIFilterFunc(context)
+	}
 	inputMemory := context.Memory(domain.DataKeyInput)
 	outputMemory := context.Memory(domain.DataKeyOutput)
 	if inputMemory == nil || outputMemory == nil {
