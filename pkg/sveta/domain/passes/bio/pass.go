@@ -10,7 +10,7 @@ import (
 
 const bioCapabillity = "bio"
 
-type filter struct {
+type pass struct {
 	aiContext        *domain.AIContext
 	provider         Provider
 	memoryRepository domain.MemoryRepository
@@ -19,14 +19,14 @@ type filter struct {
 	loaded           map[string]bool // where => isLoaded
 }
 
-func NewFilter(
+func NewPass(
 	aiContext *domain.AIContext,
 	bioProvider Provider,
 	memoryRepository domain.MemoryRepository,
 	memoryFactory domain.MemoryFactory,
 	logger common.Logger,
-) domain.AIFilter {
-	return &filter{
+) domain.Pass {
+	return &pass{
 		aiContext:        aiContext,
 		provider:         bioProvider,
 		memoryRepository: memoryRepository,
@@ -36,44 +36,44 @@ func NewFilter(
 	}
 }
 
-func (f *filter) Capabilities() []domain.AIFilterCapability {
-	return []domain.AIFilterCapability{
+func (p *pass) Capabilities() []*domain.Capability {
+	return []*domain.Capability{
 		{
 			Name:        bioCapabillity,
 			Description: "retrieves personal biography if an answer to the user query can potentially be found in the biography",
-			CanBeMasked: true,
+			IsMaskable:  true,
 		},
 	}
 }
 
-func (f *filter) Apply(context *domain.AIFilterContext, nextAIFilterFunc domain.NextAIFilterFunc) error {
+func (p *pass) Apply(context *domain.PassContext, nextPassFunc domain.NextPassFunc) error {
 	if !context.IsCapabilityEnabled(bioCapabillity) {
-		return nextAIFilterFunc(context)
+		return nextPassFunc(context)
 	}
 	inputMemory := context.Memory(domain.DataKeyInput)
 	if inputMemory == nil {
-		return nextAIFilterFunc(context)
+		return nextPassFunc(context)
 	}
-	if !f.loaded[inputMemory.Where] {
-		f.loadBioFacts(inputMemory.Where)
-		f.loaded[inputMemory.Where] = true
+	if !p.loaded[inputMemory.Where] {
+		p.loadBioFacts(inputMemory.Where)
+		p.loaded[inputMemory.Where] = true
 	}
-	return nextAIFilterFunc(context)
+	return nextPassFunc(context)
 }
 
-func (f *filter) loadBioFacts(where string) {
-	bioFacts, err := f.provider.GetBioFacts()
+func (p *pass) loadBioFacts(where string) {
+	bioFacts, err := p.provider.GetBioFacts()
 	if err != nil {
-		f.logger.Log("failed to load bio facts")
+		p.logger.Log("failed to load bio facts")
 		return
 	}
 	for index, bioFact := range bioFacts {
-		f.logger.Log(fmt.Sprintf("Loading bio fact #%d...\n", index))
-		memory := f.memoryFactory.NewMemory(domain.MemoryTypeDialog, f.aiContext.AgentName, bioFact, where)
+		p.logger.Log(fmt.Sprintf("Loading bio fact #%d...\n", index))
+		memory := p.memoryFactory.NewMemory(domain.MemoryTypeDialog, p.aiContext.AgentName, bioFact, where)
 		memory.When = time.Time{}
-		err = f.memoryRepository.Store(memory)
+		err = p.memoryRepository.Store(memory)
 		if err != nil {
-			f.logger.Log("failed to store bio facts as memory")
+			p.logger.Log("failed to store bio facts as memory")
 			return
 		}
 	}

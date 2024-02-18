@@ -13,24 +13,24 @@ const urlDescriptionFormatMessage = "%s\nContext found at the URL: \"%s\"\nQuery
 
 const webCapability = "web"
 
-type filter struct {
+type pass struct {
 	urlFinder            common.URLFinder
 	pageContentExtractor PageContentExtractor
 	logger               common.Logger
 	maxContentSize       int
 }
 
-// NewFilter this AI filter allows the AI agent to see the content of the given URLs.
+// NewPass this AI pass allows the AI agent to see the content of the given URLs.
 // Limitations:
 // - only sees the first URL, if there are several URLs in a message
 // - the whole AI agent can crash if the given URL dynamically produces infinite output (see common.ReadAllFromURL)
-func NewFilter(
+func NewPass(
 	urlFinder common.URLFinder,
 	pageContentExtractor PageContentExtractor,
 	config *common.Config,
 	logger common.Logger,
-) domain.AIFilter {
-	return &filter{
+) domain.Pass {
+	return &pass{
 		urlFinder:            urlFinder,
 		pageContentExtractor: pageContentExtractor,
 		logger:               logger,
@@ -38,56 +38,57 @@ func NewFilter(
 	}
 }
 
-func (f *filter) Capabilities() []domain.AIFilterCapability {
-	return []domain.AIFilterCapability{
+func (p *pass) Capabilities() []*domain.Capability {
+	return []*domain.Capability{
 		{
 			Name:        webCapability,
 			Description: "answers the user query by analyzing web pages (if URLs are provided)",
+			IsMaskable:  false,
 		},
 	}
 }
 
-func (f *filter) Apply(context *domain.AIFilterContext, nextAIFilterFunc domain.NextAIFilterFunc) error {
+func (p *pass) Apply(context *domain.PassContext, nextPassFunc domain.NextPassFunc) error {
 	if !context.IsCapabilityEnabled(webCapability) {
-		return nextAIFilterFunc(context)
+		return nextPassFunc(context)
 	}
 	inputMemory := context.Memory(domain.DataKeyInput)
 	if inputMemory == nil {
-		return nextAIFilterFunc(context)
+		return nextPassFunc(context)
 	}
-	urls := f.urlFinder.FindURLs(inputMemory.What)
+	urls := p.urlFinder.FindURLs(inputMemory.What)
 	if len(urls) == 0 {
-		return nextAIFilterFunc(context)
+		return nextPassFunc(context)
 	}
 	url := urls[0]                 // let's do it with only one URL so far (a known limitation)
-	if common.IsImageFormat(url) { // for images, we have ImageFilter
-		return nextAIFilterFunc(context)
+	if common.IsImageFormat(url) { // for images, we have a vision pass
+		return nextPassFunc(context)
 	}
-	pageContent, err := f.pageContentExtractor.ExtractPageContentFromURL(url)
+	pageContent, err := p.pageContentExtractor.ExtractPageContentFromURL(url)
 	if err != nil {
 		// It's important to add `couldntLoadURLFormatMessage` so that the main LLM correctly respond that the URL doesn't load.
 		inputMemory.What = fmt.Sprintf(couldntLoadURLFormatMessage, inputMemory.What)
-		return nextAIFilterFunc(context.WithMemory(domain.DataKeyInput, inputMemory))
+		return nextPassFunc(context.WithMemory(domain.DataKeyInput, inputMemory))
 	}
-	pageContent = f.preprocessPageContent(pageContent)
+	pageContent = p.preprocessPageContent(pageContent)
 	if pageContent == "" {
 		inputMemory.What = fmt.Sprintf(couldntLoadURLFormatMessage, inputMemory.What)
-		return nextAIFilterFunc(context.WithMemory(domain.DataKeyInput, inputMemory))
+		return nextPassFunc(context.WithMemory(domain.DataKeyInput, inputMemory))
 	}
-	whatWithoutURL := f.removeURL(inputMemory.What, url)
+	whatWithoutURL := p.removeURL(inputMemory.What, url)
 	inputMemory.What = fmt.Sprintf(urlDescriptionFormatMessage, url, pageContent, whatWithoutURL)
-	return nextAIFilterFunc(context.WithMemory(domain.DataKeyInput, inputMemory))
+	return nextPassFunc(context.WithMemory(domain.DataKeyInput, inputMemory))
 }
 
-func (f *filter) preprocessPageContent(pageContent string) string {
-	if len(pageContent) > f.maxContentSize {
-		pageContent = pageContent[0:f.maxContentSize]
+func (p *pass) preprocessPageContent(pageContent string) string {
+	if len(pageContent) > p.maxContentSize {
+		pageContent = pageContent[0:p.maxContentSize]
 	}
 	pageContent = strings.ReplaceAll(pageContent, "\n", " ")
 	pageContent = strings.ReplaceAll(pageContent, "\r", "")
 	return strings.TrimSpace(pageContent)
 }
 
-func (f *filter) removeURL(what, url string) string {
+func (p *pass) removeURL(what, url string) string {
 	return strings.TrimSpace(strings.ReplaceAll(what, url, ""))
 }

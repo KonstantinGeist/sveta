@@ -8,11 +8,11 @@ import (
 	"kgeyst.com/sveta/pkg/sveta/domain"
 )
 
-func (f *filter) rankMemoriesAndGetTopN(context *domain.AIFilterContext, memories []*domain.Memory, what, where string) []*domain.Memory {
+func (p *pass) rankMemoriesAndGetTopN(context *domain.PassContext, memories []*domain.Memory, what, where string) []*domain.Memory {
 	if !context.IsCapabilityEnabled(rerankCapability) {
 		return nil
 	}
-	memoriesFormattedForRanker := f.formatMemoriesForRanker(memories)
+	memoriesFormattedForRanker := p.formatMemoriesForRanker(memories)
 	query := fmt.Sprintf(
 		"I will provide you with %d passages, each indicated by a numerical identifier [].\nRank the passages based on their relevance to the search query: \"%s\".\n\n%s\nSearch Query: \"%s\".\nRank the %d passages above based on their relevance to the search query. All the passages should be included and listed using identifiers, in descending order of relevance. The output format should be [] > [],\ne.g., [4] > [2]. Only respond with the ranking results, do not say any word or explain.",
 		len(memories),
@@ -21,13 +21,13 @@ func (f *filter) rankMemoriesAndGetTopN(context *domain.AIFilterContext, memorie
 		what,
 		len(memories),
 	)
-	queryMemory := f.memoryFactory.NewMemory(domain.MemoryTypeDialog, "User", query, where)
-	response, err := f.getRankerResponseService().RespondToMemoriesWithText([]*domain.Memory{queryMemory}, domain.ResponseModeRerank)
+	queryMemory := p.memoryFactory.NewMemory(domain.MemoryTypeDialog, "User", query, where)
+	response, err := p.getRankerResponseService().RespondToMemoriesWithText([]*domain.Memory{queryMemory}, domain.ResponseModeRerank)
 	if err != nil {
-		f.logger.Log("failed to rank memories")
+		p.logger.Log("failed to rank memories")
 		return nil
 	}
-	indices := f.parseIndicesInRerankerResponse(response, len(memories))
+	indices := p.parseIndicesInRerankerResponse(response, len(memories))
 	var result []*domain.Memory
 	for _, index := range indices {
 		result = append(result, memories[index])
@@ -36,30 +36,30 @@ func (f *filter) rankMemoriesAndGetTopN(context *domain.AIFilterContext, memorie
 	if len(result) == 0 {
 		result = memories
 	}
-	if len(result) > f.episodicMemorySecondStageTopCount {
-		result = result[0:f.episodicMemorySecondStageTopCount]
+	if len(result) > p.episodicMemorySecondStageTopCount {
+		result = result[0:p.episodicMemorySecondStageTopCount]
 	}
 	return result
 }
 
-func (f *filter) getRankerResponseService() *domain.ResponseService {
+func (p *pass) getRankerResponseService() *domain.ResponseService {
 	rankerAIContext := domain.NewAIContext("RankLLM", "You're RankLLM, an intelligent assistant that can rank passages based on their relevancy to the query.", "")
-	return f.responseService.WithAIContext(rankerAIContext)
+	return p.responseService.WithAIContext(rankerAIContext)
 }
 
-func (f *filter) formatMemoriesForRanker(memories []*domain.Memory) string {
+func (p *pass) formatMemoriesForRanker(memories []*domain.Memory) string {
 	var buf strings.Builder
 	for index, memory := range memories {
 		what := memory.What
-		if len(what) > f.rankerMaxMemorySize {
-			what = what[0:f.rankerMaxMemorySize] + "..." // trimming it to fit huge memories in the context, at least partially
+		if len(what) > p.rankerMaxMemorySize {
+			what = what[0:p.rankerMaxMemorySize] + "..." // trimming it to fit huge memories in the context, at least partially
 		}
 		buf.WriteString(fmt.Sprintf("[%d] %s: %s\n", index+1, memory.Who, what))
 	}
 	return buf.String()
 }
 
-func (f *filter) parseIndicesInRerankerResponse(response string, memoryCount int) []int {
+func (p *pass) parseIndicesInRerankerResponse(response string, memoryCount int) []int {
 	response = strings.ReplaceAll(response, "[", "")
 	response = strings.ReplaceAll(response, "]", "")
 	split := strings.FieldsFunc(response, func(r rune) bool {

@@ -6,76 +6,77 @@ import (
 
 	"kgeyst.com/sveta/pkg/common"
 	"kgeyst.com/sveta/pkg/sveta/domain"
-	"kgeyst.com/sveta/pkg/sveta/domain/aifilters/workingmemory"
+	"kgeyst.com/sveta/pkg/sveta/domain/passes/workingmemory"
 )
 
 const DataKeyRewrittenInput = "rewrittenInput"
 
 const rewriteCapability = "rewrite"
 
-type filter struct {
+type pass struct {
 	memoryFactory   domain.MemoryFactory
 	responseService *domain.ResponseService
 	logger          common.Logger
 }
 
-func NewFilter(
+func NewPass(
 	memoryFactory domain.MemoryFactory,
 	responseService *domain.ResponseService,
 	logger common.Logger,
-) domain.AIFilter {
-	return &filter{
+) domain.Pass {
+	return &pass{
 		memoryFactory:   memoryFactory,
 		responseService: responseService,
 		logger:          logger,
 	}
 }
 
-func (f *filter) Capabilities() []domain.AIFilterCapability {
-	return []domain.AIFilterCapability{
+func (p *pass) Capabilities() []*domain.Capability {
+	return []*domain.Capability{
 		{
 			Name:        rewriteCapability,
 			Description: "rewrites the user query to make it less ambiguous by enriching it with the working memory",
+			IsMaskable:  false,
 		},
 	}
 }
 
-func (f *filter) Apply(context *domain.AIFilterContext, nextAIFilterFunc domain.NextAIFilterFunc) error {
+func (p *pass) Apply(context *domain.PassContext, nextPassFunc domain.NextPassFunc) error {
 	if !context.IsCapabilityEnabled(rewriteCapability) {
-		return nextAIFilterFunc(context)
+		return nextPassFunc(context)
 	}
 	inputMemory := context.Memory(domain.DataKeyInput)
 	if inputMemory == nil {
-		return nextAIFilterFunc(context)
+		return nextPassFunc(context)
 	}
 	workingMemories := context.Memories(workingmemory.DataKeyWorkingMemory)
 	if len(workingMemories) == 0 { // there's nothing really to rewrite with only 1 working memory
-		return nextAIFilterFunc(context)
+		return nextPassFunc(context)
 	}
 	var output struct {
 		RewrittenUserQuery string `json:"rewrittenUserQuery"`
 	}
-	memoriesFormattedForRewrite := f.formatMemories(workingMemories, inputMemory.What)
-	err := f.getRewriteResponseService().RespondToQueryWithJSON(memoriesFormattedForRewrite, &output)
+	memoriesFormattedForRewrite := p.formatMemories(workingMemories, inputMemory.What)
+	err := p.getRewriteResponseService().RespondToQueryWithJSON(memoriesFormattedForRewrite, &output)
 	if err != nil {
-		f.logger.Log(err.Error())
-		return nextAIFilterFunc(context)
+		p.logger.Log(err.Error())
+		return nextPassFunc(context)
 	}
-	rewrittenInputMemory := f.memoryFactory.NewMemory(domain.MemoryTypeDialog, inputMemory.Who, output.RewrittenUserQuery, inputMemory.Where)
-	return nextAIFilterFunc(context.WithMemory(DataKeyRewrittenInput, rewrittenInputMemory))
+	rewrittenInputMemory := p.memoryFactory.NewMemory(domain.MemoryTypeDialog, inputMemory.Who, output.RewrittenUserQuery, inputMemory.Where)
+	return nextPassFunc(context.WithMemory(DataKeyRewrittenInput, rewrittenInputMemory))
 }
 
-func (f *filter) getRewriteResponseService() *domain.ResponseService {
+func (p *pass) getRewriteResponseService() *domain.ResponseService {
 	rankerAIContext := domain.NewAIContext(
 		"RewriteLLM",
 		"You're RewriteLLM, an intelligent assistant that rewrites a user query to be useful for vector-based search. You must replace pronouns and other ambiguouos words with exact nouns & verbs from the provided chat history. "+
 			"For example, if the user says \"I like them\", and previously cats were mentioned, then substitute \"it\" with \"cats\", etc. ",
 		"",
 	)
-	return f.responseService.WithAIContext(rankerAIContext)
+	return p.responseService.WithAIContext(rankerAIContext)
 }
 
-func (f *filter) formatMemories(workingMemories []*domain.Memory, what string) string {
+func (p *pass) formatMemories(workingMemories []*domain.Memory, what string) string {
 	var buf strings.Builder
 	buf.WriteString("Chat history: ```\n")
 	for _, workingMemory := range workingMemories {

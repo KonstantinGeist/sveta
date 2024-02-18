@@ -5,8 +5,8 @@ import (
 
 	"kgeyst.com/sveta/pkg/common"
 	"kgeyst.com/sveta/pkg/sveta/domain"
-	"kgeyst.com/sveta/pkg/sveta/domain/aifilters/rewrite"
-	"kgeyst.com/sveta/pkg/sveta/domain/aifilters/workingmemory"
+	"kgeyst.com/sveta/pkg/sveta/domain/passes/rewrite"
+	"kgeyst.com/sveta/pkg/sveta/domain/passes/workingmemory"
 )
 
 const DataKeyOutput = "output"
@@ -16,7 +16,7 @@ const episodicMemoryCapability = "episodicMemory"
 const rerankCapability = "rerank"
 const hydeCapability = "hyde"
 
-type filter struct {
+type pass struct {
 	aiContext                         *domain.AIContext
 	memoryFactory                     domain.MemoryFactory
 	memoryRepository                  domain.MemoryRepository
@@ -31,7 +31,7 @@ type filter struct {
 	rankerMaxMemorySize               int
 }
 
-func NewFilter(
+func NewPass(
 	aiContext *domain.AIContext,
 	memoryFactory domain.MemoryFactory,
 	memoryRepository domain.MemoryRepository,
@@ -40,8 +40,8 @@ func NewFilter(
 	promptFormatterForLog domain.PromptFormatter,
 	config *common.Config,
 	logger common.Logger,
-) domain.AIFilter {
-	return &filter{
+) domain.Pass {
+	return &pass{
 		aiContext:                         aiContext,
 		memoryFactory:                     memoryFactory,
 		memoryRepository:                  memoryRepository,
@@ -57,67 +57,71 @@ func NewFilter(
 	}
 }
 
-func (f *filter) Capabilities() []domain.AIFilterCapability {
-	return []domain.AIFilterCapability{
+func (p *pass) Capabilities() []*domain.Capability {
+	return []*domain.Capability{
 		{
 			Name:        responseCapability,
 			Description: "generates a response to the user query",
+			IsMaskable:  false,
 		},
 		{
 			Name:        episodicMemoryCapability,
 			Description: "enriches the user query with information recalled from the episodic memory",
+			IsMaskable:  false,
 		},
 		{
 			Name:        rerankCapability,
 			Description: "rerankers the recalled memory according to the relevance to the user query",
+			IsMaskable:  false,
 		},
 		{
 			Name:        hydeCapability,
 			Description: "improves episodic memory recall by reformulating the user query in several different ways",
+			IsMaskable:  false,
 		},
 	}
 }
 
-func (f *filter) Apply(context *domain.AIFilterContext, nextAIFilterFunc domain.NextAIFilterFunc) error {
+func (p *pass) Apply(context *domain.PassContext, nextPassFunc domain.NextPassFunc) error {
 	if !context.IsCapabilityEnabled(responseCapability) {
-		return nextAIFilterFunc(context)
+		return nextPassFunc(context)
 	}
 	inputMemoryForRecall := context.MemoryCoalesced([]string{rewrite.DataKeyRewrittenInput, domain.DataKeyInput})
 	if inputMemoryForRecall == nil {
-		return nextAIFilterFunc(context)
+		return nextPassFunc(context)
 	}
 	inputMemoryForResponse := context.Memory(domain.DataKeyInput)
 	workingMemories := context.Memories(workingmemory.DataKeyWorkingMemory)
-	episodicMemories, err := f.recallFromEpisodicMemory(context, workingMemories, inputMemoryForRecall)
+	episodicMemories, err := p.recallFromEpisodicMemory(context, workingMemories, inputMemoryForRecall)
 	if err != nil {
 		return err
 	}
 	memories := domain.MergeMemories(episodicMemories, workingMemories...)
 	memories = domain.MergeMemories(memories, inputMemoryForResponse)
-	response, err := f.responseService.RespondToMemoriesWithText(memories, domain.ResponseModeNormal)
+	response, err := p.responseService.RespondToMemoriesWithText(memories, domain.ResponseModeNormal)
 	if err != nil {
 		return err
 	}
-	responseMemory := f.memoryFactory.NewMemory(domain.MemoryTypeDialog, f.aiContext.AgentName, response, inputMemoryForResponse.Where)
-	return nextAIFilterFunc(context.WithMemory(DataKeyOutput, responseMemory))
+	responseMemory := p.memoryFactory.NewMemory(domain.MemoryTypeDialog, p.aiContext.AgentName, response, inputMemoryForResponse.Where)
+	return nextPassFunc(context.WithMemory(DataKeyOutput, responseMemory))
 }
 
 // recallFromEpisodicMemory finds memories in the so-called "episodic memory", or long-term memory which may contain memories from long ago
-func (f *filter) recallFromEpisodicMemory(context *domain.AIFilterContext, workingMemories []*domain.Memory, inputMemory *domain.Memory) ([]*domain.Memory, error) {
+func (p *pass) recallFromEpisodicMemory(context *domain.PassContext, workingMemories []*domain.Memory, inputMemory *domain.Memory) ([]*domain.Memory, error) {
 	if !context.IsCapabilityEnabled(responseCapability) {
 		return nil, nil
 	}
-	embeddingsToSearch := f.getHypotheticalEmbeddings(context, inputMemory)
+	embeddingsToSearch := p.getHypotheticalEmbeddings(context, inputMemory)
 	if inputMemory.Embedding != nil {
 		embeddingsToSearch = append(embeddingsToSearch, *inputMemory.Embedding)
 	}
-	episodicMemories, err := f.memoryRepository.FindByEmbeddings(domain.EmbeddingFilter{
+	episodicMemories, err := p.memoryRepository.FindByEmbeddings(domain.EmbeddingFilter{
 		Where:               inputMemory.Where,
 		Embeddings:          embeddingsToSearch,
-		TopCount:            f.episodicMemoryFirstStageTopCount,
-		SurroundingCount:    f.episodicMemorySurroundingCount,
+		TopCount:            p.episodicMemoryFirstStageTopCount,
+		SurroundingCount:    p.episodicMemorySurroundingCount,
 		ExcludedIDs:         domain.GetMemoryIDs(workingMemories), // don't recall what's already in the input
-		SimilarityThreshold: f.episodicMemorySimilarityThreshold,
+		SimilarityThreshold: p.episodicMemorySimilarityThreshold,
 	})
 	if err != nil {
 		return nil, err
@@ -125,19 +129,19 @@ func (f *filter) recallFromEpisodicMemory(context *domain.AIFilterContext, worki
 	if len(episodicMemories) == 0 {
 		return nil, nil
 	}
-	episodicMemories = f.rankMemoriesAndGetTopN(context, episodicMemories, inputMemory.What, inputMemory.Where)
+	episodicMemories = p.rankMemoriesAndGetTopN(context, episodicMemories, inputMemory.What, inputMemory.Where)
 	if len(episodicMemories) == 0 {
 		return nil, nil
 	}
-	dialogForLog := f.promptFormatterForLog.FormatDialog(domain.FilterMemoriesByTypes(episodicMemories, []domain.MemoryType{domain.MemoryTypeDialog}))
-	f.logger.Log(fmt.Sprintf("\n======\nRecalled context:\n%s\n========\n", dialogForLog))
+	dialogForLog := p.promptFormatterForLog.FormatDialog(domain.FilterMemoriesByTypes(episodicMemories, []domain.MemoryType{domain.MemoryTypeDialog}))
+	p.logger.Log(fmt.Sprintf("\n======\nRecalled context:\n%s\n========\n", dialogForLog))
 	return episodicMemories, nil
 }
 
-func (f *filter) getEmbedding(what string) *domain.Embedding {
-	embedding, err := f.embedder.Embed(what)
+func (p *pass) getEmbedding(what string) *domain.Embedding {
+	embedding, err := p.embedder.Embed(what)
 	if err != nil {
-		f.logger.Log(err.Error())
+		p.logger.Log(err.Error())
 		return nil
 	}
 	return &embedding

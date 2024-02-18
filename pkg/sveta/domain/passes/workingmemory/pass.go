@@ -11,7 +11,7 @@ const DataKeyWorkingMemory = "workingMemory"
 
 const workingMemoryCapability = "workingMemory"
 
-type filter struct {
+type pass struct {
 	memoryRepository    domain.MemoryRepository
 	memoryFactory       domain.MemoryFactory
 	logger              common.Logger
@@ -19,16 +19,16 @@ type filter struct {
 	workingMemoryMaxAge time.Duration
 }
 
-// NewFilter creates a filter which finds memories from the so-called "working memory" -- it's simply N latest memories
+// NewPass creates a pass which finds memories from the so-called "working memory" -- it's simply N latest memories
 // (depends on  `workingMemorySize` specified in the config). Working memory is the basis for building proper dialog
 // contexts (so that AI could hold continuous dialogs).
-func NewFilter(
+func NewPass(
 	memoryRepository domain.MemoryRepository,
 	memoryFactory domain.MemoryFactory,
 	config *common.Config,
 	logger common.Logger,
-) domain.AIFilter {
-	return &filter{
+) domain.Pass {
+	return &pass{
 		memoryRepository:    memoryRepository,
 		memoryFactory:       memoryFactory,
 		logger:              logger,
@@ -37,33 +37,34 @@ func NewFilter(
 	}
 }
 
-func (f *filter) Capabilities() []domain.AIFilterCapability {
-	return []domain.AIFilterCapability{
+func (p *pass) Capabilities() []*domain.Capability {
+	return []*domain.Capability{
 		{
 			Name:        workingMemoryCapability,
 			Description: "retrieves the working memory",
+			IsMaskable:  false,
 		},
 	}
 }
 
-func (f *filter) Apply(context *domain.AIFilterContext, nextAIFilterFunc domain.NextAIFilterFunc) error {
+func (p *pass) Apply(context *domain.PassContext, nextPassFunc domain.NextPassFunc) error {
 	if !context.IsCapabilityEnabled(workingMemoryCapability) {
-		return nextAIFilterFunc(context)
+		return nextPassFunc(context)
 	}
 	inputMemory := context.Memory(domain.DataKeyInput)
 	if inputMemory == nil {
-		return nextAIFilterFunc(context)
+		return nextPassFunc(context)
 	}
-	notOlderThan := time.Now().Add(-f.workingMemoryMaxAge)
-	memories, err := f.memoryRepository.Find(domain.MemoryFilter{
+	notOlderThan := time.Now().Add(-p.workingMemoryMaxAge)
+	memories, err := p.memoryRepository.Find(domain.MemoryFilter{
 		Types:        []domain.MemoryType{domain.MemoryTypeDialog},
 		Where:        inputMemory.Where,
-		LatestCount:  f.workingMemorySize,
+		LatestCount:  p.workingMemorySize,
 		NotOlderThan: &notOlderThan,
 	})
 	if err != nil {
-		f.logger.Log("failed to recall working memory: " + err.Error())
-		return nextAIFilterFunc(context)
+		p.logger.Log("failed to recall working memory: " + err.Error())
+		return nextPassFunc(context)
 	}
-	return nextAIFilterFunc(context.WithMemories(DataKeyWorkingMemory, memories))
+	return nextPassFunc(context.WithMemories(DataKeyWorkingMemory, memories))
 }

@@ -6,12 +6,12 @@ import (
 
 	"kgeyst.com/sveta/pkg/common"
 	"kgeyst.com/sveta/pkg/sveta/domain"
-	"kgeyst.com/sveta/pkg/sveta/domain/aifilters/workingmemory"
+	"kgeyst.com/sveta/pkg/sveta/domain/passes/workingmemory"
 )
 
 const summaryCapability = "summary"
 
-type filter struct {
+type pass struct {
 	aiContext             *domain.AIContext
 	summaryRepository     domain.SummaryRepository
 	responseService       *domain.ResponseService
@@ -19,14 +19,14 @@ type filter struct {
 	logger                common.Logger
 }
 
-func NewFilter(
+func NewPass(
 	aiContext *domain.AIContext,
 	summaryRepository domain.SummaryRepository,
 	responseService *domain.ResponseService,
 	languageModelJobQueue *common.JobQueue,
 	logger common.Logger,
-) domain.AIFilter {
-	return &filter{
+) domain.Pass {
+	return &pass{
 		aiContext:             aiContext,
 		summaryRepository:     summaryRepository,
 		responseService:       responseService,
@@ -35,32 +35,33 @@ func NewFilter(
 	}
 }
 
-func (f *filter) Capabilities() []domain.AIFilterCapability {
-	return []domain.AIFilterCapability{
+func (p *pass) Capabilities() []*domain.Capability {
+	return []*domain.Capability{
 		{
 			Name:        summaryCapability,
 			Description: "summarizes the current conversation to have a better understanding of a long conversation",
+			IsMaskable:  false,
 		},
 	}
 }
 
-func (f *filter) Apply(context *domain.AIFilterContext, nextAIFilterFunc domain.NextAIFilterFunc) error {
+func (p *pass) Apply(context *domain.PassContext, nextPassFunc domain.NextPassFunc) error {
 	if !context.IsCapabilityEnabled(summaryCapability) {
-		return nextAIFilterFunc(context)
+		return nextPassFunc(context)
 	}
 	inputMemory := context.Memory(domain.DataKeyInput)
 	outputMemory := context.Memory(domain.DataKeyOutput)
 	if inputMemory == nil || outputMemory == nil {
-		return nextAIFilterFunc(context)
+		return nextPassFunc(context)
 	}
 	workingMemories := context.Memories(workingmemory.DataKeyWorkingMemory)
-	summary, err := f.summaryRepository.FindByWhere(inputMemory.Where)
+	summary, err := p.summaryRepository.FindByWhere(inputMemory.Where)
 	if err != nil {
-		f.logger.Log("failed to summarize: " + err.Error())
-		return nextAIFilterFunc(context)
+		p.logger.Log("failed to summarize: " + err.Error())
+		return nextPassFunc(context)
 	}
-	formattedMemories := f.formatMemories(summary, domain.MergeMemories(workingMemories, []*domain.Memory{inputMemory, outputMemory}...))
-	f.languageModelJobQueue.Enqueue(func() error {
+	formattedMemories := p.formatMemories(summary, domain.MergeMemories(workingMemories, []*domain.Memory{inputMemory, outputMemory}...))
+	p.languageModelJobQueue.Enqueue(func() error {
 		var output struct {
 			Summary1              string `json:"summary1"`
 			Summary2              string `json:"summary2"`
@@ -69,7 +70,7 @@ func (f *filter) Apply(context *domain.AIFilterContext, nextAIFilterFunc domain.
 			Summary5              string `json:"summary5"`
 			OpinionOnPeopleInChat string `json:"opinionOnPeopleInChat"`
 		}
-		err = f.getSummarizerResponseService().RespondToQueryWithJSON(
+		err = p.getSummarizerResponseService().RespondToQueryWithJSON(
 			fmt.Sprintf("%s\nSummarize the chat history above into 5 short summaries at most (if possible). Additionally, provide your your opinion on people in the chat using only adjectives. Example: \"User is friendly.\".", formattedMemories),
 			&output,
 		)
@@ -94,14 +95,14 @@ func (f *filter) Apply(context *domain.AIFilterContext, nextAIFilterFunc domain.
 		}
 		finalSummary := strings.TrimSpace(strings.Join(summaries, " "))
 		if output.OpinionOnPeopleInChat != "" {
-			finalSummary += fmt.Sprintf("\n%s's opinion on people in the chat: \"%s\".", f.aiContext.AgentName, output.OpinionOnPeopleInChat)
+			finalSummary += fmt.Sprintf("\n%s's opinion on people in the chat: \"%s\".", p.aiContext.AgentName, output.OpinionOnPeopleInChat)
 		}
-		return f.summaryRepository.Store(inputMemory.Where, finalSummary)
+		return p.summaryRepository.Store(inputMemory.Where, finalSummary)
 	})
-	return nextAIFilterFunc(context)
+	return nextPassFunc(context)
 }
 
-func (f *filter) getSummarizerResponseService() *domain.ResponseService {
+func (p *pass) getSummarizerResponseService() *domain.ResponseService {
 	rankerAIContext := domain.NewAIContext(
 		"SummaryLLM",
 		"You're SummaryLLM, an intelligent assistant that summarizes the provided chat history by also taking the previous summary in consideration, if it exists. "+
@@ -109,10 +110,10 @@ func (f *filter) getSummarizerResponseService() *domain.ResponseService {
 			"Example: \"User wants to meet up tomorrow.\", etc.",
 		"",
 	)
-	return f.responseService.WithAIContext(rankerAIContext)
+	return p.responseService.WithAIContext(rankerAIContext)
 }
 
-func (f *filter) formatMemories(summary *string, memories []*domain.Memory) string {
+func (p *pass) formatMemories(summary *string, memories []*domain.Memory) string {
 	var buf strings.Builder
 	buf.WriteString("Chat history: ```\n")
 	for _, memory := range memories {

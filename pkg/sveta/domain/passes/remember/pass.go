@@ -6,37 +6,38 @@ import (
 
 const rememberCapability = "remember"
 
-type filter struct {
+type pass struct {
 	memoryRepository domain.MemoryRepository
 }
 
-func NewFilter(memoryRepository domain.MemoryRepository) domain.AIFilter {
-	return &filter{
+func NewPass(memoryRepository domain.MemoryRepository) domain.Pass {
+	return &pass{
 		memoryRepository: memoryRepository,
 	}
 }
 
-func (f *filter) Capabilities() []domain.AIFilterCapability {
-	return []domain.AIFilterCapability{
+func (p *pass) Capabilities() []*domain.Capability {
+	return []*domain.Capability{
 		{
 			Name:        rememberCapability,
 			Description: "stores the newly formed memories of the conversation",
+			IsMaskable:  false,
 		},
 	}
 }
 
-func (f *filter) Apply(context *domain.AIFilterContext, nextAIFilterFunc domain.NextAIFilterFunc) error {
+func (p *pass) Apply(context *domain.PassContext, nextPassFunc domain.NextPassFunc) error {
 	if !context.IsCapabilityEnabled(rememberCapability) {
-		return nextAIFilterFunc(context)
+		return nextPassFunc(context)
 	}
 	memories := []*domain.Memory{context.Memory(domain.DataKeyInput), context.Memory(domain.DataKeyOutput)}
 	for _, memory := range memories {
 		if memory != nil {
-			err := f.memoryRepository.Store(memory)
+			err := p.memoryRepository.Store(memory)
 			if err != nil {
 				return err
 			}
 		}
 	}
-	return nextAIFilterFunc(context)
+	return nextPassFunc(context)
 }

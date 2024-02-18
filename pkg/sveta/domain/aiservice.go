@@ -1,26 +1,25 @@
 package domain
 
 import (
+	"errors"
 	"sort"
 	"sync"
 )
 
-type capability struct {
-	Name      string
-	IsEnabled bool
-}
+var errUnknownCapability = errors.New("unknown capability")
 
-// AIService is the main orchestrator of the whole AI: it receives a list of AI filters and runs them one after another.
+// AIService is the main orchestrator of the whole AI: it receives a list of passes and runs them one after another.
 // Additionally, it has various functions for debugging/control: remove all memory, remember actions, change context etc.\
 type AIService struct {
-	mutex             sync.Mutex
-	memoryRepository  MemoryRepository
-	memoryFactory     MemoryFactory
-	summaryRepository SummaryRepository
-	functionService   *FunctionService
-	aiContext         *AIContext
-	aiFilters         []AIFilter
-	capabilities      []capability
+	mutex               sync.Mutex
+	memoryRepository    MemoryRepository
+	memoryFactory       MemoryFactory
+	summaryRepository   SummaryRepository
+	functionService     *FunctionService
+	aiContext           *AIContext
+	passes              []Pass
+	capabilities        map[string]*Capability
+	enabledCapabilities map[string]bool
 }
 
 func NewAIService(
@@ -29,25 +28,19 @@ func NewAIService(
 	summaryRepository SummaryRepository,
 	functionService *FunctionService,
 	aiContext *AIContext,
-	aiFilters []AIFilter,
+	passes []Pass,
 ) *AIService {
-	var capabilities []capability
-	for _, filter := range aiFilters {
-		for _, c := range filter.Capabilities() {
-			capabilities = append(capabilities, capability{
-				Name:      c.Name,
-				IsEnabled: true,
-			})
-		}
-	}
+	capabilities := make(map[string]*Capability)
+	enabledCapabilities := make(map[string]bool)
 	return &AIService{
-		memoryRepository:  memoryRepository,
-		memoryFactory:     memoryFactory,
-		summaryRepository: summaryRepository,
-		functionService:   functionService,
-		aiContext:         aiContext,
-		aiFilters:         aiFilters,
-		capabilities:      capabilities,
+		memoryRepository:    memoryRepository,
+		memoryFactory:       memoryFactory,
+		summaryRepository:   summaryRepository,
+		functionService:     functionService,
+		aiContext:           aiContext,
+		passes:              passes,
+		capabilities:        capabilities,
+		enabledCapabilities: enabledCapabilities,
 	}
 }
 
@@ -55,14 +48,16 @@ func NewAIService(
 func (a *AIService) Respond(who, what, where string) (string, error) {
 	a.mutex.Lock()
 	defer a.mutex.Unlock()
+	// Done lazily because some capabilities can be created dynamically after RegisterFunction(..)
+	a.lazyLoadCapabilities()
 	inputMemory := a.memoryFactory.NewMemory(MemoryTypeDialog, who, what, where)
-	aiFilterContext := NewAIFilterContext().WithMemory(DataKeyInput, inputMemory)
-	aiFilterContext.EnabledCapabilities = a.listEnabledCapabilities()
-	err := a.applyAIFilterAtIndex(aiFilterContext, 0)
+	passContext := NewPassContext().WithMemory(DataKeyInput, inputMemory)
+	passContext.EnabledCapabilities = a.listEnabledCapabilities()
+	err := a.applyPassAtIndex(passContext, 0)
 	if err != nil {
 		return "", err
 	}
-	outputMemory := aiFilterContext.Memory(DataKeyOutput)
+	outputMemory := passContext.Memory(DataKeyOutput)
 	if outputMemory == nil {
 		return "", nil
 	}
@@ -126,8 +121,11 @@ func (a *AIService) ListCapabilities() []string {
 	a.mutex.Lock()
 	defer a.mutex.Unlock()
 	var result []string
-	for _, c := range a.capabilities {
-		result = append(result, c.Name)
+	for name, value := range a.enabledCapabilities {
+		if !value {
+			continue
+		}
+		result = append(result, name)
 	}
 	sort.Strings(result)
 	return result
@@ -136,36 +134,50 @@ func (a *AIService) ListCapabilities() []string {
 func (a *AIService) EnableCapability(name string, value bool) error {
 	a.mutex.Lock()
 	defer a.mutex.Unlock()
-	for i, c := range a.capabilities {
-		if c.Name == name {
-			a.capabilities[i].IsEnabled = value
-			break
-		}
+	_, ok := a.capabilities[name]
+	if !ok {
+		return errUnknownCapability
 	}
+	a.enabledCapabilities[name] = value
 	return nil
 }
 
-func (a *AIService) listEnabledCapabilities() []string {
-	var result []string
-	for _, c := range a.capabilities {
-		if c.IsEnabled {
-			result = append(result, c.Name)
+func (a *AIService) lazyLoadCapabilities() {
+	if len(a.capabilities) > 0 {
+		return
+	}
+	for _, pass := range a.passes {
+		for _, c := range pass.Capabilities() {
+			a.enabledCapabilities[c.Name] = true
+			a.capabilities[c.Name] = c
 		}
 	}
-	sort.Strings(result)
+}
+
+func (a *AIService) listEnabledCapabilities() []*Capability {
+	var result []*Capability
+	for name, value := range a.enabledCapabilities {
+		if !value {
+			continue
+		}
+		result = append(result, a.capabilities[name])
+	}
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].Name < result[j].Name
+	})
 	return result
 }
 
-func (a *AIService) applyAIFilterAtIndex(context *AIFilterContext, index int) error {
-	var nextAIFilterFunc NextAIFilterFunc
-	if index < len(a.aiFilters)-1 {
-		nextAIFilterFunc = func(context *AIFilterContext) error {
-			return a.applyAIFilterAtIndex(context, index+1)
+func (a *AIService) applyPassAtIndex(context *PassContext, index int) error {
+	var nextPassFunc NextPassFunc
+	if index < len(a.passes)-1 {
+		nextPassFunc = func(context *PassContext) error {
+			return a.applyPassAtIndex(context, index+1)
 		}
 	} else {
-		nextAIFilterFunc = func(context *AIFilterContext) error {
+		nextPassFunc = func(context *PassContext) error {
 			return nil
 		}
 	}
-	return a.aiFilters[index].Apply(context, nextAIFilterFunc)
+	return a.passes[index].Apply(context, nextPassFunc)
 }

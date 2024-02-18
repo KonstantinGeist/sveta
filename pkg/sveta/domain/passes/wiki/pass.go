@@ -9,14 +9,14 @@ import (
 
 	"kgeyst.com/sveta/pkg/common"
 	"kgeyst.com/sveta/pkg/sveta/domain"
-	"kgeyst.com/sveta/pkg/sveta/domain/aifilters/rewrite"
+	"kgeyst.com/sveta/pkg/sveta/domain/passes/rewrite"
 )
 
 var nonAlphanumericRegex = regexp.MustCompile(`[^a-zA-Z0-9 ]+`)
 
 const wikiCapability = "wiki"
 
-type filter struct {
+type pass struct {
 	responseService                *domain.ResponseService
 	memoryFactory                  domain.MemoryFactory
 	memoryRepository               domain.MemoryRepository
@@ -29,7 +29,7 @@ type filter struct {
 	wordFrequencyPositionThreshold int
 }
 
-func NewFilter(
+func NewPass(
 	responseService *domain.ResponseService,
 	memoryFactory domain.MemoryFactory,
 	memoryRepository domain.MemoryRepository,
@@ -37,8 +37,8 @@ func NewFilter(
 	wordFrequencyProvider WordFrequencyProvider,
 	config *common.Config,
 	logger common.Logger,
-) domain.AIFilter {
-	return &filter{
+) domain.Pass {
+	return &pass{
 		responseService:                responseService,
 		memoryFactory:                  memoryFactory,
 		memoryRepository:               memoryRepository,
@@ -52,124 +52,125 @@ func NewFilter(
 	}
 }
 
-func (f *filter) Capabilities() []domain.AIFilterCapability {
-	return []domain.AIFilterCapability{
+func (p *pass) Capabilities() []*domain.Capability {
+	return []*domain.Capability{
 		{
 			Name:        wikiCapability,
 			Description: "answers the user query by searching on Wikipedia (if required)",
+			IsMaskable:  false,
 		},
 	}
 }
 
-func (f *filter) Apply(context *domain.AIFilterContext, nextAIFilterFunc domain.NextAIFilterFunc) error {
+func (p *pass) Apply(context *domain.PassContext, nextPassFunc domain.NextPassFunc) error {
 	if !context.IsCapabilityEnabled(wikiCapability) {
-		return nextAIFilterFunc(context)
+		return nextPassFunc(context)
 	}
 	inputMemoryForResponse := context.MemoryCoalesced([]string{rewrite.DataKeyRewrittenInput, domain.DataKeyInput})
 	if inputMemoryForResponse == nil {
-		return nextAIFilterFunc(context)
+		return nextPassFunc(context)
 	}
 	intputMemoryForApply := context.Memory(domain.DataKeyInput)
 	if intputMemoryForApply == nil {
-		return nextAIFilterFunc(context)
+		return nextPassFunc(context)
 	}
-	if !f.shouldApply(intputMemoryForApply.What) {
-		return nextAIFilterFunc(context)
+	if !p.shouldApply(intputMemoryForApply.What) {
+		return nextPassFunc(context)
 	}
 	var output struct {
 		ArticleName string `json:"articleName"`
 	}
-	err := f.getWikiResponseService().RespondToQueryWithJSON(f.formatQuery(inputMemoryForResponse.What), &output)
+	err := p.getWikiResponseService().RespondToQueryWithJSON(p.formatQuery(inputMemoryForResponse.What), &output)
 	if err != nil {
-		f.logger.Log(err.Error())
-		return nextAIFilterFunc(context)
+		p.logger.Log(err.Error())
+		return nextPassFunc(context)
 	}
 	if output.ArticleName == "" {
-		f.logger.Log("article name not found")
-		return nextAIFilterFunc(context)
+		p.logger.Log("article name not found")
+		return nextPassFunc(context)
 	}
-	output.ArticleName = f.fixArticleName(output.ArticleName)
-	articleNames, err := f.articleProvider.Search(output.ArticleName, f.maxArticleCount)
+	output.ArticleName = p.fixArticleName(output.ArticleName)
+	articleNames, err := p.articleProvider.Search(output.ArticleName, p.maxArticleCount)
 	if err != nil {
-		f.logger.Log(err.Error())
-		return nextAIFilterFunc(context)
+		p.logger.Log(err.Error())
+		return nextPassFunc(context)
 	}
 	for _, articleName := range articleNames {
-		summary, err := f.articleProvider.GetSummary(articleName, f.maxArticleSentenceCount)
+		summary, err := p.articleProvider.GetSummary(articleName, p.maxArticleSentenceCount)
 		if err != nil {
-			f.logger.Log(err.Error())
-			return nextAIFilterFunc(context)
+			p.logger.Log(err.Error())
+			return nextPassFunc(context)
 		}
 		if summary == "" {
 			continue
 		}
 		summary = "\"" + summary + "\""
-		if !f.memoryExists(summary, inputMemoryForResponse.Where) {
-			err = f.storeMemory(summary, inputMemoryForResponse.Where)
+		if !p.memoryExists(summary, inputMemoryForResponse.Where) {
+			err = p.storeMemory(summary, inputMemoryForResponse.Where)
 			if err != nil {
-				f.logger.Log(err.Error())
-				return nextAIFilterFunc(context)
+				p.logger.Log(err.Error())
+				return nextPassFunc(context)
 			}
 		}
 	}
-	return nextAIFilterFunc(context)
+	return nextPassFunc(context)
 }
 
 // shouldApply a heuristic to avoid looking for information in a Wikipedia article if the message is very trivial/banal,
 // i.e. contains only most popular words
-func (f *filter) shouldApply(what string) bool {
+func (p *pass) shouldApply(what string) bool {
 	what = strings.ToLower(what)
 	what = strings.ReplaceAll(what, "\n", " ")
 	what = strings.TrimSpace(nonAlphanumericRegex.ReplaceAllString(what, ""))
 	split := strings.Split(what, " ")
 	for _, word := range split {
-		if utf8.RuneCountInString(word) < f.wordSizeThreshold {
+		if utf8.RuneCountInString(word) < p.wordSizeThreshold {
 			continue
 		}
-		position := f.wordFrequencyProvider.GetPosition(word)
-		if position > f.wordFrequencyPositionThreshold || position == -1 {
+		position := p.wordFrequencyProvider.GetPosition(word)
+		if position > p.wordFrequencyPositionThreshold || position == -1 {
 			return true
 		}
 	}
 	return false
 }
 
-func (f *filter) storeMemory(what, where string) error {
-	memory := f.memoryFactory.NewMemory(domain.MemoryTypeDialog, "SearchResult", what, where)
+func (p *pass) storeMemory(what, where string) error {
+	memory := p.memoryFactory.NewMemory(domain.MemoryTypeDialog, "SearchResult", what, where)
 	memory.When = time.Time{}
-	return f.memoryRepository.Store(memory)
+	return p.memoryRepository.Store(memory)
 }
 
-func (f *filter) getWikiResponseService() *domain.ResponseService {
+func (p *pass) getWikiResponseService() *domain.ResponseService {
 	wikiAIContext := domain.NewAIContext("WikiLLM", "You're WikiLLM, an intelligent assistant which can find the best Wiki article for the given topic. You pay attention to the most important words/phrases.", "")
-	return f.responseService.WithAIContext(wikiAIContext)
+	return p.responseService.WithAIContext(wikiAIContext)
 }
 
-func (f *filter) memoryExists(what, where string) bool {
-	memories, err := f.memoryRepository.Find(domain.MemoryFilter{
+func (p *pass) memoryExists(what, where string) bool {
+	memories, err := p.memoryRepository.Find(domain.MemoryFilter{
 		Types:       []domain.MemoryType{domain.MemoryTypeDialog},
 		Where:       where,
 		What:        what,
 		LatestCount: 1,
 	})
 	if err != nil {
-		f.logger.Log(err.Error())
+		p.logger.Log(err.Error())
 		return false
 	}
 	return len(memories) > 0
 }
 
-func (f *filter) formatQuery(what string) string {
+func (p *pass) formatQuery(what string) string {
 	return fmt.Sprintf("In what Wikipedia article can we find information related to this sentence: \"%s\" ?", what)
 }
 
-func (f *filter) fixArticleName(articleName string) string {
-	articleName = f.removeWikiURLPrefixIfAny(articleName)
+func (p *pass) fixArticleName(articleName string) string {
+	articleName = p.removeWikiURLPrefixIfAny(articleName)
 	articleName = common.RemoveDoubleQuotesIfAny(articleName)
 	return common.RemoveSingleQuotesIfAny(articleName)
 }
 
-func (f *filter) removeWikiURLPrefixIfAny(articleName string) string {
+func (p *pass) removeWikiURLPrefixIfAny(articleName string) string {
 	// Sometimes, the model returns the URL of the article, instead of just the article name.
 	const wikiURLPrefix = "https://en.wikipedia.org/wiki/"
 	if strings.HasPrefix(articleName, wikiURLPrefix) {

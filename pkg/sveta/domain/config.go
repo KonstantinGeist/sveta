@@ -1,6 +1,6 @@
 package domain
 
-// A list of built-in config keys supported by the AI's core (i.e. settings of non-core AI filters are not included).
+// A list of built-in config keys supported by the AI's core (i.e. settings of non-core passes are not included).
 
 const (
 	// ConfigKeyAgentName the agent's name will be found in all prompts etc.

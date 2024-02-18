@@ -7,11 +7,11 @@ import (
 )
 
 // getHypotheticalEmbeddings a combination of Hypothetical Document Embeddings (HyDE) + Rewrite-Retrieve-Read
-func (f *filter) getHypotheticalEmbeddings(context *domain.AIFilterContext, inputMemory *domain.Memory) []domain.Embedding {
+func (p *pass) getHypotheticalEmbeddings(context *domain.PassContext, inputMemory *domain.Memory) []domain.Embedding {
 	if !context.IsCapabilityEnabled(hydeCapability) {
 		return nil
 	}
-	if !f.isQuestion(inputMemory.What) { // don't use HyDE for statements -- usually it doesn't work, especially if it's just a casual conversation
+	if !p.isQuestion(inputMemory.What) { // don't use HyDE for statements -- usually it doesn't work, especially if it's just a casual conversation
 		if inputMemory.Embedding != nil {
 			return []domain.Embedding{*inputMemory.Embedding}
 		}
@@ -22,12 +22,12 @@ func (f *filter) getHypotheticalEmbeddings(context *domain.AIFilterContext, inpu
 		Response2 string `json:"response2"`
 		Response3 string `json:"response3"`
 	}
-	err := f.getHyDEResponseService().RespondToQueryWithJSON(
+	err := p.getHyDEResponseService().RespondToQueryWithJSON(
 		"Imagine 3 possible short responses to the following user query as if you knew the answer: \""+inputMemory.What+"\"",
 		&output,
 	)
 	if err != nil {
-		f.logger.Log("failed to get hypothetical answers")
+		p.logger.Log("failed to get hypothetical answers")
 		return nil
 	}
 	var hypotheticalResponses []string
@@ -42,7 +42,7 @@ func (f *filter) getHypotheticalEmbeddings(context *domain.AIFilterContext, inpu
 	}
 	var hypotheticalEmbeddings []domain.Embedding
 	for _, response := range hypotheticalResponses {
-		embedding := f.getEmbedding(response)
+		embedding := p.getEmbedding(response)
 		if embedding != nil {
 			hypotheticalEmbeddings = append(hypotheticalEmbeddings, *embedding)
 		}
@@ -50,11 +50,11 @@ func (f *filter) getHypotheticalEmbeddings(context *domain.AIFilterContext, inpu
 	return hypotheticalEmbeddings
 }
 
-func (f *filter) getHyDEResponseService() *domain.ResponseService {
+func (p *pass) getHyDEResponseService() *domain.ResponseService {
 	hyDEAIContext := domain.NewAIContext("AnswerLLM", "You're AnswerLLM, an intelligent assistant which answers questions to the given user query.", "")
-	return f.responseService.WithAIContext(hyDEAIContext)
+	return p.responseService.WithAIContext(hyDEAIContext)
 }
 
-func (f *filter) isQuestion(what string) bool {
+func (p *pass) isQuestion(what string) bool {
 	return strings.Contains(what, "?")
 }

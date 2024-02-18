@@ -3,17 +3,18 @@ package api
 import (
 	"kgeyst.com/sveta/pkg/common"
 	"kgeyst.com/sveta/pkg/sveta/domain"
-	"kgeyst.com/sveta/pkg/sveta/domain/aifilters/bio"
-	"kgeyst.com/sveta/pkg/sveta/domain/aifilters/function"
-	"kgeyst.com/sveta/pkg/sveta/domain/aifilters/news"
-	"kgeyst.com/sveta/pkg/sveta/domain/aifilters/remember"
-	"kgeyst.com/sveta/pkg/sveta/domain/aifilters/response"
-	"kgeyst.com/sveta/pkg/sveta/domain/aifilters/rewrite"
-	"kgeyst.com/sveta/pkg/sveta/domain/aifilters/summary"
-	"kgeyst.com/sveta/pkg/sveta/domain/aifilters/vision"
-	domainweb "kgeyst.com/sveta/pkg/sveta/domain/aifilters/web"
-	domainwiki "kgeyst.com/sveta/pkg/sveta/domain/aifilters/wiki"
-	"kgeyst.com/sveta/pkg/sveta/domain/aifilters/workingmemory"
+	"kgeyst.com/sveta/pkg/sveta/domain/passes/bio"
+	"kgeyst.com/sveta/pkg/sveta/domain/passes/function"
+	"kgeyst.com/sveta/pkg/sveta/domain/passes/mask"
+	"kgeyst.com/sveta/pkg/sveta/domain/passes/news"
+	"kgeyst.com/sveta/pkg/sveta/domain/passes/remember"
+	"kgeyst.com/sveta/pkg/sveta/domain/passes/response"
+	"kgeyst.com/sveta/pkg/sveta/domain/passes/rewrite"
+	"kgeyst.com/sveta/pkg/sveta/domain/passes/summary"
+	"kgeyst.com/sveta/pkg/sveta/domain/passes/vision"
+	domainweb "kgeyst.com/sveta/pkg/sveta/domain/passes/web"
+	domainwiki "kgeyst.com/sveta/pkg/sveta/domain/passes/wiki"
+	"kgeyst.com/sveta/pkg/sveta/domain/passes/workingmemory"
 	"kgeyst.com/sveta/pkg/sveta/infrastructure/embed4all"
 	"kgeyst.com/sveta/pkg/sveta/infrastructure/filesystem"
 	"kgeyst.com/sveta/pkg/sveta/infrastructure/inmemory"
@@ -91,18 +92,19 @@ func NewAPI(config *common.Config) (API, common.Stopper) {
 	newsProvider := rss.NewNewsProvider(
 		config.GetStringOrDefault("newsSourceURL", "http://www.independent.co.uk/rss"),
 	)
-	workingMemoryFilter := workingmemory.NewFilter(
+	maskPass := mask.NewPass()
+	workingMemoryPass := workingmemory.NewPass(
 		memoryRepository,
 		memoryFactory,
 		config,
 		logger,
 	)
-	rewriteFilter := rewrite.NewFilter(
+	rewritePass := rewrite.NewPass(
 		memoryFactory,
 		responseService,
 		logger,
 	)
-	newsFilter := news.NewFilter(
+	newsPass := news.NewPass(
 		newsProvider,
 		memoryRepository,
 		memoryFactory,
@@ -110,28 +112,28 @@ func NewAPI(config *common.Config) (API, common.Stopper) {
 		config,
 		logger,
 	)
-	bioFilter := bio.NewFilter(
+	bioPass := bio.NewPass(
 		aiContext,
 		filesystem.NewBioFactProvider(config),
 		memoryRepository,
 		memoryFactory,
 		logger,
 	)
-	webFilter := domainweb.NewFilter(
+	webPass := domainweb.NewPass(
 		urlFinder,
 		infraweb.NewPageContentExtractor(),
 		config,
 		logger,
 	)
 	visionModel := llavacpp.NewVisionModel()
-	visionFilter := vision.NewFilter(
+	visionPass := vision.NewPass(
 		urlFinder,
 		visionModel,
 		tempFileProvider,
 		config,
 		logger,
 	)
-	wikiFilter := domainwiki.NewFilter(
+	wikiPass := domainwiki.NewPass(
 		responseService,
 		memoryFactory,
 		memoryRepository,
@@ -140,8 +142,8 @@ func NewAPI(config *common.Config) (API, common.Stopper) {
 		config,
 		logger,
 	)
-	functionFilter := function.NewFilter(memoryFactory, functionService, logger)
-	responseFilter := response.NewFilter(
+	functionPass := function.NewPass(memoryFactory, functionService, logger)
+	responsePass := response.NewPass(
 		aiContext,
 		memoryFactory,
 		memoryRepository,
@@ -151,8 +153,8 @@ func NewAPI(config *common.Config) (API, common.Stopper) {
 		config,
 		logger,
 	)
-	rememberFilter := remember.NewFilter(memoryRepository)
-	summaryFilter := summary.NewFilter(
+	rememberPass := remember.NewPass(memoryRepository)
+	summaryPass := summary.NewPass(
 		aiContext,
 		summaryRepository,
 		responseService,
@@ -166,18 +168,19 @@ func NewAPI(config *common.Config) (API, common.Stopper) {
 			summaryRepository,
 			functionService,
 			aiContext,
-			[]domain.AIFilter{
-				workingMemoryFilter,
-				newsFilter,
-				bioFilter,
-				rewriteFilter,
-				webFilter,
-				visionFilter,
-				wikiFilter,
-				functionFilter,
-				responseFilter,
-				rememberFilter,
-				summaryFilter,
+			[]domain.Pass{
+				maskPass,
+				workingMemoryPass,
+				newsPass,
+				bioPass,
+				rewritePass,
+				webPass,
+				visionPass,
+				wikiPass,
+				functionPass,
+				responsePass,
+				rememberPass,
+				summaryPass,
 			},
 		),
 	}, languageModelJobQueue

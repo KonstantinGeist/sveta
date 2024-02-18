@@ -6,7 +6,7 @@ import (
 	"github.com/mmcdole/gofeed/rss"
 
 	"kgeyst.com/sveta/pkg/common"
-	"kgeyst.com/sveta/pkg/sveta/domain/aifilters/news"
+	"kgeyst.com/sveta/pkg/sveta/domain/passes/news"
 )
 
 type NewsProvider struct {
