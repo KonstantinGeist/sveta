@@ -60,6 +60,7 @@ type API interface {
 	ChangeAgentName(name string) error
 	GetSummary(where string) (string, error)
 	RegisterFunction(functionDesc FunctionDesc) error
+	ListCapabilities() []string
 }
 
 func NewAPI(config *common.Config) (API, common.Stopper) {
@@ -207,4 +208,8 @@ func (a *api) GetSummary(where string) (string, error) {
 
 func (a *api) RegisterFunction(functionDesc FunctionDesc) error {
 	return a.aiService.RegisterFunction(functionDesc)
+}
+
+func (a *api) ListCapabilities() []string {
+	return a.aiService.ListCapabilities()
 }

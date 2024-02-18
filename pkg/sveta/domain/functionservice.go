@@ -38,10 +38,11 @@ type Closure struct {
 }
 
 type FunctionService struct {
-	mutex           sync.Mutex
-	aiContext       *AIContext
-	responseService *ResponseService
-	functionDescs   map[string]FunctionDesc
+	mutex              sync.Mutex
+	aiContext          *AIContext
+	responseService    *ResponseService
+	functionDescsMap   map[string]FunctionDesc
+	functionDescsSlice []FunctionDesc
 }
 
 func NewFunctionService(
@@ -49,23 +50,24 @@ func NewFunctionService(
 	responseService *ResponseService,
 ) *FunctionService {
 	return &FunctionService{
-		aiContext:       aiContext,
-		responseService: responseService,
-		functionDescs:   make(map[string]FunctionDesc),
+		aiContext:        aiContext,
+		responseService:  responseService,
+		functionDescsMap: make(map[string]FunctionDesc),
 	}
 }
 
 func (f *FunctionService) RegisterFunction(desc FunctionDesc) error {
 	f.mutex.Lock()
 	defer f.mutex.Unlock()
-	f.functionDescs[desc.Name] = desc
+	f.functionDescsMap[desc.Name] = desc
+	f.functionDescsSlice = append(f.functionDescsSlice, desc)
 	return nil
 }
 
 func (f *FunctionService) CreateClosures(input string) ([]*Closure, error) {
 	f.mutex.Lock()
 	defer f.mutex.Unlock()
-	if len(f.functionDescs) == 0 { // short path
+	if len(f.functionDescsMap) == 0 { // short path
 		return nil, nil
 	}
 	query := f.getQuery(input)
@@ -96,7 +98,7 @@ func (f *FunctionService) CreateClosures(input string) ([]*Closure, error) {
 	}
 	closures := make([]*Closure, 0, len(output.Functions))
 	for _, function := range output.Functions {
-		functionDesc, ok := f.functionDescs[function.Name]
+		functionDesc, ok := f.functionDescsMap[function.Name]
 		if !ok {
 			continue
 		}
@@ -116,6 +118,10 @@ func (f *FunctionService) CreateClosures(input string) ([]*Closure, error) {
 	return closures, nil
 }
 
+func (f *FunctionService) FunctionDescs() []FunctionDesc {
+	return f.functionDescsSlice
+}
+
 func (c *Closure) Invoke() (FunctionOutput, error) {
 	input := &FunctionInput{
 		Arguments: c.Arguments,
@@ -127,7 +133,7 @@ func (c *Closure) Invoke() (FunctionOutput, error) {
 func (f *FunctionService) getQuery(input string) string {
 	var buf strings.Builder
 	buf.WriteString("Below is a list of available Go functions: ```\n")
-	for _, functionDesc := range f.functionDescs {
+	for _, functionDesc := range f.functionDescsMap {
 		buf.WriteString(fmt.Sprintf("// %s\n", functionDesc.Description))
 		buf.WriteString(fmt.Sprintf("func %s(\n", functionDesc.Name))
 		for _, parameterDesc := range functionDesc.Parameters {

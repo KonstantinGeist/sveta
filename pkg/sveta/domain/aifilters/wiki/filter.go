@@ -50,6 +50,15 @@ func NewFilter(
 	}
 }
 
+func (f *filter) Capabilities() []domain.AIFilterCapability {
+	return []domain.AIFilterCapability{
+		{
+			Name:        "wiki",
+			Description: "answers the user query by searching on Wikipedia (if required)",
+		},
+	}
+}
+
 func (f *filter) Apply(context *domain.AIFilterContext, nextAIFilterFunc domain.NextAIFilterFunc) error {
 	inputMemoryForResponse := context.MemoryCoalesced([]string{rewrite.DataKeyRewrittenInput, domain.DataKeyInput})
 	if inputMemoryForResponse == nil {

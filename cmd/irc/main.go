@@ -74,6 +74,11 @@ func mainImpl() error {
 				b.Reply(m, m.From+" SUMMARY: "+summary)
 				return false
 			}
+			if what == "list capabilities" {
+				capabilities := strings.Join(sveta.ListCapabilities(), " ")
+				b.Reply(m, m.From+" CAPABILITIES: "+capabilities)
+				return false
+			}
 			if strings.HasPrefix(what, "context ") {
 				context := what[len("context "):]
 				_ = sveta.ChangeAgentDescription(context)

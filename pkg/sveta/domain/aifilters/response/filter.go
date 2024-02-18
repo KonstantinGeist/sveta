@@ -52,6 +52,27 @@ func NewFilter(
 	}
 }
 
+func (f *filter) Capabilities() []domain.AIFilterCapability {
+	return []domain.AIFilterCapability{
+		{
+			Name:        "response",
+			Description: "generates a response to the user query",
+		},
+		{
+			Name:        "episodicMemory",
+			Description: "enriches the user query with information recalled from the episodic memory",
+		},
+		{
+			Name:        "rerank",
+			Description: "rerankers the recalled memory according to the relevance to the user query",
+		},
+		{
+			Name:        "hyde",
+			Description: "improves episodic memory recall by reformulating the user query in several different ways",
+		},
+	}
+}
+
 func (f *filter) Apply(context *domain.AIFilterContext, nextAIFilterFunc domain.NextAIFilterFunc) error {
 	inputMemoryForRecall := context.MemoryCoalesced([]string{rewrite.DataKeyRewrittenInput, domain.DataKeyInput})
 	if inputMemoryForRecall == nil {

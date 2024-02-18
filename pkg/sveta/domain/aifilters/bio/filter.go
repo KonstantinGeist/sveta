@@ -34,6 +34,16 @@ func NewFilter(
 	}
 }
 
+func (f *filter) Capabilities() []domain.AIFilterCapability {
+	return []domain.AIFilterCapability{
+		{
+			Name:        "bio",
+			Description: "retrieves personal biography if an answer to the user query can potentially be found in the biography",
+			CanBeMasked: true,
+		},
+	}
+}
+
 func (f *filter) Apply(context *domain.AIFilterContext, nextAIFilterFunc domain.NextAIFilterFunc) error {
 	inputMemory := context.Memory(domain.DataKeyInput)
 	if inputMemory == nil {

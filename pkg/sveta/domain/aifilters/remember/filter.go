@@ -14,6 +14,15 @@ func NewFilter(memoryRepository domain.MemoryRepository) domain.AIFilter {
 	}
 }
 
+func (f *filter) Capabilities() []domain.AIFilterCapability {
+	return []domain.AIFilterCapability{
+		{
+			Name:        "remember",
+			Description: "stores the newly formed memories of the conversation",
+		},
+	}
+}
+
 func (f *filter) Apply(context *domain.AIFilterContext, nextAIFilterFunc domain.NextAIFilterFunc) error {
 	memories := []*domain.Memory{context.Memory(domain.DataKeyInput), context.Memory(domain.DataKeyOutput)}
 	for _, memory := range memories {

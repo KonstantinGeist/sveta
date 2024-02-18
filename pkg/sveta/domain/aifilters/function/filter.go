@@ -27,6 +27,19 @@ func NewFilter(
 	}
 }
 
+func (f *filter) Capabilities() []domain.AIFilterCapability {
+	functionDescs := f.functionService.FunctionDescs()
+	result := make([]domain.AIFilterCapability, 0, len(functionDescs))
+	for _, functionDesc := range functionDescs {
+		result = append(result, domain.AIFilterCapability{
+			Name:        functionDesc.Name,
+			Description: functionDesc.Description,
+			CanBeMasked: true,
+		})
+	}
+	return result
+}
+
 func (f *filter) Apply(context *domain.AIFilterContext, nextAIFilterFunc domain.NextAIFilterFunc) error {
 	inputMemory := context.Memory(domain.DataKeyInput)
 	if inputMemory == nil {

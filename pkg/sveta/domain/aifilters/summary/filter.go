@@ -33,6 +33,15 @@ func NewFilter(
 	}
 }
 
+func (f *filter) Capabilities() []domain.AIFilterCapability {
+	return []domain.AIFilterCapability{
+		{
+			Name:        "summary",
+			Description: "summarizes the current conversation to have a better understanding of a long conversation",
+		},
+	}
+}
+
 func (f *filter) Apply(context *domain.AIFilterContext, nextAIFilterFunc domain.NextAIFilterFunc) error {
 	inputMemory := context.Memory(domain.DataKeyInput)
 	outputMemory := context.Memory(domain.DataKeyOutput)

@@ -29,6 +29,15 @@ func NewFilter(
 	}
 }
 
+func (f *filter) Capabilities() []domain.AIFilterCapability {
+	return []domain.AIFilterCapability{
+		{
+			Name:        "rewrite",
+			Description: "rewrites the user query to make it less ambiguous by enriching it with the working memory",
+		},
+	}
+}
+
 func (f *filter) Apply(context *domain.AIFilterContext, nextAIFilterFunc domain.NextAIFilterFunc) error {
 	inputMemory := context.Memory(domain.DataKeyInput)
 	if inputMemory == nil {

@@ -36,6 +36,15 @@ func NewFilter(
 	}
 }
 
+func (f *filter) Capabilities() []domain.AIFilterCapability {
+	return []domain.AIFilterCapability{
+		{
+			Name:        "web",
+			Description: "answers the user query by analyzing web pages (if URLs are provided)",
+		},
+	}
+}
+
 func (f *filter) Apply(context *domain.AIFilterContext, nextAIFilterFunc domain.NextAIFilterFunc) error {
 	inputMemory := context.Memory(domain.DataKeyInput)
 	if inputMemory == nil {

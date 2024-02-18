@@ -107,6 +107,17 @@ func (a *AIService) RegisterFunction(functionDesc FunctionDesc) error {
 	return a.functionService.RegisterFunction(functionDesc)
 }
 
+func (a *AIService) ListCapabilities() []string {
+	var result []string
+	for _, filter := range a.aiFilters {
+		capabilities := filter.Capabilities()
+		for _, capability := range capabilities {
+			result = append(result, capability.Name)
+		}
+	}
+	return result
+}
+
 func (a *AIService) applyAIFilterAtIndex(context *AIFilterContext, index int) error {
 	var nextAIFilterFunc NextAIFilterFunc
 	if index < len(a.aiFilters)-1 {

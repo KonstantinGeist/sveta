@@ -2,6 +2,12 @@ package domain
 
 type NextAIFilterFunc func(context *AIFilterContext) error
 
+type AIFilterCapability struct {
+	Name        string
+	Description string
+	CanBeMasked bool
+}
+
 // AIFilter an AI agent is internally a chain of "AI filters". An AI filter is able to:
 // - modify the input parameters on the fly
 // - store useful data for other filters to work with
@@ -10,6 +16,7 @@ type NextAIFilterFunc func(context *AIFilterContext) error
 // - pass control to the next AI filters in the chain
 // It's similar to filters in Web frameworks. AI filters allow to write modular, extensible code.
 type AIFilter interface {
+	Capabilities() []AIFilterCapability
 	// Apply implements an AI filter.
 	// `nextAIFilterFunc` should always be called when returning from the function (unless we want to stop the chain).
 	Apply(context *AIFilterContext, nextAIFilterFunc NextAIFilterFunc) error
