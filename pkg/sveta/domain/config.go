@@ -27,8 +27,8 @@ const (
 	// ConfigKeyEpisodicMemorySimilarityThreshold what embedding similarity is considered so low we don't want to
 	// include it in the context at all (even if it's the top result)
 	ConfigKeyEpisodicMemorySimilarityThreshold = "episodicMemorySimilarityThreshold"
-	// ConfigKeyRankerMaxMemorySize specifies the maximum size of a recalled memory when passed to  the reranker (to reduce the amount of data sent to it)
-	ConfigKeyRankerMaxMemorySize = "rankerMaxMemorySize"
+	// ConfigKeyRerankerMaxMemorySize specifies the maximum size of a recalled memory when passed to  the reranker (to reduce the amount of data sent to it)
+	ConfigKeyRerankerMaxMemorySize = "rerankerMaxMemorySize"
 	// ConfigKeyResponseRetryCount how many times we should try retrieve an answer from an LLM in case it fails for some reason,
 	// before we finally return an error.
 	ConfigKeyResponseRetryCount = "responseRetryCount"

@@ -51,8 +51,8 @@ func (p *pass) formatMemoriesForRanker(memories []*domain.Memory) string {
 	var buf strings.Builder
 	for index, memory := range memories {
 		what := memory.What
-		if len(what) > p.rankerMaxMemorySize {
-			what = what[0:p.rankerMaxMemorySize] + "..." // trimming it to fit huge memories in the context, at least partially
+		if len(what) > p.rerankerMaxMemorySize {
+			what = what[0:p.rerankerMaxMemorySize] + "..." // trimming it to fit huge memories in the context, at least partially
 		}
 		buf.WriteString(fmt.Sprintf("[%d] %s: %s\n", index+1, memory.Who, what))
 	}

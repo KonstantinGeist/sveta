@@ -134,6 +134,7 @@ func (a *AIService) ListCapabilities() []string {
 func (a *AIService) EnableCapability(name string, value bool) error {
 	a.mutex.Lock()
 	defer a.mutex.Unlock()
+	a.lazyLoadCapabilities()
 	_, ok := a.capabilities[name]
 	if !ok {
 		return errUnknownCapability

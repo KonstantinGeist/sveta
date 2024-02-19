@@ -28,7 +28,7 @@ type pass struct {
 	episodicMemorySecondStageTopCount int
 	episodicMemorySurroundingCount    int
 	episodicMemorySimilarityThreshold float64
-	rankerMaxMemorySize               int
+	rerankerMaxMemorySize             int
 }
 
 func NewPass(
@@ -53,7 +53,7 @@ func NewPass(
 		episodicMemorySecondStageTopCount: config.GetIntOrDefault(domain.ConfigKeyEpisodicMemorySecondStageTopCount, 3),
 		episodicMemorySurroundingCount:    config.GetIntOrDefault(domain.ConfigKeyEpisodicMemorySurroundingCount, 1),
 		episodicMemorySimilarityThreshold: config.GetFloatOrDefault(domain.ConfigKeyEpisodicMemorySimilarityThreshold, 0.1),
-		rankerMaxMemorySize:               config.GetIntOrDefault(domain.ConfigKeyRankerMaxMemorySize, 500),
+		rerankerMaxMemorySize:             config.GetIntOrDefault(domain.ConfigKeyRerankerMaxMemorySize, 500),
 	}
 }
 

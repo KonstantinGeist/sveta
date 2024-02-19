@@ -57,14 +57,14 @@ func mainImpl() error {
 			}
 			what := strings.TrimSpace(m.Content[len(agentName):])
 			if len(what) == 0 || what[0] == '@' || len(m.To) == 0 || m.To[0] != '#' {
-				return false
+				return true
 			}
 			if what[0] == ',' {
 				what = what[1:]
 			}
 			if what == "forget everything" {
 				_ = sveta.ClearAllMemory()
-				return false
+				return true
 			}
 			if what == "summary" {
 				summary, err := sveta.GetSummary(roomName)
@@ -72,22 +72,37 @@ func mainImpl() error {
 					summary = "no summary"
 				}
 				b.Reply(m, m.From+" SUMMARY: "+summary)
-				return false
+				return true
 			}
 			if what == "list capabilities" {
 				capabilities := strings.Join(sveta.ListCapabilities(), " ")
 				b.Reply(m, m.From+" CAPABILITIES: "+capabilities)
-				return false
+				return true
 			}
 			if strings.HasPrefix(what, "context ") {
 				context := what[len("context "):]
 				_ = sveta.ChangeAgentDescription(context)
-				return false
+				return true
 			}
 			if strings.HasPrefix(what, "disable capability ") {
 				capability := what[len("disable capability "):]
-				_ = sveta.EnableCapability(capability, false)
-				return false
+				err = sveta.EnableCapability(capability, false)
+				if err == nil {
+					b.Reply(m, m.From+" capability disabled")
+				} else {
+					b.Reply(m, m.From+" failed to disable capability")
+				}
+				return true
+			}
+			if strings.HasPrefix(what, "enable capability ") {
+				capability := what[len("enable capability "):]
+				err = sveta.EnableCapability(capability, true)
+				if err == nil {
+					b.Reply(m, m.From+" capability enabled")
+				} else {
+					b.Reply(m, m.From+" failed to enable capability")
+				}
+				return true
 			}
 			response, err := sveta.Respond(strings.TrimSpace(m.From), what, roomName)
 			if err != nil {

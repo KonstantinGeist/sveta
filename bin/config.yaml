@@ -11,7 +11,7 @@ episodicMemoryFirstStageTopCount: 5
 episodicMemorySurroundingCount: 1
 episodicMemorySecondStageTopCount: 3
 episodicMemorySimilarityThreshold: 0.1
-rankerMaxMemorySize: 500
+rerankerMaxMemorySize: 500
 responseRetryCount: 3
 responseTextTemperature: 0.7
 responseJSONTemperature: 0.3

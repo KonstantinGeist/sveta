@@ -41,6 +41,9 @@ func (p *pass) Capabilities() []*domain.Capability {
 }
 
 func (p *pass) Apply(context *domain.PassContext, nextPassFunc domain.NextPassFunc) error {
+	if !context.IsCapabilityEnabled(maskCapability) {
+		return nextPassFunc(context)
+	}
 	inputMemory := context.Memory(domain.DataKeyInput)
 	if inputMemory == nil {
 		return nextPassFunc(context)
@@ -70,9 +73,6 @@ func (p *pass) Apply(context *domain.PassContext, nextPassFunc domain.NextPassFu
 		}
 	}
 	capabilities := p.getCapabilities(context.EnabledCapabilities, tools)
-	if len(capabilities) == 0 { // can't be right => wrong output => assume all capabilities
-		return nextPassFunc(context)
-	}
 	p.logCapabilities(capabilities)
 	unmaskableCapabalities := p.getUnmaskableCapabilities(context)
 	capabilities = append(capabilities, unmaskableCapabalities...)
