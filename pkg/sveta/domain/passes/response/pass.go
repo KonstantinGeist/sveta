@@ -71,7 +71,7 @@ func (p *pass) Capabilities() []*domain.Capability {
 		},
 		{
 			Name:        rerankCapability,
-			Description: "rerankers the recalled memory according to the relevance to the user query",
+			Description: "reranks the recalled memory according to the relevance to the user query",
 			IsMaskable:  false,
 		},
 		{

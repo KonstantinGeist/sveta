@@ -38,7 +38,7 @@ type Closure struct {
 }
 
 type FunctionService struct {
-	mutex              sync.Mutex
+	mutex              *sync.Mutex
 	aiContext          *AIContext
 	responseService    *ResponseService
 	functionDescsMap   map[string]FunctionDesc
@@ -50,6 +50,7 @@ func NewFunctionService(
 	responseService *ResponseService,
 ) *FunctionService {
 	return &FunctionService{
+		mutex:            &sync.Mutex{},
 		aiContext:        aiContext,
 		responseService:  responseService,
 		functionDescsMap: make(map[string]FunctionDesc),
@@ -120,6 +121,28 @@ func (f *FunctionService) CreateClosures(input string) ([]*Closure, error) {
 
 func (f *FunctionService) FunctionDescs() []FunctionDesc {
 	return f.functionDescsSlice
+}
+
+func (f *FunctionService) WithFunctions(names []string) *FunctionService {
+	f.mutex.Lock()
+	defer f.mutex.Unlock()
+	nameMap := make(map[string]struct{})
+	for _, name := range names {
+		nameMap[name] = struct{}{}
+	}
+	functionDescsMap := make(map[string]FunctionDesc)
+	var functionDescsSlice []FunctionDesc
+	for name, functionDesc := range f.functionDescsMap {
+		_, ok := nameMap[name]
+		if ok {
+			functionDescsMap[name] = functionDesc
+			functionDescsSlice = append(functionDescsSlice, functionDesc)
+		}
+	}
+	clone := *f
+	clone.functionDescsMap = functionDescsMap
+	clone.functionDescsSlice = functionDescsSlice
+	return &clone
 }
 
 func (c *Closure) Invoke() (FunctionOutput, error) {

@@ -53,7 +53,7 @@ func (p *pass) Apply(context *domain.PassContext, nextPassFunc domain.NextPassFu
 	if input == "" {
 		return nextPassFunc(context)
 	}
-	closures, err := p.functionService.CreateClosures(input)
+	closures, err := p.getFunctionService(context).CreateClosures(input)
 	if err != nil {
 		p.logger.Log("failed to create closures: " + err.Error())
 		return nextPassFunc(context)
@@ -92,6 +92,14 @@ func (p *pass) Apply(context *domain.PassContext, nextPassFunc domain.NextPassFu
 		WithMemory(rewrite.DataKeyRewrittenInput, outputMemory).
 		WithMemory(domain.DataKeyInput, outputMemory),
 	)
+}
+
+func (p *pass) getFunctionService(context *domain.PassContext) *domain.FunctionService {
+	names := make([]string, 0, len(context.EnabledCapabilities))
+	for _, enableCapability := range context.EnabledCapabilities {
+		names = append(names, enableCapability.Name)
+	}
+	return p.functionService.WithFunctions(names)
 }
 
 func (p *pass) areCapabilitiesEnabled(context *domain.PassContext) bool {

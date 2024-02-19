@@ -148,5 +148,4 @@ func (p *pass) logCapabilities(capabilities []*domain.Capability) {
 	}
 	builder.WriteString("[END]\n")
 	p.logger.Log(builder.String())
-	fmt.Println(builder.String())
 }
