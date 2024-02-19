@@ -20,10 +20,9 @@ func (p *pass) getHypotheticalEmbeddings(context *domain.PassContext, inputMemor
 	var output struct {
 		Response1 string `json:"response1"`
 		Response2 string `json:"response2"`
-		Response3 string `json:"response3"`
 	}
 	err := p.getHyDEResponseService().RespondToQueryWithJSON(
-		"Imagine 3 possible short responses to the following user query as if you knew the answer: \""+inputMemory.What+"\"",
+		"Imagine 2 possible short responses to the following user query as if you knew the answer: \""+inputMemory.What+"\"",
 		&output,
 	)
 	if err != nil {
@@ -36,9 +35,6 @@ func (p *pass) getHypotheticalEmbeddings(context *domain.PassContext, inputMemor
 	}
 	if output.Response2 != "" {
 		hypotheticalResponses = append(hypotheticalResponses, output.Response2)
-	}
-	if output.Response3 != "" {
-		hypotheticalResponses = append(hypotheticalResponses, output.Response3)
 	}
 	var hypotheticalEmbeddings []domain.Embedding
 	for _, response := range hypotheticalResponses {

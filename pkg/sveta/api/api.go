@@ -92,7 +92,6 @@ func NewAPI(config *common.Config) (API, common.Stopper) {
 	newsProvider := rss.NewNewsProvider(
 		config.GetStringOrDefault("newsSourceURL", "http://www.independent.co.uk/rss"),
 	)
-	maskPass := mask.NewPass()
 	workingMemoryPass := workingmemory.NewPass(
 		memoryRepository,
 		memoryFactory,
@@ -104,6 +103,7 @@ func NewAPI(config *common.Config) (API, common.Stopper) {
 		responseService,
 		logger,
 	)
+	maskPass := mask.NewPass(responseService, memoryFactory, logger)
 	newsPass := news.NewPass(
 		newsProvider,
 		memoryRepository,

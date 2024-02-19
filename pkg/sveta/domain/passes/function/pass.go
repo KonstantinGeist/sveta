@@ -41,6 +41,9 @@ func (p *pass) Capabilities() []*domain.Capability {
 }
 
 func (p *pass) Apply(context *domain.PassContext, nextPassFunc domain.NextPassFunc) error {
+	if !p.areCapabilitiesEnabled(context) {
+		return nextPassFunc(context)
+	}
 	inputMemory := context.Memory(domain.DataKeyInput)
 	if inputMemory == nil {
 		return nextPassFunc(context)
@@ -89,6 +92,17 @@ func (p *pass) Apply(context *domain.PassContext, nextPassFunc domain.NextPassFu
 		WithMemory(rewrite.DataKeyRewrittenInput, outputMemory).
 		WithMemory(domain.DataKeyInput, outputMemory),
 	)
+}
+
+func (p *pass) areCapabilitiesEnabled(context *domain.PassContext) bool {
+	for _, functionDesc := range p.functionService.FunctionDescs() {
+		for _, enableCapability := range context.EnabledCapabilities {
+			if functionDesc.Name == enableCapability.Name {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func (p *pass) getInput(inputMemory, rewrittenInputMemory *domain.Memory) string {

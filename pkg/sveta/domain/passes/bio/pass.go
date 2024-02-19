@@ -40,7 +40,7 @@ func (p *pass) Capabilities() []*domain.Capability {
 	return []*domain.Capability{
 		{
 			Name:        bioCapabillity,
-			Description: "retrieves personal biography if an answer to the user query can potentially be found in the biography",
+			Description: "looks for the answer in the biography",
 			IsMaskable:  true,
 		},
 	}

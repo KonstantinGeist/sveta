@@ -56,8 +56,8 @@ func (p *pass) Capabilities() []*domain.Capability {
 	return []*domain.Capability{
 		{
 			Name:        wikiCapability,
-			Description: "answers the user query by searching on Wikipedia (if required)",
-			IsMaskable:  false,
+			Description: "looks for the answer on Wikipedia",
+			IsMaskable:  true,
 		},
 	}
 }
@@ -74,7 +74,7 @@ func (p *pass) Apply(context *domain.PassContext, nextPassFunc domain.NextPassFu
 	if intputMemoryForApply == nil {
 		return nextPassFunc(context)
 	}
-	if !p.shouldApply(intputMemoryForApply.What) {
+	if !p.shouldApply(intputMemoryForApply.What) && !p.shouldApply(inputMemoryForResponse.What) {
 		return nextPassFunc(context)
 	}
 	var output struct {

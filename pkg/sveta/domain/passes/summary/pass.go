@@ -71,7 +71,7 @@ func (p *pass) Apply(context *domain.PassContext, nextPassFunc domain.NextPassFu
 			OpinionOnPeopleInChat string `json:"opinionOnPeopleInChat"`
 		}
 		err = p.getSummarizerResponseService().RespondToQueryWithJSON(
-			fmt.Sprintf("%s\nSummarize the chat history above into 5 short summaries at most (if possible). Additionally, provide your your opinion on people in the chat using only adjectives. Example: \"User is friendly.\".", formattedMemories),
+			fmt.Sprintf("%s\nSummarize the chat history above into 5 short summaries at most (if possible). Additionally, provide your opinion on people in the chat using only adjectives. Example: \"User is friendly.\".", formattedMemories),
 			&output,
 		)
 		if err != nil {

@@ -6,7 +6,6 @@ import (
 
 	"kgeyst.com/sveta/pkg/common"
 	"kgeyst.com/sveta/pkg/sveta/domain"
-	"kgeyst.com/sveta/pkg/sveta/domain/passes/workingmemory"
 )
 
 const newsCapabillity = "news"
@@ -44,7 +43,7 @@ func (p *pass) Capabilities() []*domain.Capability {
 	return []*domain.Capability{
 		{
 			Name:        newsCapabillity,
-			Description: "retrieves the latest world news if an answer to the user query can potentially be found in the news",
+			Description: "looks for the answer in the world news",
 			IsMaskable:  true,
 		},
 	}
@@ -59,17 +58,6 @@ func (p *pass) Apply(context *domain.PassContext, nextPassFunc domain.NextPassFu
 		return nextPassFunc(context)
 	}
 	if p.loaded[inputMemory.Where] {
-		return nextPassFunc(context)
-	}
-	summary, err := p.summaryRepository.FindByWhere(inputMemory.Where)
-	if err != nil {
-		p.logger.Log("failed to find summary: " + err.Error())
-		return nextPassFunc(context)
-	}
-	workingMemories := context.Memories(workingmemory.DataKeyWorkingMemory)
-	// Do not load news before there's at least 1 memory and a summary, otherwise
-	// it can dominate the context and may end up ignoring the user's query.
-	if len(workingMemories) < 1 || summary == nil {
 		return nextPassFunc(context)
 	}
 	p.loadNews(inputMemory.Where)

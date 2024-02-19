@@ -35,8 +35,8 @@ func (p *pass) Capabilities() []*domain.Capability {
 	return []*domain.Capability{
 		{
 			Name:        rewriteCapability,
-			Description: "rewrites the user query to make it less ambiguous by enriching it with the working memory",
-			IsMaskable:  false,
+			Description: "rewrites the user query to make it less ambiguous",
+			IsMaskable:  true,
 		},
 	}
 }
