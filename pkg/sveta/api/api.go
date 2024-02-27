@@ -5,7 +5,6 @@ import (
 	"kgeyst.com/sveta/pkg/sveta/domain"
 	"kgeyst.com/sveta/pkg/sveta/domain/passes/bio"
 	"kgeyst.com/sveta/pkg/sveta/domain/passes/function"
-	"kgeyst.com/sveta/pkg/sveta/domain/passes/mask"
 	"kgeyst.com/sveta/pkg/sveta/domain/passes/news"
 	"kgeyst.com/sveta/pkg/sveta/domain/passes/remember"
 	"kgeyst.com/sveta/pkg/sveta/domain/passes/response"
@@ -103,7 +102,6 @@ func NewAPI(config *common.Config) (API, common.Stopper) {
 		responseService,
 		logger,
 	)
-	maskPass := mask.NewPass(responseService, memoryFactory, logger)
 	newsPass := news.NewPass(
 		newsProvider,
 		memoryRepository,
@@ -169,7 +167,6 @@ func NewAPI(config *common.Config) (API, common.Stopper) {
 			functionService,
 			aiContext,
 			[]domain.Pass{
-				maskPass,
 				workingMemoryPass,
 				newsPass,
 				bioPass,

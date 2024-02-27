@@ -120,12 +120,11 @@ func (r *ResponseService) RespondToQueryWithJSON(query string, jsonObject any) e
 // on the AI agent's behalf.
 func (r *ResponseService) generatePromptEndMemories() []*Memory {
 	agentName := r.aiContext.AgentName
-	what := ""
 	if r.aiContext.AgentDescriptionReminder != "" {
-		what = fmt.Sprintf("(%s)\n", r.aiContext.AgentDescriptionReminder)
+		agentName = fmt.Sprintf("%s (%s)", agentName, r.aiContext.AgentDescriptionReminder)
 	}
 	return []*Memory{
-		r.memoryFactory.NewMemory(MemoryTypeDialog, agentName, what, ""),
+		r.memoryFactory.NewMemory(MemoryTypeDialog, agentName, "", ""),
 	}
 }
 
