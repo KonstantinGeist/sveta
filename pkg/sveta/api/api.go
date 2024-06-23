@@ -132,18 +132,20 @@ func NewAPI(config *common.Config) (API, common.Stopper) {
 		config,
 		logger,
 	)
+	wordFrequencyProvider := filesystem.NewWordFrequencyProvider(config, logger)
 	wikiPass := domainwiki.NewPass(
 		responseService,
 		memoryFactory,
 		memoryRepository,
 		infrawiki.NewArticleProvider(),
-		filesystem.NewWordFrequencyProvider(config, logger),
+		wordFrequencyProvider,
 		config,
 		logger,
 	)
 	functionPass := function.NewPass(memoryFactory, functionService, logger)
 	notesPass := notes.NewPass(
 		memoryFactory,
+		wordFrequencyProvider,
 		config,
 	)
 	responsePass := response.NewPass(
