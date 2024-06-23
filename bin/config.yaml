@@ -30,5 +30,6 @@ newsMaxCount: 100
 newsSourceURL: http://www.independent.co.uk/rss
 imageMemoryDecayDuration: 3
 wordFrequencyFilePath: word_frequencies.txt
+notesFilePath:
 wolframAlphaAPIKey:
 youtubeAPIKey:
