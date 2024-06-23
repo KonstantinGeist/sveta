@@ -1,4 +1,4 @@
-package notes
+package personmemory
 
 import (
 	"fmt"
@@ -11,51 +11,54 @@ import (
 	"kgeyst.com/sveta/pkg/sveta/domain"
 )
 
-const notesCapability = "notes"
-const maxFoundNoteCount = 5
+const personMemoryCapability = "personMemories"
+const maxFoundPersonMemoryCount = 5
 const minKeySize = 4
-const notesMessage = "Notes found relevant to our discussion:\n%s\nQuery: \"%s\" (answer using the provided notes above, but ONLY if they are relevant to the query, by slightly reformulating it in the language of your persona)"
+const personMemoryMessage = "What %s knows about the following people:\n%s\nQuery: \"%s\" (answer using the provided information above, if they are relevant to the query, by slightly reformulating it in the language of your persona)"
 
 var digitRemovalRegexp = regexp.MustCompile(`\d`)
 var nonAlphanumericRegex = regexp.MustCompile(`[^a-zA-Z0-9 ]+`)
 
 type pass struct {
+	aiContext                      *domain.AIContext
 	memoryFactory                  domain.MemoryFactory
 	wordFrequencyProvider          WordFrequencyProvider
-	notes                          map[string][]string
+	personMemories                 map[string][]string
 	wordSizeThreshold              int
 	wordFrequencyPositionThreshold int
 }
 
 func NewPass(
+	aiContext *domain.AIContext,
 	memoryFactory domain.MemoryFactory,
 	wordFrequencyProvider WordFrequencyProvider,
 	config *common.Config,
 ) domain.Pass {
 	return &pass{
+		aiContext:                      aiContext,
 		memoryFactory:                  memoryFactory,
 		wordFrequencyProvider:          wordFrequencyProvider,
-		notes:                          loadNotes(config),
-		wordSizeThreshold:              config.GetIntOrDefault("notesWordSizeThreshold", 2),
-		wordFrequencyPositionThreshold: config.GetIntOrDefault("notesWordFrequencyPositionThreshold", 4000),
+		personMemories:                 loadPersonMemories(config),
+		wordSizeThreshold:              config.GetIntOrDefault("personMemoryWordSizeThreshold", 2),
+		wordFrequencyPositionThreshold: config.GetIntOrDefault("personMemoryWordFrequencyPositionThreshold", 4000),
 	}
 }
 
 func (p *pass) Capabilities() []*domain.Capability {
 	return []*domain.Capability{
 		{
-			Name:        notesCapability,
-			Description: "takes remembered notes into consideration when answering to the user",
+			Name:        personMemoryCapability,
+			Description: "takes remembered person memories into consideration when answering to the user",
 			IsMaskable:  false,
 		},
 	}
 }
 
 func (p *pass) Apply(context *domain.PassContext, nextPassFunc domain.NextPassFunc) error {
-	if !context.IsCapabilityEnabled(notesCapability) {
+	if !context.IsCapabilityEnabled(personMemoryCapability) {
 		return nextPassFunc(context)
 	}
-	if len(p.notes) == 0 {
+	if len(p.personMemories) == 0 {
 		return nextPassFunc(context)
 	}
 	inputMemory := context.Memory(domain.DataKeyInput)
@@ -66,29 +69,29 @@ func (p *pass) Apply(context *domain.PassContext, nextPassFunc domain.NextPassFu
 	if !p.shouldApply(what) {
 		return nextPassFunc(context)
 	}
-	var foundNotes []string
-	for key, values := range p.notes {
+	var foundPersonMemories []string
+	for key, values := range p.personMemories {
 		if strings.Contains(what, key) {
 			for _, value := range values {
-				foundNotes = append(foundNotes, fmt.Sprintf("  A note about \"%s\": \"%s\"", key, value))
+				foundPersonMemories = append(foundPersonMemories, fmt.Sprintf("  Information related to person \"%s\": \"%s\"", key, value))
 			}
 		}
 	}
-	if len(foundNotes) == 0 {
+	if len(foundPersonMemories) == 0 {
 		return nextPassFunc(context)
 	}
-	rand.Shuffle(len(foundNotes), func(i, j int) {
-		foundNotes[i], foundNotes[j] = foundNotes[j], foundNotes[i]
+	rand.Shuffle(len(foundPersonMemories), func(i, j int) {
+		foundPersonMemories[i], foundPersonMemories[j] = foundPersonMemories[j], foundPersonMemories[i]
 	})
-	if len(foundNotes) > maxFoundNoteCount {
-		foundNotes = foundNotes[0:maxFoundNoteCount]
+	if len(foundPersonMemories) > maxFoundPersonMemoryCount {
+		foundPersonMemories = foundPersonMemories[0:maxFoundPersonMemoryCount]
 	}
 	var builder strings.Builder
-	for _, foundNote := range foundNotes {
-		builder.WriteString(foundNote)
+	for _, foundPersonMemory := range foundPersonMemories {
+		builder.WriteString(foundPersonMemory)
 		builder.WriteRune('\n')
 	}
-	what = fmt.Sprintf(notesMessage, builder.String(), inputMemory.What)
+	what = fmt.Sprintf(personMemoryMessage, p.aiContext.AgentName, builder.String(), inputMemory.What)
 	memory := p.memoryFactory.NewMemory(domain.MemoryTypeDialog, inputMemory.Who, what, inputMemory.Where)
 	return nextPassFunc(context.WithMemory(domain.DataKeyInput, memory))
 }
@@ -109,28 +112,28 @@ func (p *pass) shouldApply(what string) bool {
 	return false
 }
 
-func loadNotes(config *common.Config) map[string][]string {
-	notesFilePath := config.GetStringOrDefault("notesFilePath", "")
-	if notesFilePath == "" {
+func loadPersonMemories(config *common.Config) map[string][]string {
+	personMemoryFilePath := config.GetStringOrDefault("personMemoryFilePath", "")
+	if personMemoryFilePath == "" {
 		return nil
 	}
-	noteLines, err := common.ReadAllLines("notes.txt")
+	personMemoryLines, err := common.ReadAllLines(personMemoryFilePath)
 	if err != nil {
 		return nil
 	}
-	notes := make(map[string][]string)
-	for _, noteLine := range noteLines {
-		split := strings.Split(noteLine, "|")
+	personMemories := make(map[string][]string)
+	for _, personMemoryLine := range personMemoryLines {
+		split := strings.Split(personMemoryLine, "|")
 		if len(split) == 2 {
 			key := removeDigits(strings.ToLower(split[0]))
 			if len(key) < minKeySize {
 				continue
 			}
 			value := split[1]
-			notes[key] = append(notes[key], value)
+			personMemories[key] = append(personMemories[key], value)
 		}
 	}
-	return notes
+	return personMemories
 }
 
 func removeDigits(str string) string {

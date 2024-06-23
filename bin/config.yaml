@@ -30,8 +30,8 @@ newsMaxCount: 100
 newsSourceURL: http://www.independent.co.uk/rss
 imageMemoryDecayDuration: 3
 wordFrequencyFilePath: word_frequencies.txt
-notesFilePath: notes.txt
 wolframAlphaAPIKey:
 youtubeAPIKey:
-notesWordSizeThreshold: 2
-notesWordFrequencyPositionThreshold: 4000
+personMemoryFilePath: person_memory.txt
+personMemoryWordSizeThreshold: 2
+personMemoryWordFrequencyPositionThreshold: 4000
