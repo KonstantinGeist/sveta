@@ -138,6 +138,7 @@ func (p *pass) shouldApply(what string) bool {
 func (p *pass) storeMemory(what, where string) error {
 	memory := p.memoryFactory.NewMemory(domain.MemoryTypeDialog, "SearchResult", what, where)
 	memory.When = time.Time{}
+	memory.IsTransient = true
 	return p.memoryRepository.Store(memory)
 }
 

@@ -13,13 +13,14 @@ const (
 )
 
 type Memory struct {
-	ID        string
-	Type      MemoryType
-	Who       string
-	When      time.Time
-	What      string
-	Where     string
-	Embedding *Embedding // nullable
+	ID          string
+	Type        MemoryType
+	Who         string
+	When        time.Time
+	What        string
+	Where       string
+	Embedding   *Embedding // nullable
+	IsTransient bool
 }
 
 type MemoryFilter struct {

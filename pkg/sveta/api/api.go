@@ -74,7 +74,8 @@ func NewAPI(config *common.Config) (API, common.Stopper) {
 	roleplayLLama2Model := logging.NewLanguageModelDecorator(llama2.NewRoleplayLanguageModel(aiContext, config, logger), logger)
 	genericSolarModel := logging.NewLanguageModelDecorator(solar.NewGenericLanguageModel(aiContext, config, logger), logger)
 	languageModelSelector := domain.NewLanguageModelSelector([]domain.LanguageModel{genericSolarModel, roleplayLLama2Model})
-	memoryRepository := inmemory.NewMemoryRepository()
+	inMemoryMemoryRepository := inmemory.NewMemoryRepository()
+	memoryRepository := filesystem.NewMemoryRepository(inMemoryMemoryRepository, config, logger)
 	memoryFactory := inmemory.NewMemoryFactory(memoryRepository, embedder)
 	summaryRepository := inmemory.NewSummaryRepository()
 	responseService := domain.NewResponseService(

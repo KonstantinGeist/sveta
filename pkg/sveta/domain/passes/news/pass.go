@@ -88,6 +88,7 @@ func (p *pass) loadNews(where string) {
 		line := fmt.Sprintf("Published Date: %s. Title: \"%s\". Description: \"%s\"", newsItem.PublishedDate, newsItem.Title, newsItem.Description)
 		memory := p.memoryFactory.NewMemory(domain.MemoryTypeDialog, "News", line, where)
 		memory.When = time.Time{}
+		memory.IsTransient = true
 		err = p.memoryRepository.Store(memory)
 		if err != nil {
 			p.logger.Log("failed to store news as memory")

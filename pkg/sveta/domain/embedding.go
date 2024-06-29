@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"fmt"
 	"math"
 	"strconv"
 	"strings"
@@ -32,6 +33,17 @@ func NewEmbeddingFromFormattedValues(text string) (Embedding, error) {
 		values[i] = value
 	}
 	return NewEmbedding(values), nil
+}
+
+func (a Embedding) ToFormattedValues() string {
+	var builder strings.Builder
+	for i := 0; i < len(a.values); i++ {
+		builder.WriteString(fmt.Sprintf("%.3f", a.values[i]))
+		if i < len(a.values)-1 {
+			builder.WriteRune(' ')
+		}
+	}
+	return builder.String()
 }
 
 // GetSimilarityTo finds how similar two embeddings are to each other semantically using cosine similarity.

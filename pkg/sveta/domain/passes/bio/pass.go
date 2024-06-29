@@ -71,6 +71,7 @@ func (p *pass) loadBioFacts(where string) {
 		p.logger.Log(fmt.Sprintf("Loading bio fact #%d...\n", index))
 		memory := p.memoryFactory.NewMemory(domain.MemoryTypeDialog, p.aiContext.AgentName, bioFact, where)
 		memory.When = time.Time{}
+		memory.IsTransient = true
 		err = p.memoryRepository.Store(memory)
 		if err != nil {
 			p.logger.Log("failed to store bio facts as memory")
