@@ -4,6 +4,7 @@ import (
 	"kgeyst.com/sveta/pkg/common"
 	"kgeyst.com/sveta/pkg/sveta/domain"
 	"kgeyst.com/sveta/pkg/sveta/domain/passes/bio"
+	"kgeyst.com/sveta/pkg/sveta/domain/passes/facts"
 	"kgeyst.com/sveta/pkg/sveta/domain/passes/function"
 	"kgeyst.com/sveta/pkg/sveta/domain/passes/news"
 	"kgeyst.com/sveta/pkg/sveta/domain/passes/personmemory"
@@ -168,6 +169,14 @@ func NewAPI(config *common.Config) (API, common.Stopper) {
 		languageModelJobQueue,
 		logger,
 	)
+	factsPass := facts.NewPass(
+		aiContext,
+		memoryRepository,
+		memoryFactory,
+		responseService,
+		languageModelJobQueue,
+		logger,
+	)
 	return &api{
 		aiService: domain.NewAIService(
 			memoryRepository,
@@ -188,6 +197,7 @@ func NewAPI(config *common.Config) (API, common.Stopper) {
 				responsePass,
 				rememberPass,
 				summaryPass,
+				factsPass,
 			},
 		),
 	}, languageModelJobQueue
