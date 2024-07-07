@@ -88,7 +88,6 @@ func NewAPI(config *common.Config) (API, common.Stopper) {
 		logger,
 	)
 	functionService := domain.NewFunctionService(aiContext, responseService)
-	promptFormatterForLog := llama2.NewLegacyPromptFormatter()
 	urlFinder := infraweb.NewURLFinder()
 	newsProvider := rss.NewNewsProvider(
 		config.GetStringOrDefault("newsSourceURL", "http://www.independent.co.uk/rss"),
@@ -150,7 +149,6 @@ func NewAPI(config *common.Config) (API, common.Stopper) {
 		memoryRepository,
 		responseService,
 		embedder,
-		promptFormatterForLog,
 		config,
 		logger,
 	)

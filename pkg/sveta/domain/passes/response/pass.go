@@ -2,6 +2,7 @@ package response
 
 import (
 	"fmt"
+	"strings"
 
 	"kgeyst.com/sveta/pkg/common"
 	"kgeyst.com/sveta/pkg/sveta/domain"
@@ -22,7 +23,6 @@ type pass struct {
 	memoryRepository                  domain.MemoryRepository
 	responseService                   *domain.ResponseService
 	embedder                          domain.Embedder
-	promptFormatterForLog             domain.LegacyPromptFormatter
 	logger                            common.Logger
 	episodicMemoryFirstStageTopCount  int
 	episodicMemorySecondStageTopCount int
@@ -37,7 +37,6 @@ func NewPass(
 	memoryRepository domain.MemoryRepository,
 	responseService *domain.ResponseService,
 	embedder domain.Embedder,
-	promptFormatterForLog domain.LegacyPromptFormatter,
 	config *common.Config,
 	logger common.Logger,
 ) domain.Pass {
@@ -47,7 +46,6 @@ func NewPass(
 		memoryRepository:                  memoryRepository,
 		responseService:                   responseService,
 		embedder:                          embedder,
-		promptFormatterForLog:             promptFormatterForLog,
 		logger:                            logger,
 		episodicMemoryFirstStageTopCount:  config.GetIntOrDefault(domain.ConfigKeyEpisodicMemoryFirstStageTopCount, 10),
 		episodicMemorySecondStageTopCount: config.GetIntOrDefault(domain.ConfigKeyEpisodicMemorySecondStageTopCount, 3),
@@ -133,8 +131,7 @@ func (p *pass) recallFromEpisodicMemory(context *domain.PassContext, workingMemo
 	if len(episodicMemories) == 0 {
 		return nil, nil
 	}
-	dialogForLog := p.promptFormatterForLog.FormatDialog(domain.FilterMemoriesByTypes(episodicMemories, []domain.MemoryType{domain.MemoryTypeDialog}))
-	p.logger.Log(fmt.Sprintf("\n======\nRecalled context:\n%s\n========\n", dialogForLog))
+	p.logRecalledMemories(episodicMemories)
 	return episodicMemories, nil
 }
 
@@ -145,4 +142,16 @@ func (p *pass) getEmbedding(what string) *domain.Embedding {
 		return nil
 	}
 	return &embedding
+}
+
+func (p *pass) logRecalledMemories(memories []*domain.Memory) {
+	memories = domain.FilterMemoriesByTypes(memories, []domain.MemoryType{domain.MemoryTypeDialog})
+	var builder strings.Builder
+	for _, memory := range memories {
+		builder.WriteString(memory.Who)
+		builder.WriteString(": ")
+		builder.WriteString(memory.What)
+		builder.WriteString("\n")
+	}
+	p.logger.Log(fmt.Sprintf("\n======\nRecalled context:\n%s\n========\n", builder.String()))
 }
