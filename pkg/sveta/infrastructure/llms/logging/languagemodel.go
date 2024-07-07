@@ -39,10 +39,6 @@ func (l *languageModelDecorator) Complete(prompt string, options domain.Complete
 	return response, nil
 }
 
-func (l *languageModelDecorator) LegacyPromptFormatter() domain.LegacyPromptFormatter {
-	return l.wrappedLanguageModel.LegacyPromptFormatter()
-}
-
 func (l *languageModelDecorator) PromptFormatter() domain.PromptFormatter {
 	return l.wrappedLanguageModel.PromptFormatter()
 }
