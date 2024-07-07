@@ -4,6 +4,7 @@ import (
 	"kgeyst.com/sveta/pkg/common"
 	"kgeyst.com/sveta/pkg/sveta/domain"
 	"kgeyst.com/sveta/pkg/sveta/infrastructure/llamacpp"
+	llmscommon "kgeyst.com/sveta/pkg/sveta/infrastructure/llms/common"
 )
 
 func NewGenericLanguageModel(aiContext *domain.AIContext, config *common.Config, logger common.Logger) *llamacpp.LanguageModel {
@@ -13,7 +14,7 @@ func NewGenericLanguageModel(aiContext *domain.AIContext, config *common.Config,
 		"solar-generic.bin",
 		[]domain.ResponseMode{domain.ResponseModeNormal, domain.ResponseModeJSON, domain.ResponseModeRerank},
 		NewPromptFormatter(),
-		NewPromptFormatter2(),
+		llmscommon.NewAlpacataPromptFormatter(),
 		config,
 		logger,
 	)

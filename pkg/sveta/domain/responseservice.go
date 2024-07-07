@@ -133,6 +133,19 @@ func (r *ResponseService) complete(prompt string, completeOptions CompleteOption
 	return "", ErrFailedToResponse
 }
 
+func (r *ResponseService) getSummary(memories []*Memory) string {
+	where := LastMemory(memories).Where
+	summary, err := r.summaryRepository.FindByWhere(where)
+	if err != nil {
+		r.logger.Log(err.Error())
+		return ""
+	}
+	if summary == nil {
+		return ""
+	}
+	return *summary
+}
+
 // Sometimes, the model can generate too much (for example, trying to complete other participants' dialogs), so we trim it.
 func (r *ResponseService) cleanResponse(languageModel LanguageModel, response string, participants []string) string {
 	promptFormatter := languageModel.PromptFormatter()
@@ -167,19 +180,6 @@ func (r *ResponseService) collectDialogParticipants(memories []*Memory) []string
 		participants = append(participants, participant)
 	}
 	return participants
-}
-
-func (r *ResponseService) getSummary(memories []*Memory) string {
-	where := LastMemory(memories).Where
-	summary, err := r.summaryRepository.FindByWhere(where)
-	if err != nil {
-		r.logger.Log(err.Error())
-		return ""
-	}
-	if summary == nil {
-		return ""
-	}
-	return *summary
 }
 
 // For cleanResponse(..)

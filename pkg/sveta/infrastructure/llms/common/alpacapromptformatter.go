@@ -1,4 +1,4 @@
-package llama2
+package common
 
 import (
 	"fmt"
@@ -7,13 +7,13 @@ import (
 	"kgeyst.com/sveta/pkg/sveta/domain"
 )
 
-type PromptFormatter2 struct{}
+type AlpacataPromptFormatter struct{}
 
-func NewPromptFormatter2() *PromptFormatter2 {
-	return &PromptFormatter2{}
+func NewAlpacataPromptFormatter() *AlpacataPromptFormatter {
+	return &AlpacataPromptFormatter{}
 }
 
-func (p *PromptFormatter2) FormatPrompt(options domain.FormatOptions) string {
+func (p *AlpacataPromptFormatter) FormatPrompt(options domain.FormatOptions) string {
 	var buf strings.Builder
 	// the system prompt
 	buf.WriteString(options.AgentDescription)

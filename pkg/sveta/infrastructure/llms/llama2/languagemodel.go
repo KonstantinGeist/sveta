@@ -4,6 +4,7 @@ import (
 	"kgeyst.com/sveta/pkg/common"
 	"kgeyst.com/sveta/pkg/sveta/domain"
 	"kgeyst.com/sveta/pkg/sveta/infrastructure/llamacpp"
+	llmscommon "kgeyst.com/sveta/pkg/sveta/infrastructure/llms/common"
 )
 
 func NewRoleplayLanguageModel(aiContext *domain.AIContext, config *common.Config, logger common.Logger) *llamacpp.LanguageModel {
@@ -13,7 +14,7 @@ func NewRoleplayLanguageModel(aiContext *domain.AIContext, config *common.Config
 		"llama2-roleplay.bin",
 		[]domain.ResponseMode{domain.ResponseModeNormal},
 		NewPromptFormatter(),
-		NewPromptFormatter2(),
+		llmscommon.NewAlpacataPromptFormatter(),
 		config,
 		logger,
 	)
