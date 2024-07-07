@@ -42,3 +42,7 @@ func (l *languageModelDecorator) Complete(prompt string, options domain.Complete
 func (l *languageModelDecorator) PromptFormatter() domain.PromptFormatter {
 	return l.wrappedLanguageModel.PromptFormatter()
 }
+
+func (l *languageModelDecorator) PromptFormatter2() domain.PromptFormatter2 {
+	return l.wrappedLanguageModel.PromptFormatter2()
+}

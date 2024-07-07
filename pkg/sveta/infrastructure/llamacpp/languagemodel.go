@@ -40,6 +40,7 @@ type LanguageModel struct {
 	binPath                string
 	responseModes          []domain.ResponseMode
 	promptFormatter        domain.PromptFormatter
+	promptFormatter2       domain.PromptFormatter2
 	agentNameWithDelimiter string
 	defaultTemperature     float64
 	contextSize            int
@@ -62,6 +63,7 @@ func NewLanguageModel(
 	binPath string,
 	responseModes []domain.ResponseMode,
 	promptFormatter domain.PromptFormatter,
+	promptFormatter2 domain.PromptFormatter2,
 	config *common.Config,
 	logger common.Logger,
 ) *LanguageModel {
@@ -70,6 +72,7 @@ func NewLanguageModel(
 		binPath:                binPath,
 		responseModes:          responseModes,
 		promptFormatter:        promptFormatter,
+		promptFormatter2:       promptFormatter2,
 		agentNameWithDelimiter: getAgentNameWithDelimiter(aiContext, promptFormatter),
 		logger:                 logger,
 		defaultTemperature:     config.GetFloatOrDefault(ConfigKeyLLMDefaultTemperature, 0.7),
@@ -129,6 +132,10 @@ func (l *LanguageModel) Complete(prompt string, options domain.CompleteOptions) 
 
 func (l *LanguageModel) PromptFormatter() domain.PromptFormatter {
 	return l.promptFormatter
+}
+
+func (l *LanguageModel) PromptFormatter2() domain.PromptFormatter2 {
+	return l.promptFormatter2
 }
 
 func (l *LanguageModel) buildInferCommand(options domain.CompleteOptions) (string, error) {

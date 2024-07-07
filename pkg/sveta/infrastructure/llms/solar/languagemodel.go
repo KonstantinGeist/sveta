@@ -13,6 +13,7 @@ func NewGenericLanguageModel(aiContext *domain.AIContext, config *common.Config,
 		"solar-generic.bin",
 		[]domain.ResponseMode{domain.ResponseModeNormal, domain.ResponseModeJSON, domain.ResponseModeRerank},
 		NewPromptFormatter(),
+		NewPromptFormatter2(),
 		config,
 		logger,
 	)

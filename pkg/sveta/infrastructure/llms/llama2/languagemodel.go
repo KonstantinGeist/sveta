@@ -13,6 +13,7 @@ func NewRoleplayLanguageModel(aiContext *domain.AIContext, config *common.Config
 		"llama2-roleplay.bin",
 		[]domain.ResponseMode{domain.ResponseModeNormal},
 		NewPromptFormatter(),
+		NewPromptFormatter2(),
 		config,
 		logger,
 	)

@@ -63,16 +63,28 @@ func (r *ResponseService) RespondToMemoriesWithText(memories []*Memory, response
 	promptFormatter := languageModel.PromptFormatter()
 	promptEndMemories := r.generatePromptEndMemories()
 	memoriesAsString := promptFormatter.FormatDialog(MergeMemories(dialogAndActionMemories, promptEndMemories...))
+	announcedTime := time.Now()
 	dialogPrompt := fmt.Sprintf(
 		"%s %s.\n\n",
 		r.aiContext.AgentDescription,
-		promptFormatter.FormatAnnouncedTime(time.Now()),
+		promptFormatter.FormatAnnouncedTime(announcedTime),
 	)
 	summary := r.getSummary(memories)
 	if summary != "" {
 		dialogPrompt += fmt.Sprintf("%s\n\n", summary)
 	}
 	dialogPrompt += memoriesAsString
+	dialogPrompt2 := languageModel.PromptFormatter2().FormatPrompt(FormatOptions{
+		AgentName:                r.aiContext.AgentName,
+		AgentDescription:         r.aiContext.AgentDescription,
+		AgentDescriptionReminder: r.aiContext.AgentDescriptionReminder,
+		Summary:                  summary,
+		AnnouncedTime:            &announcedTime,
+		Memories:                 dialogAndActionMemories,
+	})
+	if dialogPrompt != dialogPrompt2 {
+		panic(fmt.Sprintf("\n\n\nPROMPT1:\n%s\n\nPROMPT2:\n%s\n\n", dialogPrompt, dialogPrompt2))
+	}
 	completeOptions := DefaultCompleteOptions
 	if responseMode == ResponseModeNormal {
 		completeOptions = completeOptions.WithTemperature(r.textTemperature)
@@ -89,7 +101,7 @@ func (r *ResponseService) RespondToMemoriesWithText(memories []*Memory, response
 
 // RespondToQueryWithJSON responds to the given query in the JSON format and automatically fills `obj`'s property.
 func (r *ResponseService) RespondToQueryWithJSON(query string, jsonObject any) error {
-	jsonQuerySchema, err := json.Marshal(jsonObject)
+	jsonOutputSchema, err := json.Marshal(jsonObject)
 	if err != nil {
 		return err
 	}
@@ -101,9 +113,19 @@ func (r *ResponseService) RespondToQueryWithJSON(query string, jsonObject any) e
 	dialogPrompt := fmt.Sprintf(
 		"%s %s.\n\n%s",
 		r.aiContext.AgentDescription,
-		promptFormatter.FormatJSONRequest(string(jsonQuerySchema)),
+		promptFormatter.FormatJSONRequest(string(jsonOutputSchema)),
 		memoriesAsString,
 	)
+	dialogPrompt2 := languageModel.PromptFormatter2().FormatPrompt(FormatOptions{
+		AgentName:                r.aiContext.AgentName,
+		AgentDescription:         r.aiContext.AgentDescription,
+		AgentDescriptionReminder: r.aiContext.AgentDescriptionReminder,
+		Memories:                 queryMemories,
+		JSONOutputSchema:         string(jsonOutputSchema),
+	})
+	if dialogPrompt != dialogPrompt2 {
+		panic(fmt.Sprintf("\n\n\nPROMPT1:\n%s\n\nPROMPT2:\n%s\n\n", dialogPrompt, dialogPrompt2))
+	}
 	response, err := r.complete(
 		dialogPrompt,
 		DefaultCompleteOptions.WithJSONMode(true).WithTemperature(r.jsonTemperature),
