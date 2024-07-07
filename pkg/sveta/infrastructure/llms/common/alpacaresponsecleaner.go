@@ -29,6 +29,11 @@ func (a *AlpacaResponseCleaner) CleanResponse(options domain.CleanOptions) strin
 			response = response[len(participantPrefix):]
 		}
 	}
+	response = strings.TrimSpace(response)
+	// removes double quotes if it's everything there is
+	if len(response) > 2 && strings.Count(response, "\"") == 2 && response[0] == '"' && response[len(response)-1] == '"' {
+		response = response[1 : len(response)-2]
+	}
 	return strings.TrimSpace(response)
 }
 
