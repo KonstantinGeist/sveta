@@ -15,6 +15,7 @@ func NewRoleplayLanguageModel(aiContext *domain.AIContext, config *common.Config
 		[]domain.ResponseMode{domain.ResponseModeNormal},
 		NewPromptFormatter(),
 		llmscommon.NewAlpacataPromptFormatter(),
+		llmscommon.NewAlpacaResponseCleaner(),
 		config,
 		logger,
 	)

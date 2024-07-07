@@ -32,7 +32,7 @@ func (p *AlpacataPromptFormatter) FormatPrompt(options domain.FormatOptions) str
 		buf.WriteString(options.Summary)
 		buf.WriteString("\n\n")
 	}
-	// the chat history
+	// the dialog history
 	for i := 0; i < len(options.Memories); i++ {
 		memory := options.Memories[i]
 		buf.WriteString("### ")

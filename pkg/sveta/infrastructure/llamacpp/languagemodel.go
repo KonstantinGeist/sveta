@@ -41,6 +41,7 @@ type LanguageModel struct {
 	responseModes          []domain.ResponseMode
 	promptFormatter        domain.PromptFormatter
 	promptFormatter2       domain.PromptFormatter2
+	responseCleaner        domain.ResponseCleaner
 	agentNameWithDelimiter string
 	defaultTemperature     float64
 	contextSize            int
@@ -55,7 +56,7 @@ func (l *LanguageModel) Name() string {
 }
 
 // NewLanguageModel Creates a language model as implemented by llama.cpp
-// `binPath` specifies the path to the target model relative to the bin folder (llama.cpp supports many models: Llama 2, Mistral, etc.)
+// `binPath` specifies the path to the target model relative to the bin folder (llama.cpp supports many models: Llama 2, Solar, etc.)
 // `config` contains parameters specific to the current GPU (see the constant above)
 func NewLanguageModel(
 	aiContext *domain.AIContext,
@@ -64,6 +65,7 @@ func NewLanguageModel(
 	responseModes []domain.ResponseMode,
 	promptFormatter domain.PromptFormatter,
 	promptFormatter2 domain.PromptFormatter2,
+	responseCleaner domain.ResponseCleaner,
 	config *common.Config,
 	logger common.Logger,
 ) *LanguageModel {
@@ -73,6 +75,7 @@ func NewLanguageModel(
 		responseModes:          responseModes,
 		promptFormatter:        promptFormatter,
 		promptFormatter2:       promptFormatter2,
+		responseCleaner:        responseCleaner,
 		agentNameWithDelimiter: getAgentNameWithDelimiter(aiContext, promptFormatter),
 		logger:                 logger,
 		defaultTemperature:     config.GetFloatOrDefault(ConfigKeyLLMDefaultTemperature, 0.7),
@@ -136,6 +139,10 @@ func (l *LanguageModel) PromptFormatter() domain.PromptFormatter {
 
 func (l *LanguageModel) PromptFormatter2() domain.PromptFormatter2 {
 	return l.promptFormatter2
+}
+
+func (l *LanguageModel) ResponseCleaner() domain.ResponseCleaner {
+	return l.responseCleaner
 }
 
 func (l *LanguageModel) buildInferCommand(options domain.CompleteOptions) (string, error) {

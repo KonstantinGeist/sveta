@@ -120,8 +120,11 @@ func (r *ResponseService) complete(prompt string, completeOptions CompleteOption
 		if err != nil {
 			return "", err
 		}
-		dialogParticipants := r.collectDialogParticipants(memories)
-		cleanResponse := r.cleanResponse(languageModel, response, dialogParticipants)
+		cleanResponse := languageModel.ResponseCleaner().CleanResponse(CleanOptions{
+			Response:  response,
+			AgentName: r.aiContext.AgentName,
+			Memories:  memories,
+		})
 		// Sometimes, a model can just repeat the user's name.
 		if strings.ToLower(cleanResponse) == strings.ToLower(LastMemory(memories).Who) {
 			continue
@@ -144,47 +147,4 @@ func (r *ResponseService) getSummary(memories []*Memory) string {
 		return ""
 	}
 	return *summary
-}
-
-// Sometimes, the model can generate too much (for example, trying to complete other participants' dialogs), so we trim it.
-func (r *ResponseService) cleanResponse(languageModel LanguageModel, response string, participants []string) string {
-	promptFormatter := languageModel.PromptFormatter()
-	agentNamePrefix := getAgentNameWithDelimiter(r.aiContext.AgentName, promptFormatter)
-	response = strings.TrimSpace(response)
-	if strings.HasPrefix(response, agentNamePrefix) {
-		response = response[len(agentNamePrefix):]
-	}
-	for _, participant := range participants {
-		participantPrefix := getAgentNameWithDelimiter(participant, promptFormatter)
-		foundIndex := strings.Index(response, participantPrefix)
-		if foundIndex > 0 { // in the middle/at the end, when it wants to keep generating the dialog
-			response = response[0:foundIndex]
-		} else if foundIndex == 0 { // in the beginning, like: "User: "
-			response = response[len(participantPrefix):]
-		}
-	}
-	return strings.TrimSpace(response)
-}
-
-// For cleanResponse(..)
-func (r *ResponseService) collectDialogParticipants(memories []*Memory) []string {
-	resultSet := make(map[string]struct{})
-	resultSet[r.aiContext.AgentName] = struct{}{}
-	for _, memory := range memories {
-		if (memory.Type == MemoryTypeDialog) && memory.Who != "" {
-			resultSet[memory.Who] = struct{}{}
-		}
-	}
-	participants := make([]string, 0, len(resultSet))
-	for participant := range resultSet {
-		participants = append(participants, participant)
-	}
-	return participants
-}
-
-// For cleanResponse(..)
-func getAgentNameWithDelimiter(agentName string, promptFormatter PromptFormatter) string {
-	memories := []*Memory{NewMemory("", MemoryTypeDialog, agentName, time.Now(), "", "", nil)}
-	result := strings.TrimSpace(promptFormatter.FormatDialog(memories))
-	return result
 }

@@ -15,6 +15,7 @@ func NewGenericLanguageModel(aiContext *domain.AIContext, config *common.Config,
 		[]domain.ResponseMode{domain.ResponseModeNormal, domain.ResponseModeJSON, domain.ResponseModeRerank},
 		NewPromptFormatter(),
 		llmscommon.NewAlpacataPromptFormatter(),
+		llmscommon.NewAlpacaResponseCleaner(),
 		config,
 		logger,
 	)

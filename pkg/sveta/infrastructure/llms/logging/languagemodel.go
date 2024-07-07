@@ -46,3 +46,7 @@ func (l *languageModelDecorator) PromptFormatter() domain.PromptFormatter {
 func (l *languageModelDecorator) PromptFormatter2() domain.PromptFormatter2 {
 	return l.wrappedLanguageModel.PromptFormatter2()
 }
+
+func (l *languageModelDecorator) ResponseCleaner() domain.ResponseCleaner {
+	return l.wrappedLanguageModel.ResponseCleaner()
+}
