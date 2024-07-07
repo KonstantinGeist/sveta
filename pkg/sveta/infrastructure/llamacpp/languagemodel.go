@@ -39,7 +39,7 @@ type LanguageModel struct {
 	name                   string
 	binPath                string
 	responseModes          []domain.ResponseMode
-	promptFormatter        domain.PromptFormatter
+	legacyPromptFormatter  domain.LegacyPromptFormatter
 	promptFormatter2       domain.PromptFormatter2
 	responseCleaner        domain.ResponseCleaner
 	agentNameWithDelimiter string
@@ -63,7 +63,7 @@ func NewLanguageModel(
 	modelName,
 	binPath string,
 	responseModes []domain.ResponseMode,
-	promptFormatter domain.PromptFormatter,
+	legacyPromptFormatter domain.LegacyPromptFormatter,
 	promptFormatter2 domain.PromptFormatter2,
 	responseCleaner domain.ResponseCleaner,
 	config *common.Config,
@@ -73,10 +73,10 @@ func NewLanguageModel(
 		name:                   modelName,
 		binPath:                binPath,
 		responseModes:          responseModes,
-		promptFormatter:        promptFormatter,
+		legacyPromptFormatter:  legacyPromptFormatter,
 		promptFormatter2:       promptFormatter2,
 		responseCleaner:        responseCleaner,
-		agentNameWithDelimiter: getAgentNameWithDelimiter(aiContext, promptFormatter),
+		agentNameWithDelimiter: getAgentNameWithDelimiter(aiContext, legacyPromptFormatter),
 		logger:                 logger,
 		defaultTemperature:     config.GetFloatOrDefault(ConfigKeyLLMDefaultTemperature, 0.7),
 		contextSize:            config.GetIntOrDefault(ConfigKeyLLMContextSize, 4096),
@@ -133,8 +133,8 @@ func (l *LanguageModel) Complete(prompt string, options domain.CompleteOptions) 
 	return strings.TrimSpace(output[len(prompt)+1:]), nil
 }
 
-func (l *LanguageModel) PromptFormatter() domain.PromptFormatter {
-	return l.promptFormatter
+func (l *LanguageModel) LegacyPromptFormatter() domain.LegacyPromptFormatter {
+	return l.legacyPromptFormatter
 }
 
 func (l *LanguageModel) PromptFormatter2() domain.PromptFormatter2 {
@@ -204,8 +204,8 @@ func runInferCommand(cmdstr, prompt string, responseTimeout time.Duration, proce
 	return cmd.Wait()
 }
 
-func getAgentNameWithDelimiter(aiContext *domain.AIContext, promptFormatter domain.PromptFormatter) string {
+func getAgentNameWithDelimiter(aiContext *domain.AIContext, legacyPromptFormatter domain.LegacyPromptFormatter) string {
 	memories := []*domain.Memory{domain.NewMemory("", domain.MemoryTypeDialog, aiContext.AgentName, time.Now(), "", "", nil)}
-	result := strings.TrimSpace(promptFormatter.FormatDialog(memories))
+	result := strings.TrimSpace(legacyPromptFormatter.FormatDialog(memories))
 	return result
 }

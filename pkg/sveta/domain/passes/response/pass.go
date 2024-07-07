@@ -22,7 +22,7 @@ type pass struct {
 	memoryRepository                  domain.MemoryRepository
 	responseService                   *domain.ResponseService
 	embedder                          domain.Embedder
-	promptFormatterForLog             domain.PromptFormatter
+	promptFormatterForLog             domain.LegacyPromptFormatter
 	logger                            common.Logger
 	episodicMemoryFirstStageTopCount  int
 	episodicMemorySecondStageTopCount int
@@ -37,7 +37,7 @@ func NewPass(
 	memoryRepository domain.MemoryRepository,
 	responseService *domain.ResponseService,
 	embedder domain.Embedder,
-	promptFormatterForLog domain.PromptFormatter,
+	promptFormatterForLog domain.LegacyPromptFormatter,
 	config *common.Config,
 	logger common.Logger,
 ) domain.Pass {

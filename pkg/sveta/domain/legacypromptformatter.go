@@ -2,7 +2,7 @@ package domain
 
 import "time"
 
-type PromptFormatter interface {
+type LegacyPromptFormatter interface {
 	// FormatDialog formats the given memory into a prompt which is best suited for the underlying LLM (large language model).
 	// Example:
 	//		### Sveta:

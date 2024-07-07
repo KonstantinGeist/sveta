@@ -9,9 +9,9 @@ type LanguageModel interface {
 	ResponseModes() []ResponseMode
 	// Complete completes the given prompt by using the underlying LLM (large language model).
 	Complete(prompt string, options CompleteOptions) (string, error)
-	// PromptFormatter the prompt formatter associated with this language model. Different language models assume
+	// LegacyPromptFormatter the prompt formatter associated with this language model. Different language models assume
 	// different formatting rules and can be quite sensitive to slight variations.
-	PromptFormatter() PromptFormatter
+	LegacyPromptFormatter() LegacyPromptFormatter
 	// PromptFormatter2 the prompt formatter associated with this language model. Different language models assume
 	// different formatting rules and can be quite sensitive to slight variations.
 	PromptFormatter2() PromptFormatter2
