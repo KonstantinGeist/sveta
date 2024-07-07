@@ -18,18 +18,13 @@ func NewAlpacaStopCondition(aiContext *domain.AIContext) *AlpacaStopCondition {
 }
 
 func (a *AlpacaStopCondition) ShouldStop(prompt, response string) bool {
-	agentNameWithDelimiter := a.getAgentNameWithDelimiter()
-	agentNameWithDelimiterAndReminder := a.getAgentNameWithDelimiterAndReminder()
-	return a.shouldStop(prompt, response, agentNameWithDelimiter) ||
-		a.shouldStop(prompt, response, agentNameWithDelimiterAndReminder)
-}
-
-func (a *AlpacaStopCondition) shouldStop(prompt, response, agentNameDelimiter string) bool {
 	// We keep track of how many times the agent name with the delimiter was found in the output, to understand
 	// when we should stop token generation because otherwise the model can continue the dialog forever, and we want
 	// to stop as soon as possible.
-	promptAgentNameCount := strings.Count(prompt, agentNameDelimiter)
-	responseAgentNameCount := strings.Count(response, agentNameDelimiter)
+	agentNameWithDelimiter := a.getAgentNameWithDelimiter()
+	agentNameWithDelimiterAndReminder := a.getAgentNameWithDelimiterAndReminder()
+	promptAgentNameCount := strings.Count(prompt, agentNameWithDelimiter) + strings.Count(prompt, agentNameWithDelimiterAndReminder)
+	responseAgentNameCount := strings.Count(response, agentNameWithDelimiter) + strings.Count(response, agentNameWithDelimiterAndReminder)
 	return responseAgentNameCount > promptAgentNameCount
 }
 
