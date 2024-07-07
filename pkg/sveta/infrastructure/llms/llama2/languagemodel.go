@@ -9,12 +9,11 @@ import (
 
 func NewRoleplayLanguageModel(aiContext *domain.AIContext, config *common.Config, logger common.Logger) *llamacpp.LanguageModel {
 	return llamacpp.NewLanguageModel(
-		aiContext,
 		"llama2-roleplay",
 		"llama2-roleplay.bin",
 		[]domain.ResponseMode{domain.ResponseModeNormal},
-		NewLegacyPromptFormatter(),
 		llmscommon.NewAlpacataPromptFormatter(),
+		llmscommon.NewAlpacaStopCondition(aiContext),
 		llmscommon.NewAlpacaResponseCleaner(),
 		config,
 		logger,

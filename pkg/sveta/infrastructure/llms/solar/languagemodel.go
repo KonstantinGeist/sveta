@@ -9,12 +9,11 @@ import (
 
 func NewGenericLanguageModel(aiContext *domain.AIContext, config *common.Config, logger common.Logger) *llamacpp.LanguageModel {
 	return llamacpp.NewLanguageModel(
-		aiContext,
 		"solar-generic",
 		"solar-generic.bin",
 		[]domain.ResponseMode{domain.ResponseModeNormal, domain.ResponseModeJSON, domain.ResponseModeRerank},
-		NewLegacyPromptFormatter(),
 		llmscommon.NewAlpacataPromptFormatter(),
+		llmscommon.NewAlpacaStopCondition(aiContext),
 		llmscommon.NewAlpacaResponseCleaner(),
 		config,
 		logger,

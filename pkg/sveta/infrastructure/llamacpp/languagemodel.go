@@ -35,20 +35,19 @@ const (
 )
 
 type LanguageModel struct {
-	logger                 common.Logger
-	name                   string
-	binPath                string
-	responseModes          []domain.ResponseMode
-	legacyPromptFormatter  domain.LegacyPromptFormatter
-	promptFormatter        domain.PromptFormatter
-	responseCleaner        domain.ResponseCleaner
-	agentNameWithDelimiter string
-	defaultTemperature     float64
-	contextSize            int
-	gpuLayerCount          int
-	cpuThreadCount         int
-	repeatPenalty          float64
-	responseTimeout        time.Duration
+	logger             common.Logger
+	name               string
+	binPath            string
+	responseModes      []domain.ResponseMode
+	promptFormatter    domain.PromptFormatter
+	stopCondition      domain.StopCondition
+	responseCleaner    domain.ResponseCleaner
+	defaultTemperature float64
+	contextSize        int
+	gpuLayerCount      int
+	cpuThreadCount     int
+	repeatPenalty      float64
+	responseTimeout    time.Duration
 }
 
 func (l *LanguageModel) Name() string {
@@ -59,31 +58,29 @@ func (l *LanguageModel) Name() string {
 // `binPath` specifies the path to the target model relative to the bin folder (llama.cpp supports many models: Llama 2, Solar, etc.)
 // `config` contains parameters specific to the current GPU (see the constant above)
 func NewLanguageModel(
-	aiContext *domain.AIContext,
 	modelName,
 	binPath string,
 	responseModes []domain.ResponseMode,
-	legacyPromptFormatter domain.LegacyPromptFormatter,
 	promptFormatter domain.PromptFormatter,
+	stopCondition domain.StopCondition,
 	responseCleaner domain.ResponseCleaner,
 	config *common.Config,
 	logger common.Logger,
 ) *LanguageModel {
 	return &LanguageModel{
-		name:                   modelName,
-		binPath:                binPath,
-		responseModes:          responseModes,
-		legacyPromptFormatter:  legacyPromptFormatter,
-		promptFormatter:        promptFormatter,
-		responseCleaner:        responseCleaner,
-		agentNameWithDelimiter: getAgentNameWithDelimiter(aiContext, legacyPromptFormatter),
-		logger:                 logger,
-		defaultTemperature:     config.GetFloatOrDefault(ConfigKeyLLMDefaultTemperature, 0.7),
-		contextSize:            config.GetIntOrDefault(ConfigKeyLLMContextSize, 4096),
-		gpuLayerCount:          config.GetIntOrDefault(ConfigKeyLLMGPULayerCount, 40),
-		cpuThreadCount:         config.GetIntOrDefault(ConfigKeyLLMCPUThreadCount, 6),
-		repeatPenalty:          config.GetFloatOrDefault(ConfigKeyLLMGRepeatPenalty, 1.1),
-		responseTimeout:        config.GetDurationOrDefault(ConfigKeyLLResponseTimeout, time.Minute),
+		name:               modelName,
+		binPath:            binPath,
+		responseModes:      responseModes,
+		promptFormatter:    promptFormatter,
+		stopCondition:      stopCondition,
+		responseCleaner:    responseCleaner,
+		logger:             logger,
+		defaultTemperature: config.GetFloatOrDefault(ConfigKeyLLMDefaultTemperature, 0.7),
+		contextSize:        config.GetIntOrDefault(ConfigKeyLLMContextSize, 4096),
+		gpuLayerCount:      config.GetIntOrDefault(ConfigKeyLLMGPULayerCount, 40),
+		cpuThreadCount:     config.GetIntOrDefault(ConfigKeyLLMCPUThreadCount, 6),
+		repeatPenalty:      config.GetFloatOrDefault(ConfigKeyLLMGRepeatPenalty, 1.1),
+		responseTimeout:    config.GetDurationOrDefault(ConfigKeyLLResponseTimeout, time.Minute),
 	}
 }
 
@@ -101,18 +98,9 @@ func (l *LanguageModel) Complete(prompt string, options domain.CompleteOptions) 
 		return "", err
 	}
 	var buf strings.Builder
-	// We keep track of how many times the agent name with the delimiter was found in the output, to understand
-	// when we should stop token generation because otherwise the model can continue the dialog forever, and we want
-	// to stop as soon as possible. Note that the caller will remove unnecessary continuations further, too.
-	agentNameCount := strings.Count(prompt, l.agentNameWithDelimiter)
-	newAgentNamePromptCount := 0
 	err = runInferCommand(command, prompt, l.responseTimeout, func(s string) bool {
-		// See the comment to `agentNameCount` variable definition.
-		if strings.Contains(s, l.agentNameWithDelimiter) {
-			newAgentNamePromptCount++
-			if newAgentNamePromptCount > agentNameCount {
-				return false
-			}
+		if l.stopCondition.ShouldStop(prompt, buf.String()) {
+			return false
 		}
 		buf.WriteString(s)
 		return true
@@ -131,10 +119,6 @@ func (l *LanguageModel) Complete(prompt string, options domain.CompleteOptions) 
 	}
 	// The model repeats what was said before, so we remove it from the response.
 	return strings.TrimSpace(output[len(prompt)+1:]), nil
-}
-
-func (l *LanguageModel) LegacyPromptFormatter() domain.LegacyPromptFormatter {
-	return l.legacyPromptFormatter
 }
 
 func (l *LanguageModel) PromptFormatter() domain.PromptFormatter {
@@ -202,10 +186,4 @@ func runInferCommand(cmdstr, prompt string, responseTimeout time.Duration, proce
 	}
 	wg.Wait()
 	return cmd.Wait()
-}
-
-func getAgentNameWithDelimiter(aiContext *domain.AIContext, legacyPromptFormatter domain.LegacyPromptFormatter) string {
-	memories := []*domain.Memory{domain.NewMemory("", domain.MemoryTypeDialog, aiContext.AgentName, time.Now(), "", "", nil)}
-	result := strings.TrimSpace(legacyPromptFormatter.FormatDialog(memories))
-	return result
 }
