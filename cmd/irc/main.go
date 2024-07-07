@@ -1,6 +1,7 @@
 package main
 
 import (
+	"os"
 	"strings"
 
 	"github.com/whyrusleeping/hellabot"
@@ -21,7 +22,7 @@ func main() {
 }
 
 func mainImpl() error {
-	config, err := common.LoadConfig("config.yaml")
+	config, err := common.LoadConfig(getConfigPath())
 	if err != nil {
 		return err
 	}
@@ -85,6 +86,11 @@ func mainImpl() error {
 				_ = sveta.ChangeAgentDescription(context)
 				return true
 			}
+			if strings.HasPrefix(what, "repeat ") { // for debugging, to initiate dialogs between different instances of Sveta
+				repeated := what[len("repeat "):]
+				b.Reply(m, repeated)
+				return true
+			}
 			if strings.HasPrefix(what, "disable capability ") {
 				capability := what[len("disable capability "):]
 				err = sveta.EnableCapability(capability, false)
@@ -135,4 +141,12 @@ func registerFuctions(sveta api.API, config *common.Config) error {
 		return err
 	}
 	return wolframalpha.RegisterWolframAlphaFunction(sveta, config)
+}
+
+func getConfigPath() string {
+	args := os.Args
+	if len(args) == 2 {
+		return args[1]
+	}
+	return "config.yaml"
 }

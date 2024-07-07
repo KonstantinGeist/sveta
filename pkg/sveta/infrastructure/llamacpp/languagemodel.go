@@ -103,7 +103,7 @@ func (l *LanguageModel) Complete(prompt string, options domain.CompleteOptions) 
 	}
 	var buf strings.Builder
 	err = runInferCommand(command, prompt, l.responseTimeout, func(s string) bool {
-		if l.stopCondition.ShouldStop(prompt, buf.String()) {
+		if l.stopCondition.ShouldStop(prompt, buf.String()+s) {
 			return false
 		}
 		buf.WriteString(s)
