@@ -3,7 +3,6 @@ package domain
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"strings"
 	"time"
 
@@ -60,21 +59,9 @@ func (r *ResponseService) RespondToMemoriesWithText(memories []*Memory, response
 	}
 	dialogAndActionMemories := FilterMemoriesByTypes(memories, []MemoryType{MemoryTypeDialog})
 	languageModel := r.languageModelSelector.Select(memories, responseMode)
-	promptFormatter := languageModel.PromptFormatter()
-	promptEndMemories := r.generatePromptEndMemories()
-	memoriesAsString := promptFormatter.FormatDialog(MergeMemories(dialogAndActionMemories, promptEndMemories...))
 	announcedTime := time.Now()
-	dialogPrompt := fmt.Sprintf(
-		"%s %s.\n\n",
-		r.aiContext.AgentDescription,
-		promptFormatter.FormatAnnouncedTime(announcedTime),
-	)
 	summary := r.getSummary(memories)
-	if summary != "" {
-		dialogPrompt += fmt.Sprintf("%s\n\n", summary)
-	}
-	dialogPrompt += memoriesAsString
-	dialogPrompt2 := languageModel.PromptFormatter2().FormatPrompt(FormatOptions{
+	dialogPrompt := languageModel.PromptFormatter2().FormatPrompt(FormatOptions{
 		AgentName:                r.aiContext.AgentName,
 		AgentDescription:         r.aiContext.AgentDescription,
 		AgentDescriptionReminder: r.aiContext.AgentDescriptionReminder,
@@ -82,9 +69,6 @@ func (r *ResponseService) RespondToMemoriesWithText(memories []*Memory, response
 		AnnouncedTime:            &announcedTime,
 		Memories:                 dialogAndActionMemories,
 	})
-	if dialogPrompt != dialogPrompt2 {
-		panic(fmt.Sprintf("\n\n\nPROMPT1:\n%s\n\nPROMPT2:\n%s\n\n", dialogPrompt, dialogPrompt2))
-	}
 	completeOptions := DefaultCompleteOptions
 	if responseMode == ResponseModeNormal {
 		completeOptions = completeOptions.WithTemperature(r.textTemperature)
@@ -107,25 +91,13 @@ func (r *ResponseService) RespondToQueryWithJSON(query string, jsonObject any) e
 	}
 	queryMemories := []*Memory{r.memoryFactory.NewMemory(MemoryTypeDialog, "User", query, "")}
 	languageModel := r.languageModelSelector.Select(queryMemories, ResponseModeJSON)
-	promptFormatter := languageModel.PromptFormatter()
-	promptEndMemories := r.generatePromptEndMemories()
-	memoriesAsString := promptFormatter.FormatDialog(MergeMemories(queryMemories, promptEndMemories...))
-	dialogPrompt := fmt.Sprintf(
-		"%s %s.\n\n%s",
-		r.aiContext.AgentDescription,
-		promptFormatter.FormatJSONRequest(string(jsonOutputSchema)),
-		memoriesAsString,
-	)
-	dialogPrompt2 := languageModel.PromptFormatter2().FormatPrompt(FormatOptions{
+	dialogPrompt := languageModel.PromptFormatter2().FormatPrompt(FormatOptions{
 		AgentName:                r.aiContext.AgentName,
 		AgentDescription:         r.aiContext.AgentDescription,
 		AgentDescriptionReminder: r.aiContext.AgentDescriptionReminder,
 		Memories:                 queryMemories,
 		JSONOutputSchema:         string(jsonOutputSchema),
 	})
-	if dialogPrompt != dialogPrompt2 {
-		panic(fmt.Sprintf("\n\n\nPROMPT1:\n%s\n\nPROMPT2:\n%s\n\n", dialogPrompt, dialogPrompt2))
-	}
 	response, err := r.complete(
 		dialogPrompt,
 		DefaultCompleteOptions.WithJSONMode(true).WithTemperature(r.jsonTemperature),
@@ -136,18 +108,6 @@ func (r *ResponseService) RespondToQueryWithJSON(query string, jsonObject any) e
 		return err
 	}
 	return json.Unmarshal([]byte(response), jsonObject)
-}
-
-// generatePromptEndMemories creates a hanging "Sveta:" and the like, to make the completion engine produce the expected answer
-// on the AI agent's behalf.
-func (r *ResponseService) generatePromptEndMemories() []*Memory {
-	agentName := r.aiContext.AgentName
-	if r.aiContext.AgentDescriptionReminder != "" {
-		agentName = fmt.Sprintf("%s (%s)", agentName, r.aiContext.AgentDescriptionReminder)
-	}
-	return []*Memory{
-		r.memoryFactory.NewMemory(MemoryTypeDialog, agentName, "", ""),
-	}
 }
 
 // For both RespondToMemoriesWithText(..) and RespondToQueryWithJSON(..)
