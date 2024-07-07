@@ -121,6 +121,7 @@ func (r *ResponseService) complete(prompt string, completeOptions CompleteOption
 			return "", err
 		}
 		cleanResponse := languageModel.ResponseCleaner().CleanResponse(CleanOptions{
+			Prompt:    prompt,
 			Response:  response,
 			AgentName: r.aiContext.AgentName,
 			Memories:  memories,

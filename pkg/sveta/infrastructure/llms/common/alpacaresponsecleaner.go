@@ -14,8 +14,12 @@ func NewAlpacaResponseCleaner() *AlpacaResponseCleaner {
 }
 
 func (a *AlpacaResponseCleaner) CleanResponse(options domain.CleanOptions) string {
+	response := a.removePromptFromResponse(options.Prompt, options.Response)
+	response = strings.TrimSpace(response)
+	if response == "" {
+		return ""
+	}
 	agentNamePrefix := a.getNameWithDelimiter(options.AgentName)
-	response := strings.TrimSpace(options.Response)
 	if strings.HasPrefix(response, agentNamePrefix) {
 		response = response[len(agentNamePrefix):]
 	}
@@ -54,4 +58,12 @@ func (a *AlpacaResponseCleaner) collectDialogParticipants(options domain.CleanOp
 
 func (a *AlpacaResponseCleaner) getNameWithDelimiter(name string) string {
 	return fmt.Sprintf("### %s:", name)
+}
+
+func (a *AlpacaResponseCleaner) removePromptFromResponse(prompt, response string) string {
+	if len(response) < len(prompt)+1 {
+		return ""
+	}
+	// The model repeats what was said before, so we remove it from the response.
+	return strings.TrimSpace(response[len(prompt)+1:])
 }

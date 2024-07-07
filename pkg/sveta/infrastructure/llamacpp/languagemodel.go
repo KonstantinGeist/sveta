@@ -3,7 +3,6 @@ package llamacpp
 import (
 	"bufio"
 	"context"
-	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -17,8 +16,6 @@ import (
 	"kgeyst.com/sveta/pkg/common"
 	"kgeyst.com/sveta/pkg/sveta/domain"
 )
-
-var errUnexpectedModelOutput = errors.New("unexpected model output")
 
 const (
 	// ConfigKeyLLMDefaultTemperature how creative the output is
@@ -117,12 +114,7 @@ func (l *LanguageModel) Complete(prompt string, options domain.CompleteOptions) 
 			l.logger.Log(err.Error())
 		}
 	}
-	output := buf.String()
-	if len(output) < len(prompt)+1 {
-		return "", errUnexpectedModelOutput
-	}
-	// The model repeats what was said before, so we remove it from the response.
-	return strings.TrimSpace(output[len(prompt)+1:]), nil
+	return buf.String(), nil
 }
 
 func (l *LanguageModel) PromptFormatter() domain.PromptFormatter {

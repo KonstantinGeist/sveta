@@ -1,6 +1,7 @@
 package domain
 
 type CleanOptions struct {
+	Prompt    string
 	Response  string
 	AgentName string
 	Memories  []*Memory
