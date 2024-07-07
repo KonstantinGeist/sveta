@@ -11,13 +11,14 @@ import (
 	"sync"
 	"time"
 
+	"github.com/juju/clock"
+	namedmutex "github.com/juju/mutex"
+
 	"kgeyst.com/sveta/pkg/common"
 	"kgeyst.com/sveta/pkg/sveta/domain"
 )
 
 var errUnexpectedModelOutput = errors.New("unexpected model output")
-
-var mutex sync.Mutex
 
 const (
 	// ConfigKeyLLMDefaultTemperature how creative the output is
@@ -91,8 +92,11 @@ func (l *LanguageModel) ResponseModes() []domain.ResponseMode {
 func (l *LanguageModel) Complete(prompt string, options domain.CompleteOptions) (string, error) {
 	// Only 1 request can be processed at a time currently because we run Sveta on commodity hardware which can't
 	// usually process two requests simultaneously due to low amounts of VRAM.
-	mutex.Lock()
-	defer mutex.Unlock()
+	mutexReleaser, err := acquireMutex()
+	if err != nil {
+		return "", err
+	}
+	defer mutexReleaser.Release()
 	command, err := l.buildInferCommand(options)
 	if err != nil {
 		return "", err
@@ -186,4 +190,13 @@ func runInferCommand(cmdstr, prompt string, responseTimeout time.Duration, proce
 	}
 	wg.Wait()
 	return cmd.Wait()
+}
+
+func acquireMutex() (namedmutex.Releaser, error) {
+	return namedmutex.Acquire(namedmutex.Spec{
+		Name:    "svetaLLMMutex",
+		Clock:   clock.WallClock,
+		Delay:   time.Second,
+		Timeout: time.Minute,
+	})
 }

@@ -1,11 +1,15 @@
 module kgeyst.com/sveta
 
-go 1.20
+go 1.21
+
+toolchain go1.21.12
 
 require (
 	github.com/PuerkitoBio/goquery v1.8.1
 	github.com/chzyer/readline v1.5.1
 	github.com/google/uuid v1.6.0
+	github.com/juju/clock v1.0.2
+	github.com/juju/mutex v0.0.0-20180619145857-d21b13acf4bf
 	github.com/mmcdole/gofeed v1.2.1
 	github.com/mnogu/go-calculator v0.0.1
 	github.com/mvdan/xurls v1.1.0
@@ -31,7 +35,8 @@ require (
 	github.com/googleapis/enterprise-certificate-proxy v0.3.2 // indirect
 	github.com/googleapis/gax-go/v2 v2.12.0 // indirect
 	github.com/inconshreveable/log15 v0.0.0-20200109203555-b30bc20e4fd1 // indirect
-	github.com/kr/pretty v0.1.0 // indirect
+	github.com/juju/errors v1.0.0 // indirect
+	github.com/juju/testing v1.2.0 // indirect
 	github.com/mattn/go-colorable v0.1.7 // indirect
 	github.com/mattn/go-isatty v0.0.12 // indirect
 	github.com/mmcdole/goxpp v1.1.0 // indirect
@@ -49,7 +54,6 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240205150955-31a09d347014 // indirect
 	google.golang.org/grpc v1.61.0 // indirect
 	google.golang.org/protobuf v1.32.0 // indirect
-	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
 	gopkg.in/inconshreveable/log15.v2 v2.0.0-20200109203555-b30bc20e4fd1 // indirect
 	gopkg.in/sorcix/irc.v2 v2.0.0-20200812151606-3f15758ea8c7 // indirect
 )
