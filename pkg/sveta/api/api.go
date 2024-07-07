@@ -7,7 +7,6 @@ import (
 	"kgeyst.com/sveta/pkg/sveta/domain/passes/facts"
 	"kgeyst.com/sveta/pkg/sveta/domain/passes/function"
 	"kgeyst.com/sveta/pkg/sveta/domain/passes/news"
-	"kgeyst.com/sveta/pkg/sveta/domain/passes/personmemory"
 	"kgeyst.com/sveta/pkg/sveta/domain/passes/remember"
 	"kgeyst.com/sveta/pkg/sveta/domain/passes/response"
 	"kgeyst.com/sveta/pkg/sveta/domain/passes/rewrite"
@@ -145,12 +144,6 @@ func NewAPI(config *common.Config) (API, common.Stopper) {
 		logger,
 	)
 	functionPass := function.NewPass(memoryFactory, functionService, logger)
-	personMemoryPass := personmemory.NewPass(
-		aiContext,
-		memoryFactory,
-		wordFrequencyProvider,
-		config,
-	)
 	responsePass := response.NewPass(
 		aiContext,
 		memoryFactory,
@@ -193,7 +186,6 @@ func NewAPI(config *common.Config) (API, common.Stopper) {
 				visionPass,
 				wikiPass,
 				functionPass,
-				personMemoryPass,
 				responsePass,
 				rememberPass,
 				summaryPass,
