@@ -12,9 +12,9 @@ type LanguageModel interface {
 	// LegacyPromptFormatter the prompt formatter associated with this language model. Different language models assume
 	// different formatting rules and can be quite sensitive to slight variations.
 	LegacyPromptFormatter() LegacyPromptFormatter
-	// PromptFormatter2 the prompt formatter associated with this language model. Different language models assume
+	// PromptFormatter the prompt formatter associated with this language model. Different language models assume
 	// different formatting rules and can be quite sensitive to slight variations.
-	PromptFormatter2() PromptFormatter2
+	PromptFormatter() PromptFormatter
 	// ResponseCleaner cleans the response by fixing known issues specific to the current model
 	ResponseCleaner() ResponseCleaner
 }

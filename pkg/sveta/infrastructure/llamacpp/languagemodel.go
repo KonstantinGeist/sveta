@@ -40,7 +40,7 @@ type LanguageModel struct {
 	binPath                string
 	responseModes          []domain.ResponseMode
 	legacyPromptFormatter  domain.LegacyPromptFormatter
-	promptFormatter2       domain.PromptFormatter2
+	promptFormatter        domain.PromptFormatter
 	responseCleaner        domain.ResponseCleaner
 	agentNameWithDelimiter string
 	defaultTemperature     float64
@@ -64,7 +64,7 @@ func NewLanguageModel(
 	binPath string,
 	responseModes []domain.ResponseMode,
 	legacyPromptFormatter domain.LegacyPromptFormatter,
-	promptFormatter2 domain.PromptFormatter2,
+	promptFormatter domain.PromptFormatter,
 	responseCleaner domain.ResponseCleaner,
 	config *common.Config,
 	logger common.Logger,
@@ -74,7 +74,7 @@ func NewLanguageModel(
 		binPath:                binPath,
 		responseModes:          responseModes,
 		legacyPromptFormatter:  legacyPromptFormatter,
-		promptFormatter2:       promptFormatter2,
+		promptFormatter:        promptFormatter,
 		responseCleaner:        responseCleaner,
 		agentNameWithDelimiter: getAgentNameWithDelimiter(aiContext, legacyPromptFormatter),
 		logger:                 logger,
@@ -137,8 +137,8 @@ func (l *LanguageModel) LegacyPromptFormatter() domain.LegacyPromptFormatter {
 	return l.legacyPromptFormatter
 }
 
-func (l *LanguageModel) PromptFormatter2() domain.PromptFormatter2 {
-	return l.promptFormatter2
+func (l *LanguageModel) PromptFormatter() domain.PromptFormatter {
+	return l.promptFormatter
 }
 
 func (l *LanguageModel) ResponseCleaner() domain.ResponseCleaner {

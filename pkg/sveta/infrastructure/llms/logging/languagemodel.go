@@ -43,8 +43,8 @@ func (l *languageModelDecorator) LegacyPromptFormatter() domain.LegacyPromptForm
 	return l.wrappedLanguageModel.LegacyPromptFormatter()
 }
 
-func (l *languageModelDecorator) PromptFormatter2() domain.PromptFormatter2 {
-	return l.wrappedLanguageModel.PromptFormatter2()
+func (l *languageModelDecorator) PromptFormatter() domain.PromptFormatter {
+	return l.wrappedLanguageModel.PromptFormatter()
 }
 
 func (l *languageModelDecorator) ResponseCleaner() domain.ResponseCleaner {

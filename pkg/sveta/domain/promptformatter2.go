@@ -12,6 +12,6 @@ type FormatOptions struct {
 	JSONOutputSchema         string
 }
 
-type PromptFormatter2 interface {
+type PromptFormatter interface {
 	FormatPrompt(options FormatOptions) string
 }
