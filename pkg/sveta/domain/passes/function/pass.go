@@ -34,7 +34,6 @@ func (p *pass) Capabilities() []*domain.Capability {
 		result = append(result, &domain.Capability{
 			Name:        functionDesc.Name,
 			Description: functionDesc.Description,
-			IsMaskable:  true,
 		})
 	}
 	return result

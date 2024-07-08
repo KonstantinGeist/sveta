@@ -52,6 +52,12 @@ func (r *ResponseService) WithAIContext(aiContext *AIContext) *ResponseService {
 	return &clone
 }
 
+func (r *ResponseService) WithLanguageModelSelector(selector *LanguageModelSelector) *ResponseService {
+	clone := *r
+	clone.languageModelSelector = selector
+	return &clone
+}
+
 // RespondToMemoriesWithText responds to the given list of memories as a large language model.
 func (r *ResponseService) RespondToMemoriesWithText(memories []*Memory, responseMode ResponseMode) (string, error) {
 	if len(memories) == 0 {

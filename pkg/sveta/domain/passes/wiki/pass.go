@@ -57,7 +57,6 @@ func (p *pass) Capabilities() []*domain.Capability {
 		{
 			Name:        wikiCapability,
 			Description: "looks for the answer on Wikipedia",
-			IsMaskable:  true,
 		},
 	}
 }

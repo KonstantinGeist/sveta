@@ -16,12 +16,14 @@ const responseCapability = "response"
 const episodicMemoryCapability = "episodicMemory"
 const rerankCapability = "rerank"
 const hydeCapability = "hyde"
+const routerCapability = "router"
 
 type pass struct {
 	aiContext                         *domain.AIContext
 	memoryFactory                     domain.MemoryFactory
 	memoryRepository                  domain.MemoryRepository
-	responseService                   *domain.ResponseService
+	defaultResponseService            *domain.ResponseService
+	roleplayResponseService           *domain.ResponseService
 	embedder                          domain.Embedder
 	logger                            common.Logger
 	episodicMemoryFirstStageTopCount  int
@@ -35,7 +37,8 @@ func NewPass(
 	aiContext *domain.AIContext,
 	memoryFactory domain.MemoryFactory,
 	memoryRepository domain.MemoryRepository,
-	responseService *domain.ResponseService,
+	defaultResponseService *domain.ResponseService,
+	roleplayResponseService *domain.ResponseService,
 	embedder domain.Embedder,
 	config *common.Config,
 	logger common.Logger,
@@ -44,7 +47,8 @@ func NewPass(
 		aiContext:                         aiContext,
 		memoryFactory:                     memoryFactory,
 		memoryRepository:                  memoryRepository,
-		responseService:                   responseService,
+		defaultResponseService:            defaultResponseService,
+		roleplayResponseService:           roleplayResponseService,
 		embedder:                          embedder,
 		logger:                            logger,
 		episodicMemoryFirstStageTopCount:  config.GetIntOrDefault(domain.ConfigKeyEpisodicMemoryFirstStageTopCount, 10),
@@ -60,22 +64,22 @@ func (p *pass) Capabilities() []*domain.Capability {
 		{
 			Name:        responseCapability,
 			Description: "generates a response to the user query",
-			IsMaskable:  false,
 		},
 		{
 			Name:        episodicMemoryCapability,
 			Description: "enriches the user query with information recalled from the episodic memory",
-			IsMaskable:  false,
 		},
 		{
 			Name:        rerankCapability,
 			Description: "reranks the recalled memory according to the relevance to the user query",
-			IsMaskable:  false,
 		},
 		{
 			Name:        hydeCapability,
 			Description: "improves episodic memory recall by reformulating the user query in several different ways",
-			IsMaskable:  false,
+		},
+		{
+			Name:        routerCapability,
+			Description: "routes responses to different models based on the query",
 		},
 	}
 }
@@ -96,7 +100,8 @@ func (p *pass) Apply(context *domain.PassContext, nextPassFunc domain.NextPassFu
 	}
 	memories := domain.MergeMemories(episodicMemories, workingMemories...)
 	memories = domain.MergeMemories(memories, inputMemoryForResponse)
-	response, err := p.responseService.RespondToMemoriesWithText(memories, domain.ResponseModeNormal)
+	responseService := p.getResponseServiceWithRoutedLanguageModel(context, inputMemoryForResponse)
+	response, err := responseService.RespondToMemoriesWithText(memories, domain.ResponseModeNormal)
 	if err != nil {
 		return err
 	}

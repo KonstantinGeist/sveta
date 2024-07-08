@@ -19,7 +19,10 @@ import (
 	"kgeyst.com/sveta/pkg/sveta/infrastructure/filesystem"
 	"kgeyst.com/sveta/pkg/sveta/infrastructure/inmemory"
 	"kgeyst.com/sveta/pkg/sveta/infrastructure/llavacpp"
+	"kgeyst.com/sveta/pkg/sveta/infrastructure/llms/llama2"
 	"kgeyst.com/sveta/pkg/sveta/infrastructure/llms/llama3"
+	"kgeyst.com/sveta/pkg/sveta/infrastructure/llms/logging"
+	"kgeyst.com/sveta/pkg/sveta/infrastructure/llms/solar"
 	"kgeyst.com/sveta/pkg/sveta/infrastructure/rss"
 	infraweb "kgeyst.com/sveta/pkg/sveta/infrastructure/web"
 	infrawiki "kgeyst.com/sveta/pkg/sveta/infrastructure/wiki"
@@ -69,22 +72,26 @@ func NewAPI(config *common.Config) (API, common.Stopper) {
 	tempFileProvider := filesystem.NewTempFilePathProvider(config)
 	embedder := embed4all.NewEmbedder(logger)
 	aiContext := domain.NewAIContextFromConfig(config)
+	roleplayLLama2Model := logging.NewLanguageModelDecorator(llama2.NewRoleplayLanguageModel(aiContext, config, logger), logger)
+	genericSolarModel := logging.NewLanguageModelDecorator(solar.NewGenericLanguageModel(aiContext, config, logger), logger)
 	llama3Model := llama3.NewLanguageModel(config, logger)
-	languageModelSelector := domain.NewLanguageModelSelector([]domain.LanguageModel{llama3Model})
+	defaultLanguageModelSelector := domain.NewLanguageModelSelector([]domain.LanguageModel{llama3Model})
+	roleplayLanguageModelSelector := domain.NewLanguageModelSelector([]domain.LanguageModel{roleplayLLama2Model, genericSolarModel})
 	inMemoryMemoryRepository := inmemory.NewMemoryRepository()
 	memoryRepository := filesystem.NewMemoryRepository(inMemoryMemoryRepository, config, logger)
 	memoryFactory := inmemory.NewMemoryFactory(memoryRepository, embedder)
 	summaryRepository := inmemory.NewSummaryRepository()
-	responseService := domain.NewResponseService(
+	defaultResponseService := domain.NewResponseService(
 		aiContext,
-		languageModelSelector,
+		defaultLanguageModelSelector,
 		embedder,
 		memoryFactory,
 		summaryRepository,
 		config,
 		logger,
 	)
-	functionService := domain.NewFunctionService(aiContext, responseService)
+	roleplayResponseService := defaultResponseService.WithLanguageModelSelector(roleplayLanguageModelSelector)
+	functionService := domain.NewFunctionService(aiContext, defaultResponseService)
 	urlFinder := infraweb.NewURLFinder()
 	newsProvider := rss.NewNewsProvider(
 		config.GetStringOrDefault("newsSourceURL", "http://www.independent.co.uk/rss"),
@@ -97,7 +104,7 @@ func NewAPI(config *common.Config) (API, common.Stopper) {
 	)
 	rewritePass := rewrite.NewPass(
 		memoryFactory,
-		responseService,
+		defaultResponseService,
 		logger,
 	)
 	newsPass := news.NewPass(
@@ -131,7 +138,7 @@ func NewAPI(config *common.Config) (API, common.Stopper) {
 	)
 	wordFrequencyProvider := filesystem.NewWordFrequencyProvider(config, logger)
 	wikiPass := domainwiki.NewPass(
-		responseService,
+		defaultResponseService,
 		memoryFactory,
 		memoryRepository,
 		infrawiki.NewArticleProvider(),
@@ -144,7 +151,8 @@ func NewAPI(config *common.Config) (API, common.Stopper) {
 		aiContext,
 		memoryFactory,
 		memoryRepository,
-		responseService,
+		defaultResponseService,
+		roleplayResponseService,
 		embedder,
 		config,
 		logger,
@@ -153,7 +161,7 @@ func NewAPI(config *common.Config) (API, common.Stopper) {
 	summaryPass := summary.NewPass(
 		aiContext,
 		summaryRepository,
-		responseService,
+		defaultResponseService,
 		languageModelJobQueue,
 		logger,
 	)
@@ -161,7 +169,7 @@ func NewAPI(config *common.Config) (API, common.Stopper) {
 		aiContext,
 		memoryRepository,
 		memoryFactory,
-		responseService,
+		defaultResponseService,
 		languageModelJobQueue,
 		logger,
 	)

@@ -41,7 +41,6 @@ func (p *pass) Capabilities() []*domain.Capability {
 		{
 			Name:        bioCapabillity,
 			Description: "looks for the answer in the biography",
-			IsMaskable:  true,
 		},
 	}
 }

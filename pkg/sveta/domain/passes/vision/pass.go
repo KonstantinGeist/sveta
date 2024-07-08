@@ -51,7 +51,6 @@ func (p *pass) Capabilities() []*domain.Capability {
 		{
 			Name:        visionCapability,
 			Description: "answers the user query by analyzing pictures (if provided)",
-			IsMaskable:  false,
 		},
 	}
 }

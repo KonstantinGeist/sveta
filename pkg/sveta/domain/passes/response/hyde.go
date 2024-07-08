@@ -48,7 +48,7 @@ func (p *pass) getHypotheticalEmbeddings(context *domain.PassContext, inputMemor
 
 func (p *pass) getHyDEResponseService() *domain.ResponseService {
 	hyDEAIContext := domain.NewAIContext("AnswerLLM", "You're AnswerLLM, an intelligent assistant which answers questions to the given user query.", "")
-	return p.responseService.WithAIContext(hyDEAIContext)
+	return p.defaultResponseService.WithAIContext(hyDEAIContext)
 }
 
 func (p *pass) isQuestion(what string) bool {

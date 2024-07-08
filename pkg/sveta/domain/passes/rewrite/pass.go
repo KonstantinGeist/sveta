@@ -36,7 +36,6 @@ func (p *pass) Capabilities() []*domain.Capability {
 		{
 			Name:        rewriteCapability,
 			Description: "rewrites the user query to make it less ambiguous",
-			IsMaskable:  true,
 		},
 	}
 }

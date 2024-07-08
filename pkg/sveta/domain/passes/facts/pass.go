@@ -44,7 +44,6 @@ func (p *pass) Capabilities() []*domain.Capability {
 		{
 			Name:        factsCapability,
 			Description: "remembers facts",
-			IsMaskable:  false,
 		},
 	}
 }

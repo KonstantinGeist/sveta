@@ -42,7 +42,6 @@ func (p *pass) Capabilities() []*domain.Capability {
 		{
 			Name:        workingMemoryCapability,
 			Description: "retrieves the working memory",
-			IsMaskable:  false,
 		},
 	}
 }

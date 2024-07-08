@@ -45,7 +45,6 @@ func (p *pass) Capabilities() []*domain.Capability {
 		{
 			Name:        newsCapabillity,
 			Description: "looks for the answer in the world news",
-			IsMaskable:  true,
 		},
 	}
 }

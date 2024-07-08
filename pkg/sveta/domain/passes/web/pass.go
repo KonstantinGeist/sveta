@@ -43,7 +43,6 @@ func (p *pass) Capabilities() []*domain.Capability {
 		{
 			Name:        webCapability,
 			Description: "answers the user query by analyzing web pages (if URLs are provided)",
-			IsMaskable:  false,
 		},
 	}
 }

@@ -40,7 +40,6 @@ func (p *pass) Capabilities() []*domain.Capability {
 		{
 			Name:        summaryCapability,
 			Description: "summarizes the current conversation to have a better understanding of a long conversation",
-			IsMaskable:  false,
 		},
 	}
 }

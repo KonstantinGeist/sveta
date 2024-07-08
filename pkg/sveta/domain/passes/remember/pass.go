@@ -21,7 +21,6 @@ func (p *pass) Capabilities() []*domain.Capability {
 		{
 			Name:        rememberCapability,
 			Description: "stores the newly formed memories of the conversation",
-			IsMaskable:  false,
 		},
 	}
 }
