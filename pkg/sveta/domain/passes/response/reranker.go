@@ -44,7 +44,7 @@ func (p *pass) rankMemoriesAndGetTopN(context *domain.PassContext, memories []*d
 
 func (p *pass) getRankerResponseService() *domain.ResponseService {
 	rankerAIContext := domain.NewAIContext("RankLLM", "You're RankLLM, an intelligent assistant that can rank passages based on their relevancy to the query.", "")
-	return p.defaultResponseService.WithAIContext(rankerAIContext)
+	return p.rerankResponseService.WithAIContext(rankerAIContext)
 }
 
 func (p *pass) formatMemoriesForRanker(memories []*domain.Memory) string {

@@ -10,7 +10,7 @@ func NewLanguageModel(config *common.Config, logger common.Logger) *llamacpp.Lan
 	return llamacpp.NewLanguageModel(
 		"llama3",
 		"llama3.bin",
-		[]domain.ResponseMode{domain.ResponseModeNormal, domain.ResponseModeJSON, domain.ResponseModeRerank},
+		[]domain.ResponseMode{domain.ResponseModeNormal, domain.ResponseModeJSON},
 		newPromptFormatter(),
 		newStopCondition(),
 		newResponseCleaner(),

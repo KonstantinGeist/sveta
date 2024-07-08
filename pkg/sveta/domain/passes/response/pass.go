@@ -24,6 +24,7 @@ type pass struct {
 	memoryRepository                  domain.MemoryRepository
 	defaultResponseService            *domain.ResponseService
 	roleplayResponseService           *domain.ResponseService
+	rerankResponseService             *domain.ResponseService
 	embedder                          domain.Embedder
 	logger                            common.Logger
 	episodicMemoryFirstStageTopCount  int
@@ -39,6 +40,7 @@ func NewPass(
 	memoryRepository domain.MemoryRepository,
 	defaultResponseService *domain.ResponseService,
 	roleplayResponseService *domain.ResponseService,
+	rerankResponseService *domain.ResponseService,
 	embedder domain.Embedder,
 	config *common.Config,
 	logger common.Logger,
@@ -49,6 +51,7 @@ func NewPass(
 		memoryRepository:                  memoryRepository,
 		defaultResponseService:            defaultResponseService,
 		roleplayResponseService:           roleplayResponseService,
+		rerankResponseService:             rerankResponseService,
 		embedder:                          embedder,
 		logger:                            logger,
 		episodicMemoryFirstStageTopCount:  config.GetIntOrDefault(domain.ConfigKeyEpisodicMemoryFirstStageTopCount, 10),

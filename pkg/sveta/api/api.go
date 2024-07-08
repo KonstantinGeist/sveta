@@ -77,6 +77,7 @@ func NewAPI(config *common.Config) (API, common.Stopper) {
 	llama3Model := llama3.NewLanguageModel(config, logger)
 	defaultLanguageModelSelector := domain.NewLanguageModelSelector([]domain.LanguageModel{llama3Model})
 	roleplayLanguageModelSelector := domain.NewLanguageModelSelector([]domain.LanguageModel{roleplayLLama2Model, genericSolarModel})
+	rerankLanguageModelSelector := domain.NewLanguageModelSelector([]domain.LanguageModel{genericSolarModel})
 	inMemoryMemoryRepository := inmemory.NewMemoryRepository()
 	memoryRepository := filesystem.NewMemoryRepository(inMemoryMemoryRepository, config, logger)
 	memoryFactory := inmemory.NewMemoryFactory(memoryRepository, embedder)
@@ -91,6 +92,7 @@ func NewAPI(config *common.Config) (API, common.Stopper) {
 		logger,
 	)
 	roleplayResponseService := defaultResponseService.WithLanguageModelSelector(roleplayLanguageModelSelector)
+	rerankResponseService := defaultResponseService.WithLanguageModelSelector(rerankLanguageModelSelector)
 	functionService := domain.NewFunctionService(aiContext, defaultResponseService)
 	urlFinder := infraweb.NewURLFinder()
 	newsProvider := rss.NewNewsProvider(
@@ -153,6 +155,7 @@ func NewAPI(config *common.Config) (API, common.Stopper) {
 		memoryRepository,
 		defaultResponseService,
 		roleplayResponseService,
+		rerankResponseService,
 		embedder,
 		config,
 		logger,

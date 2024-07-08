@@ -11,7 +11,7 @@ func NewGenericLanguageModel(aiContext *domain.AIContext, config *common.Config,
 	return llamacpp.NewLanguageModel(
 		"solar-generic",
 		"solar-generic.bin",
-		[]domain.ResponseMode{domain.ResponseModeNormal},
+		[]domain.ResponseMode{domain.ResponseModeNormal, domain.ResponseModeRerank},
 		llmscommon.NewAlpacataPromptFormatter(),
 		llmscommon.NewAlpacaStopCondition(aiContext),
 		llmscommon.NewAlpacaResponseCleaner(),
