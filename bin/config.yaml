@@ -22,7 +22,7 @@ llmCPUThreadCount: 6
 llmRepeatPenalty: 1.1
 llmResponseTimeout: 40000
 wikiMaxArticleCount: 2
-wikiMaxArticleSentenceCount: 3``
+wikiMaxArticleSentenceCount: 3
 wikiWordSizeThreshold: 2
 wikiWordFrequencyPositionThreshold: 5000
 htmlMaxPageContentSize: 1000
