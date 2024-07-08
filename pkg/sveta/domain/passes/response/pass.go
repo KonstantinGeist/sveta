@@ -88,24 +88,24 @@ func (p *pass) Apply(context *domain.PassContext, nextPassFunc domain.NextPassFu
 	if !context.IsCapabilityEnabled(responseCapability) {
 		return nextPassFunc(context)
 	}
-	inputMemoryForRecall := context.MemoryCoalesced([]string{rewrite.DataKeyRewrittenInput, domain.DataKeyInput})
-	if inputMemoryForRecall == nil {
+	rewrittenInputMemory := context.MemoryCoalesced([]string{rewrite.DataKeyRewrittenInput, domain.DataKeyInput})
+	if rewrittenInputMemory == nil {
 		return nextPassFunc(context)
 	}
-	inputMemoryForResponse := context.Memory(domain.DataKeyInput)
+	inputMemory := context.Memory(domain.DataKeyInput)
 	workingMemories := context.Memories(workingmemory.DataKeyWorkingMemory)
-	episodicMemories, err := p.recallFromEpisodicMemory(context, workingMemories, inputMemoryForRecall)
+	episodicMemories, err := p.recallFromEpisodicMemory(context, workingMemories, rewrittenInputMemory)
 	if err != nil {
 		return err
 	}
 	memories := domain.MergeMemories(episodicMemories, workingMemories...)
-	memories = domain.MergeMemories(memories, inputMemoryForResponse)
-	responseService := p.getResponseServiceWithRoutedLanguageModel(context, inputMemoryForResponse)
+	memories = domain.MergeMemories(memories, inputMemory)
+	responseService := p.getResponseServiceWithRoutedLanguageModel(context, rewrittenInputMemory) // use rewritten queries for better routing
 	response, err := responseService.RespondToMemoriesWithText(memories, domain.ResponseModeNormal)
 	if err != nil {
 		return err
 	}
-	responseMemory := p.memoryFactory.NewMemory(domain.MemoryTypeDialog, p.aiContext.AgentName, response, inputMemoryForResponse.Where)
+	responseMemory := p.memoryFactory.NewMemory(domain.MemoryTypeDialog, p.aiContext.AgentName, response, inputMemory.Where)
 	return nextPassFunc(context.WithMemory(DataKeyOutput, responseMemory))
 }
 
