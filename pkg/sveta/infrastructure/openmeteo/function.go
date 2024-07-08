@@ -23,7 +23,7 @@ func RegisterWeatherFunction(sveta api.API) error {
 	}
 	return sveta.RegisterFunction(api.FunctionDesc{
 		Name:        "weather",
-		Description: "allows to return information about weather if prompted by user",
+		Description: "allows to return information about weather if explicitly prompted by user",
 		Parameters: []domain.FunctionParameterDesc{
 			{
 				Name:        "city",

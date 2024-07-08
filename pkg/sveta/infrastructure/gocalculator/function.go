@@ -14,11 +14,11 @@ import (
 func RegisterCalcFunction(sveta api.API) error {
 	return sveta.RegisterFunction(api.FunctionDesc{
 		Name:        "calc",
-		Description: "allows to calculate a math expression if the user query requires it",
+		Description: "allows to calculate a math expression if the user query explicitly requires it",
 		Parameters: []domain.FunctionParameterDesc{
 			{
 				Name:        "mathExpression",
-				Description: "math expression, such as (2 + 3 * 4)",
+				Description: "math expression, using numbers and arithmetic operations only",
 			},
 		},
 		Body: func(context *api.FunctionInput) (api.FunctionOutput, error) {
