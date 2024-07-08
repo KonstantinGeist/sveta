@@ -12,7 +12,7 @@ func (p *pass) getResponseServiceWithRoutedLanguageModel(context *domain.PassCon
 		IsRoleplayOrCreativity bool   `json:"isRoleplayOrCreativity"`
 	}
 	err := p.getRouterResponseService().RespondToQueryWithJSON(
-		"Does the following user query require roleplay or creativity: \""+inputMemory.What+"\"",
+		"Does the following user query explicitly requires roleplay or creativity: \""+inputMemory.What+"\".",
 		&output,
 	)
 	if err != nil {
@@ -28,6 +28,6 @@ func (p *pass) getResponseServiceWithRoutedLanguageModel(context *domain.PassCon
 }
 
 func (p *pass) getRouterResponseService() *domain.ResponseService {
-	routerAIContext := domain.NewAIContext("RouterLLM", "You're RouterLLM, an intelligent assistant which tells if a given user query requires roleplay or creativity.", "")
+	routerAIContext := domain.NewAIContext("RouterLLM", "You're RouterLLM, an intelligent assistant which tells if a given user query requires roleplay or creativity. Only two existing scenarios are allowed: user asks to imagine a story, or explicitly asks to roleplay.", "")
 	return p.defaultResponseService.WithAIContext(routerAIContext)
 }
