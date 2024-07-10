@@ -27,7 +27,7 @@ func RegisterWeatherFunction(sveta api.API) error {
 		Parameters: []domain.FunctionParameterDesc{
 			{
 				Name:        "city",
-				Description: "the name of the city for which weather information is required",
+				Description: "the name of the city for which weather information is explicitly asked",
 			},
 		},
 		Body: func(context *api.FunctionInput) (api.FunctionOutput, error) {

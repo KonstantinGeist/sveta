@@ -93,7 +93,7 @@ func NewAPI(config *common.Config) (API, common.Stopper) {
 	)
 	roleplayResponseService := defaultResponseService.WithLanguageModelSelector(roleplayLanguageModelSelector)
 	rerankResponseService := defaultResponseService.WithLanguageModelSelector(rerankLanguageModelSelector)
-	functionService := domain.NewFunctionService(aiContext, defaultResponseService)
+	functionService := domain.NewFunctionService(aiContext, defaultResponseService, logger)
 	urlFinder := infraweb.NewURLFinder()
 	newsProvider := rss.NewNewsProvider(
 		config.GetStringOrDefault("newsSourceURL", "http://www.independent.co.uk/rss"),

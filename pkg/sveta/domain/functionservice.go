@@ -1,9 +1,12 @@
 package domain
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 	"sync"
+
+	"kgeyst.com/sveta/pkg/common"
 )
 
 type FunctionDesc struct {
@@ -41,6 +44,7 @@ type FunctionService struct {
 	mutex              *sync.Mutex
 	aiContext          *AIContext
 	responseService    *ResponseService
+	logger             common.Logger
 	functionDescsMap   map[string]FunctionDesc
 	functionDescsSlice []FunctionDesc
 }
@@ -48,11 +52,13 @@ type FunctionService struct {
 func NewFunctionService(
 	aiContext *AIContext,
 	responseService *ResponseService,
+	logger common.Logger,
 ) *FunctionService {
 	return &FunctionService{
 		mutex:            &sync.Mutex{},
 		aiContext:        aiContext,
 		responseService:  responseService,
+		logger:           logger,
 		functionDescsMap: make(map[string]FunctionDesc),
 	}
 }
@@ -97,6 +103,8 @@ func (f *FunctionService) CreateClosures(input string) ([]*Closure, error) {
 	if err != nil {
 		return nil, err
 	}
+	outputAsJSON, _ := json.Marshal(output)
+	f.logger.Log(fmt.Sprintf("\n\nFUNCTION reasoning: %s\n\n", string(outputAsJSON)))
 	closures := make([]*Closure, 0, len(output.Functions))
 	for _, function := range output.Functions {
 		functionDesc, ok := f.functionDescsMap[function.Name]
@@ -166,7 +174,7 @@ func (f *FunctionService) getQuery(input string) string {
 	}
 	buf.WriteString("```\n")
 	buf.WriteString(fmt.Sprintf("List functions (and their arguments) which I need to call in order to satisfy the user query: \"%s\".\n", input))
-	buf.WriteString("If no function satisfies the user query, return an empty list. Use only the JSON schema given above.")
+	buf.WriteString("If no function satisfies the user query, return an empty list. DON'T try to use functions if you are not sure. Use only the JSON schema given above.")
 	return buf.String()
 }
 
