@@ -10,13 +10,13 @@ import (
 	"kgeyst.com/sveta/pkg/sveta/domain"
 )
 
-type AlpacataPromptFormatter struct{}
+type AlpacaPromptFormatter struct{}
 
-func NewAlpacataPromptFormatter() *AlpacataPromptFormatter {
-	return &AlpacataPromptFormatter{}
+func NewAlpacaPromptFormatter() *AlpacaPromptFormatter {
+	return &AlpacaPromptFormatter{}
 }
 
-func (p *AlpacataPromptFormatter) FormatPrompt(options domain.FormatOptions) string {
+func (p *AlpacaPromptFormatter) FormatPrompt(options domain.FormatOptions) string {
 	var buf strings.Builder
 	// the system prompt
 	buf.WriteString(options.AgentDescription)
