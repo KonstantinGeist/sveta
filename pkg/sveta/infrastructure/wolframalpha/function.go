@@ -22,8 +22,8 @@ func RegisterWolframAlphaFunction(sveta api.API, config *common.Config) error {
 				Description: "the query to use",
 			},
 		},
-		Body: func(context *api.FunctionInput) (api.FunctionOutput, error) {
-			query := context.Arguments["query"]
+		Body: func(input *api.FunctionInput) (api.FunctionOutput, error) {
+			query := input.Arguments["query"]
 			if query == "" {
 				return api.FunctionOutput{}, nil
 			}

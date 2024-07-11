@@ -8,7 +8,7 @@ import (
 
 	"kgeyst.com/sveta/pkg/common"
 	"kgeyst.com/sveta/pkg/sveta/api"
-	"kgeyst.com/sveta/pkg/sveta/infrastructure/gocalculator"
+	"kgeyst.com/sveta/pkg/sveta/infrastructure/deepseekcoder"
 	"kgeyst.com/sveta/pkg/sveta/infrastructure/openmeteo"
 	"kgeyst.com/sveta/pkg/sveta/infrastructure/wolframalpha"
 	"kgeyst.com/sveta/pkg/sveta/infrastructure/youtube"
@@ -71,11 +71,15 @@ func registerFuctions(sveta api.API, config *common.Config) error {
 	if err != nil {
 		return err
 	}
-	err = gocalculator.RegisterCalcFunction(sveta)
+	/*err = gocalculator.RegisterCalcFunction(sveta)
+	if err != nil {
+		return err
+	}*/
+	err = youtube.RegisterYoutubeSearchFunction(sveta, config)
 	if err != nil {
 		return err
 	}
-	err = youtube.RegisterYoutubeSearchFunction(sveta, config)
+	err = deepseekcoder.RegisterCodeFunction(sveta)
 	if err != nil {
 		return err
 	}

@@ -31,8 +31,8 @@ func RegisterYoutubeSearchFunction(sveta api.API, config *common.Config) error {
 				Description: "the query to use",
 			},
 		},
-		Body: func(context *api.FunctionInput) (api.FunctionOutput, error) {
-			searchQuery := context.Arguments["searchQuery"]
+		Body: func(input *api.FunctionInput) (api.FunctionOutput, error) {
+			searchQuery := input.Arguments["searchQuery"]
 			if searchQuery == "" {
 				return api.FunctionOutput{}, nil
 			}

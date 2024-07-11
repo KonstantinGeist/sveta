@@ -64,7 +64,7 @@ func (r *ResponseService) RespondToMemoriesWithText(memories []*Memory, response
 		return "", nil
 	}
 	dialogAndActionMemories := FilterMemoriesByTypes(memories, []MemoryType{MemoryTypeDialog})
-	languageModel := r.languageModelSelector.Select(memories, responseMode)
+	languageModel := r.languageModelSelector.Select(responseMode)
 	announcedTime := time.Now()
 	summary := r.getSummary(memories)
 	dialogPrompt := languageModel.PromptFormatter().FormatPrompt(FormatOptions{
@@ -96,7 +96,7 @@ func (r *ResponseService) RespondToQueryWithJSON(query string, jsonObject any) e
 		return err
 	}
 	queryMemories := []*Memory{r.memoryFactory.NewMemory(MemoryTypeDialog, "User", query, "")}
-	languageModel := r.languageModelSelector.Select(queryMemories, ResponseModeJSON)
+	languageModel := r.languageModelSelector.Select(ResponseModeJSON)
 	dialogPrompt := languageModel.PromptFormatter().FormatPrompt(FormatOptions{
 		AgentName:                r.aiContext.AgentName,
 		AgentDescription:         r.aiContext.AgentDescription,

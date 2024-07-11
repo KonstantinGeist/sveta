@@ -30,8 +30,8 @@ func RegisterWeatherFunction(sveta api.API) error {
 				Description: "the name of the city for which weather information is explicitly asked",
 			},
 		},
-		Body: func(context *api.FunctionInput) (api.FunctionOutput, error) {
-			city := context.Arguments["city"]
+		Body: func(input *api.FunctionInput) (api.FunctionOutput, error) {
+			city := input.Arguments["city"]
 			city = common.RemoveDoubleQuotesIfAny(city)
 			city = common.RemoveSingleQuotesIfAny(city)
 			spaceIndex := strings.Index(city, " ")

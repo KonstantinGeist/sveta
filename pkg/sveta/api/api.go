@@ -19,6 +19,7 @@ import (
 	"kgeyst.com/sveta/pkg/sveta/infrastructure/filesystem"
 	"kgeyst.com/sveta/pkg/sveta/infrastructure/inmemory"
 	"kgeyst.com/sveta/pkg/sveta/infrastructure/llavacpp"
+	"kgeyst.com/sveta/pkg/sveta/infrastructure/llms/deepseekcoder"
 	"kgeyst.com/sveta/pkg/sveta/infrastructure/llms/llama2"
 	"kgeyst.com/sveta/pkg/sveta/infrastructure/llms/llama3"
 	"kgeyst.com/sveta/pkg/sveta/infrastructure/llms/logging"
@@ -75,7 +76,8 @@ func NewAPI(config *common.Config) (API, common.Stopper) {
 	roleplayLLama2Model := logging.NewLanguageModelDecorator(llama2.NewRoleplayLanguageModel(aiContext, config, logger), logger)
 	genericSolarModel := logging.NewLanguageModelDecorator(solar.NewGenericLanguageModel(aiContext, config, logger), logger)
 	llama3Model := llama3.NewLanguageModel(config, logger)
-	defaultLanguageModelSelector := domain.NewLanguageModelSelector([]domain.LanguageModel{llama3Model})
+	deepSeekCoderModel := deepseekcoder.NewLanguageModel(config, logger)
+	defaultLanguageModelSelector := domain.NewLanguageModelSelector([]domain.LanguageModel{llama3Model, deepSeekCoderModel})
 	roleplayLanguageModelSelector := domain.NewLanguageModelSelector([]domain.LanguageModel{roleplayLLama2Model, genericSolarModel})
 	rerankLanguageModelSelector := domain.NewLanguageModelSelector([]domain.LanguageModel{genericSolarModel})
 	inMemoryMemoryRepository := inmemory.NewMemoryRepository()

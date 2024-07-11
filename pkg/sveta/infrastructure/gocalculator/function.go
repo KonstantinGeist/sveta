@@ -21,8 +21,8 @@ func RegisterCalcFunction(sveta api.API) error {
 				Description: "math expression, using numbers and arithmetic operations only",
 			},
 		},
-		Body: func(context *api.FunctionInput) (api.FunctionOutput, error) {
-			mathExpression := context.Arguments["mathExpression"]
+		Body: func(input *api.FunctionInput) (api.FunctionOutput, error) {
+			mathExpression := input.Arguments["mathExpression"]
 			mathExpression = common.RemoveSingleQuotesIfAny(mathExpression)
 			mathExpression = common.RemoveDoubleQuotesIfAny(mathExpression)
 			if mathExpression == "" {

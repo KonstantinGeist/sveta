@@ -10,6 +10,8 @@ const (
 	ResponseModeJSON
 	// ResponseModeRerank the model is good for reranking
 	ResponseModeRerank
+	// ResponseModeCode the model is good for writing code
+	ResponseModeCode
 )
 
 var ResponseModes = []ResponseMode{

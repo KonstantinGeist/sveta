@@ -25,7 +25,7 @@ func NewLanguageModelSelector(languageModels []LanguageModel) *LanguageModelSele
 
 // Select given a list of memories and the response mode, finds the language model most suitable for the task.
 // TODO not thread-safe
-func (l *LanguageModelSelector) Select(_ []*Memory, responseMode ResponseMode) LanguageModel {
+func (l *LanguageModelSelector) Select(responseMode ResponseMode) LanguageModel {
 	languageModelIndex := l.responseModesToLanguageModelIndices[responseMode]
 	languageModel := l.responseModesToLanguageModels[responseMode][languageModelIndex]
 	l.responseModesToLanguageModelIndices[responseMode] = (languageModelIndex + 1) % (len(l.responseModesToLanguageModels[responseMode]))

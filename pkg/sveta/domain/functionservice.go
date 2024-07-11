@@ -24,8 +24,9 @@ type FunctionParameterDesc struct {
 }
 
 type FunctionInput struct {
-	Arguments map[string]string
-	Input     string
+	Arguments       map[string]string
+	Input           string
+	ResponseService *ResponseService
 }
 
 type FunctionOutput struct {
@@ -34,10 +35,11 @@ type FunctionOutput struct {
 }
 
 type Closure struct {
-	Name      string
-	Arguments map[string]string
-	Input     string
-	Body      FunctionBody
+	Name            string
+	Arguments       map[string]string
+	Input           string
+	Body            FunctionBody
+	ResponseService *ResponseService
 }
 
 type FunctionService struct {
@@ -118,10 +120,11 @@ func (f *FunctionService) CreateClosures(input string) ([]*Closure, error) {
 			}
 		}
 		closures = append(closures, &Closure{
-			Name:      function.Name,
-			Arguments: argMap,
-			Input:     input,
-			Body:      functionDesc.Body,
+			Name:            function.Name,
+			Arguments:       argMap,
+			Input:           input,
+			Body:            functionDesc.Body,
+			ResponseService: f.responseService,
 		})
 	}
 	return closures, nil
@@ -155,8 +158,9 @@ func (f *FunctionService) WithFunctions(names []string) *FunctionService {
 
 func (c *Closure) Invoke() (FunctionOutput, error) {
 	input := &FunctionInput{
-		Arguments: c.Arguments,
-		Input:     c.Input,
+		Arguments:       c.Arguments,
+		Input:           c.Input,
+		ResponseService: c.ResponseService,
 	}
 	return c.Body(input)
 }
@@ -174,7 +178,7 @@ func (f *FunctionService) getQuery(input string) string {
 	}
 	buf.WriteString("```\n")
 	buf.WriteString(fmt.Sprintf("List functions (and their arguments) which I need to call in order to satisfy the user query: \"%s\".\n", input))
-	buf.WriteString("If no function satisfies the user query, return an empty list. DON'T try to use functions if you are not sure. Use only the JSON schema given above.")
+	buf.WriteString("If no function satisfies the user query, return an empty list. DON'T try to use functions if you are not sure. When reasoning, make sure the function solves the user's problem. Use only the JSON schema given above.")
 	return buf.String()
 }
 

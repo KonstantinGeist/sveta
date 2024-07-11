@@ -4,8 +4,11 @@ llama2-roleplay.bin
 solar-generic.bin
 llava.bin
 llava-proj.bin
+deepseekcoder.bin
+llama3.bin
 llama.log
 sveta.log
 main.log
 whisper.bin
 whisper.cpp
+memory.txt
