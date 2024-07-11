@@ -15,7 +15,6 @@ type AIService struct {
 	memoryRepository    MemoryRepository
 	memoryFactory       MemoryFactory
 	summaryRepository   SummaryRepository
-	functionService     *FunctionService
 	aiContext           *AIContext
 	passes              []Pass
 	capabilities        map[string]*Capability
@@ -26,7 +25,6 @@ func NewAIService(
 	memoryRepository MemoryRepository,
 	memoryFactory MemoryFactory,
 	summaryRepository SummaryRepository,
-	functionService *FunctionService,
 	aiContext *AIContext,
 	passes []Pass,
 ) *AIService {
@@ -36,7 +34,6 @@ func NewAIService(
 		memoryRepository:    memoryRepository,
 		memoryFactory:       memoryFactory,
 		summaryRepository:   summaryRepository,
-		functionService:     functionService,
 		aiContext:           aiContext,
 		passes:              passes,
 		capabilities:        capabilities,
@@ -48,7 +45,6 @@ func NewAIService(
 func (a *AIService) Respond(who, what, where string) (string, error) {
 	a.mutex.Lock()
 	defer a.mutex.Unlock()
-	// Done lazily because some capabilities can be created dynamically after RegisterFunction(..)
 	a.lazyLoadCapabilities()
 	inputMemory := a.memoryFactory.NewMemory(MemoryTypeDialog, who, what, where)
 	passContext := NewPassContext().WithMemory(DataKeyInput, inputMemory)
@@ -109,12 +105,6 @@ func (a *AIService) GetSummary(where string) (string, error) {
 		return "", nil
 	}
 	return *summary, nil
-}
-
-func (a *AIService) RegisterFunction(functionDesc FunctionDesc) error {
-	a.mutex.Lock()
-	defer a.mutex.Unlock()
-	return a.functionService.RegisterFunction(functionDesc)
 }
 
 func (a *AIService) ListCapabilities() []string {

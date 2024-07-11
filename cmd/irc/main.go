@@ -9,10 +9,6 @@ import (
 
 	"kgeyst.com/sveta/pkg/common"
 	"kgeyst.com/sveta/pkg/sveta/api"
-	"kgeyst.com/sveta/pkg/sveta/infrastructure/deepseekcoder"
-	"kgeyst.com/sveta/pkg/sveta/infrastructure/openmeteo"
-	"kgeyst.com/sveta/pkg/sveta/infrastructure/wolframalpha"
-	"kgeyst.com/sveta/pkg/sveta/infrastructure/youtube"
 )
 
 func main() {
@@ -40,10 +36,6 @@ func mainImpl() error {
 		}
 	}
 	ircBot, err := hbot.NewBot(serverName, agentName)
-	if err != nil {
-		return err
-	}
-	err = registerFuctions(sveta, config)
 	if err != nil {
 		return err
 	}
@@ -147,26 +139,6 @@ func mainImpl() error {
 	ircBot.Channels = []string{"#" + roomName}
 	ircBot.Run()
 	return nil
-}
-
-func registerFuctions(sveta api.API, config *common.Config) error {
-	err := openmeteo.RegisterWeatherFunction(sveta)
-	if err != nil {
-		return err
-	}
-	/*err = gocalculator.RegisterCalcFunction(sveta)
-	if err != nil {
-		return err
-	}*/
-	err = deepseekcoder.RegisterCodeFunction(sveta)
-	if err != nil {
-		return err
-	}
-	err = youtube.RegisterYoutubeSearchFunction(sveta, config)
-	if err != nil {
-		return err
-	}
-	return wolframalpha.RegisterWolframAlphaFunction(sveta, config)
 }
 
 func getConfigPath() string {

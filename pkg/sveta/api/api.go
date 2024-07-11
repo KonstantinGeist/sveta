@@ -5,7 +5,6 @@ import (
 	"kgeyst.com/sveta/pkg/sveta/domain"
 	"kgeyst.com/sveta/pkg/sveta/domain/passes/bio"
 	"kgeyst.com/sveta/pkg/sveta/domain/passes/facts"
-	"kgeyst.com/sveta/pkg/sveta/domain/passes/function"
 	"kgeyst.com/sveta/pkg/sveta/domain/passes/news"
 	"kgeyst.com/sveta/pkg/sveta/domain/passes/remember"
 	"kgeyst.com/sveta/pkg/sveta/domain/passes/response"
@@ -28,10 +27,6 @@ import (
 	infraweb "kgeyst.com/sveta/pkg/sveta/infrastructure/web"
 	infrawiki "kgeyst.com/sveta/pkg/sveta/infrastructure/wiki"
 )
-
-type FunctionDesc = domain.FunctionDesc
-type FunctionInput = domain.FunctionInput
-type FunctionOutput = domain.FunctionOutput
 
 type api struct {
 	aiService *domain.AIService
@@ -62,7 +57,6 @@ type API interface {
 	ChangeAgentDescription(description string) error
 	ChangeAgentName(name string) error
 	GetSummary(where string) (string, error)
-	RegisterFunction(functionDesc FunctionDesc) error
 	ListCapabilities() []string
 	EnableCapability(name string, value bool) error
 }
@@ -95,7 +89,6 @@ func NewAPI(config *common.Config) (API, common.Stopper) {
 	)
 	roleplayResponseService := defaultResponseService.WithLanguageModelSelector(roleplayLanguageModelSelector)
 	rerankResponseService := defaultResponseService.WithLanguageModelSelector(rerankLanguageModelSelector)
-	functionService := domain.NewFunctionService(aiContext, defaultResponseService, logger)
 	urlFinder := infraweb.NewURLFinder()
 	newsProvider := rss.NewNewsProvider(
 		config.GetStringOrDefault("newsSourceURL", "http://www.independent.co.uk/rss"),
@@ -150,7 +143,6 @@ func NewAPI(config *common.Config) (API, common.Stopper) {
 		config,
 		logger,
 	)
-	functionPass := function.NewPass(memoryFactory, functionService, logger)
 	responsePass := response.NewPass(
 		aiContext,
 		memoryFactory,
@@ -183,7 +175,6 @@ func NewAPI(config *common.Config) (API, common.Stopper) {
 			memoryRepository,
 			memoryFactory,
 			summaryRepository,
-			functionService,
 			aiContext,
 			[]domain.Pass{
 				workingMemoryPass,
@@ -193,7 +184,6 @@ func NewAPI(config *common.Config) (API, common.Stopper) {
 				webPass,
 				visionPass,
 				wikiPass,
-				functionPass,
 				responsePass,
 				rememberPass,
 				summaryPass,
@@ -225,10 +215,6 @@ func (a *api) ChangeAgentName(name string) error {
 
 func (a *api) GetSummary(where string) (string, error) {
 	return a.aiService.GetSummary(where)
-}
-
-func (a *api) RegisterFunction(functionDesc FunctionDesc) error {
-	return a.aiService.RegisterFunction(functionDesc)
 }
 
 func (a *api) ListCapabilities() []string {
