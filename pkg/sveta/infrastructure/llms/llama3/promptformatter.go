@@ -3,8 +3,11 @@ package llama3
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"kgeyst.com/sveta/pkg/sveta/domain"
+
+	"github.com/dustin/go-humanize"
 )
 
 type promptFormatter struct{}
@@ -39,6 +42,14 @@ func (p *promptFormatter) FormatPrompt(options domain.FormatOptions) string {
 		memory := options.Memories[i]
 		buf.WriteString("<|start_header_id|>")
 		buf.WriteString(memory.Who)
+		if !memory.When.IsZero() {
+			diff := time.Now().Sub(memory.When)
+			if diff > time.Minute {
+				buf.WriteString(" (said ")
+				buf.WriteString(humanize.Time(memory.When))
+				buf.WriteString(")")
+			}
+		}
 		buf.WriteString("<|end_header_id|\n")
 		buf.WriteString(memory.What)
 		buf.WriteString("<|eot_id|>")

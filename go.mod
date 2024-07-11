@@ -7,6 +7,7 @@ toolchain go1.21.12
 require (
 	github.com/PuerkitoBio/goquery v1.8.1
 	github.com/chzyer/readline v1.5.1
+	github.com/dustin/go-humanize v1.0.1
 	github.com/google/uuid v1.6.0
 	github.com/juju/clock v1.0.2
 	github.com/juju/mutex v0.0.0-20180619145857-d21b13acf4bf

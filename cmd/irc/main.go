@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"strings"
 
@@ -51,6 +52,27 @@ func mainImpl() error {
 			return true
 		},
 		func(b *hbot.Bot, m *hbot.Message) bool {
+			if m.Command == "JOIN" && m.From != agentName {
+				err := sveta.RememberDialog(m.From, "Hi! I just joined the chat.", m.Content[1:])
+				if err != nil {
+					fmt.Println(err)
+				}
+				return true
+			}
+			if m.Command == "PART" && m.From != agentName {
+				err := sveta.RememberDialog(m.From, "I'm leaving the chat.", m.Content[1:])
+				if err != nil {
+					fmt.Println(err)
+				}
+				return true
+			}
+			if m.Command == "NICK" && m.From != agentName {
+				err := sveta.RememberDialog(m.From, "I'm now changing my nickname in this chat to "+m.To, m.Content[1:])
+				if err != nil {
+					fmt.Println(err)
+				}
+				return true
+			}
 			if m.Command != "PRIVMSG" {
 				return true
 			}

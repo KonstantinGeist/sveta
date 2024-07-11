@@ -3,6 +3,9 @@ package common
 import (
 	"fmt"
 	"strings"
+	"time"
+
+	"github.com/dustin/go-humanize"
 
 	"kgeyst.com/sveta/pkg/sveta/domain"
 )
@@ -37,6 +40,14 @@ func (p *AlpacataPromptFormatter) FormatPrompt(options domain.FormatOptions) str
 		memory := options.Memories[i]
 		buf.WriteString("### ")
 		buf.WriteString(memory.Who)
+		if !memory.When.IsZero() {
+			diff := time.Now().Sub(memory.When)
+			if diff > time.Minute {
+				buf.WriteString(" (said ")
+				buf.WriteString(humanize.Time(memory.When))
+				buf.WriteString(")")
+			}
+		}
 		buf.WriteString(":\n")
 		buf.WriteString(memory.What)
 		buf.WriteString("\n\n")
