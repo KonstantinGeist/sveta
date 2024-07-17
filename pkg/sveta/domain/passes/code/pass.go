@@ -3,11 +3,7 @@ package code
 import (
 	"errors"
 	"fmt"
-	"io"
-	"os"
-	"os/exec"
 	"strings"
-	"time"
 
 	"kgeyst.com/sveta/pkg/common"
 	"kgeyst.com/sveta/pkg/sveta/domain"
@@ -15,7 +11,6 @@ import (
 )
 
 // TODO get file paths from the config
-// TODO use DI for launching in docker, for writing to file etc.
 // TODO try input and rewritteInpit one by one if rewrittenInput is not satisfied?
 // TODO files not created for some reason
 // TODO maybe always prepend "here is the output: " to make evaluator pass
@@ -32,7 +27,7 @@ type pass struct {
 	memoryFactory       domain.MemoryFactory
 	codeResponseService *domain.ResponseService
 	jsonResponseService *domain.ResponseService
-	namedMutexAcquirer  domain.NamedMutexAcquirer
+	runner              Runner
 	logger              common.Logger
 }
 
@@ -41,7 +36,7 @@ func NewPass(
 	memoryFactory domain.MemoryFactory,
 	codeResponseService *domain.ResponseService,
 	jsonResponseService *domain.ResponseService,
-	namedMutexAcquirer domain.NamedMutexAcquirer,
+	runner Runner,
 	logger common.Logger,
 ) domain.Pass {
 	return &pass{
@@ -49,7 +44,7 @@ func NewPass(
 		memoryFactory:       memoryFactory,
 		codeResponseService: codeResponseService,
 		jsonResponseService: jsonResponseService,
-		namedMutexAcquirer:  namedMutexAcquirer,
+		runner:              runner,
 		logger:              logger,
 	}
 }
@@ -71,20 +66,15 @@ func (p *pass) Apply(context *domain.PassContext, nextPassFunc domain.NextPassFu
 	input := inputMemory.What
 	code, err := p.generateCode(input)
 	if err != nil && !errors.Is(err, domain.ErrFailedToResponse) {
-		p.logger.Log("failed to generate Python code")
+		p.logger.Log("failed to generate Python code: " + err.Error())
 		return nextPassFunc(context)
 	}
 	if code == "" {
 		return nextPassFunc(context)
 	}
-	err = p.preparePythonFile(code)
+	result, err := p.runner.Run(code)
 	if err != nil {
-		p.logger.Log("failed to prepare Python file")
-		return nextPassFunc(context)
-	}
-	result, err := p.runCodeInDocker()
-	if err != nil {
-		p.logger.Log("failed to run Python file")
+		p.logger.Log("failed to run code: " + err.Error())
 		return nextPassFunc(context)
 	}
 	if result == "" {
@@ -92,7 +82,7 @@ func (p *pass) Apply(context *domain.PassContext, nextPassFunc domain.NextPassFu
 	}
 	satisfies, err := p.satifies(input, result)
 	if err != nil {
-		p.logger.Log("failed to evaluate if the answer satisfies the question/task")
+		p.logger.Log("failed to evaluate if the answer satisfies the question/task: " + err.Error())
 		return nextPassFunc(context)
 	}
 	if !satisfies {
@@ -133,45 +123,4 @@ func (p *pass) getCodeResponseService() *domain.ResponseService {
 func (p *pass) getEvaluatorResponseService() *domain.ResponseService {
 	rankerAIContext := domain.NewAIContext("EvaluatorLLM", "You are EvaluatorLLM, an intelligent assistant which decides if the answer satisfies the question/task.", "")
 	return p.jsonResponseService.WithAIContext(rankerAIContext)
-}
-
-func (p *pass) runCodeInDocker() (string, error) {
-	namedMutex, err := p.namedMutexAcquirer.AcquireNamedMutex("codePassDocker", time.Minute)
-	if err != nil {
-		return "", err
-	}
-	defer namedMutex.Release()
-	cmd := exec.Command("docker", "run", "-v", fmt.Sprintf("%s/sandbox:/usr/src/app", os.Getenv("PWD")), "python:3-alpine", "python", "/usr/src/app/code.py") // Create a pipe to capture the output
-	stdout, err := cmd.StdoutPipe()
-	if err != nil {
-		return "", err
-	}
-	err = cmd.Start()
-	if err != nil {
-		return "", err
-	}
-	output, err := io.ReadAll(stdout)
-	if err != nil {
-		return "", err
-	}
-	err = cmd.Wait()
-	if err != nil {
-		return "", err
-	}
-	return strings.TrimSpace(string(output)), nil
-}
-
-func (p *pass) preparePythonFile(content string) error {
-	file, err := os.Create("sandbox/code.py")
-	if err != nil {
-		return err
-	}
-	defer func() {
-		_ = file.Close()
-	}()
-	_, err = file.WriteString(content)
-	if err != nil {
-		return err
-	}
-	return nil
 }

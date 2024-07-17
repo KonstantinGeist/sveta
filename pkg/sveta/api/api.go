@@ -16,6 +16,7 @@ import (
 	domainweb "kgeyst.com/sveta/pkg/sveta/domain/passes/web"
 	domainwiki "kgeyst.com/sveta/pkg/sveta/domain/passes/wiki"
 	"kgeyst.com/sveta/pkg/sveta/domain/passes/workingmemory"
+	"kgeyst.com/sveta/pkg/sveta/infrastructure/docker"
 	"kgeyst.com/sveta/pkg/sveta/infrastructure/embed4all"
 	"kgeyst.com/sveta/pkg/sveta/infrastructure/filesystem"
 	"kgeyst.com/sveta/pkg/sveta/infrastructure/inmemory"
@@ -156,12 +157,13 @@ func NewAPI(config *common.Config) (API, common.Stopper) {
 		config,
 		logger,
 	)
+	codeRunner := docker.NewCodeRunner(namedMutexAcquirer)
 	codePass := code.NewPass(
 		aiContext,
 		memoryFactory,
 		codeResponseService,
 		defaultResponseService,
-		namedMutexAcquirer,
+		codeRunner,
 		logger,
 	)
 	responsePass := response.NewPass(
