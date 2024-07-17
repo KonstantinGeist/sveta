@@ -58,6 +58,12 @@ func (r *ResponseService) WithLanguageModelSelector(selector *LanguageModelSelec
 	return &clone
 }
 
+func (r *ResponseService) WithRetryCount(retryCount int) *ResponseService {
+	clone := *r
+	clone.retryCount = retryCount
+	return &clone
+}
+
 // RespondToMemoriesWithText responds to the given list of memories as a large language model.
 func (r *ResponseService) RespondToMemoriesWithText(memories []*Memory, responseMode ResponseMode) (string, error) {
 	if len(memories) == 0 {

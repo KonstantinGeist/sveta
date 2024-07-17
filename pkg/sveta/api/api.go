@@ -4,6 +4,7 @@ import (
 	"kgeyst.com/sveta/pkg/common"
 	"kgeyst.com/sveta/pkg/sveta/domain"
 	"kgeyst.com/sveta/pkg/sveta/domain/passes/bio"
+	"kgeyst.com/sveta/pkg/sveta/domain/passes/code"
 	"kgeyst.com/sveta/pkg/sveta/domain/passes/facts"
 	"kgeyst.com/sveta/pkg/sveta/domain/passes/news"
 	"kgeyst.com/sveta/pkg/sveta/domain/passes/remember"
@@ -71,9 +72,10 @@ func NewAPI(config *common.Config) (API, common.Stopper) {
 	genericSolarModel := logging.NewLanguageModelDecorator(solar.NewGenericLanguageModel(aiContext, config, logger), logger)
 	llama3Model := llama3.NewLanguageModel(config, logger)
 	deepSeekCoderModel := deepseekcoder.NewLanguageModel(config, logger)
-	defaultLanguageModelSelector := domain.NewLanguageModelSelector([]domain.LanguageModel{llama3Model, deepSeekCoderModel})
+	defaultLanguageModelSelector := domain.NewLanguageModelSelector([]domain.LanguageModel{llama3Model})
 	roleplayLanguageModelSelector := domain.NewLanguageModelSelector([]domain.LanguageModel{roleplayLLama2Model, genericSolarModel})
 	rerankLanguageModelSelector := domain.NewLanguageModelSelector([]domain.LanguageModel{genericSolarModel})
+	codeLanguageModelSelector := domain.NewLanguageModelSelector([]domain.LanguageModel{deepSeekCoderModel})
 	inMemoryMemoryRepository := inmemory.NewMemoryRepository()
 	memoryRepository := filesystem.NewMemoryRepository(inMemoryMemoryRepository, config, logger)
 	memoryFactory := inmemory.NewMemoryFactory(memoryRepository, embedder)
@@ -89,6 +91,7 @@ func NewAPI(config *common.Config) (API, common.Stopper) {
 	)
 	roleplayResponseService := defaultResponseService.WithLanguageModelSelector(roleplayLanguageModelSelector)
 	rerankResponseService := defaultResponseService.WithLanguageModelSelector(rerankLanguageModelSelector)
+	codeResponseService := defaultResponseService.WithLanguageModelSelector(codeLanguageModelSelector)
 	urlFinder := infraweb.NewURLFinder()
 	newsProvider := rss.NewNewsProvider(
 		config.GetStringOrDefault("newsSourceURL", "http://www.independent.co.uk/rss"),
@@ -143,6 +146,13 @@ func NewAPI(config *common.Config) (API, common.Stopper) {
 		config,
 		logger,
 	)
+	codePass := code.NewPass(
+		aiContext,
+		memoryFactory,
+		codeResponseService,
+		defaultResponseService,
+		logger,
+	)
 	responsePass := response.NewPass(
 		aiContext,
 		memoryFactory,
@@ -184,6 +194,7 @@ func NewAPI(config *common.Config) (API, common.Stopper) {
 				webPass,
 				visionPass,
 				wikiPass,
+				codePass,
 				responsePass,
 				rememberPass,
 				summaryPass,
