@@ -19,7 +19,8 @@ var commonWordEndings = []string{
 }
 
 type WordFrequencyProvider struct {
-	words map[string]int
+	wordsToPositions map[string]int
+	positionsToWords map[int]string
 }
 
 func NewWordFrequencyProvider(
@@ -28,22 +29,25 @@ func NewWordFrequencyProvider(
 ) *WordFrequencyProvider {
 	filePath := config.GetStringOrDefault("wordFrequencyFilePath", "word_frequencies.txt")
 	lines, err := common.ReadAllLines(filePath)
-	words := make(map[string]int)
+	wordsToPositions := make(map[string]int)
+	positionsToWords := make(map[int]string)
 	if err == nil {
 		for index, line := range lines {
-			words[line] = index
+			wordsToPositions[line] = index
+			positionsToWords[index] = line
 		}
 	} else {
 		logger.Log("failed to load word frequency list: " + err.Error())
 	}
 	return &WordFrequencyProvider{
-		words: words,
+		wordsToPositions: wordsToPositions,
+		positionsToWords: positionsToWords,
 	}
 }
 
 func (w *WordFrequencyProvider) GetPosition(word string) int {
 	word = strings.ToLower(word)
-	frequency, ok := w.words[word]
+	frequency, ok := w.wordsToPositions[word]
 	if ok {
 		return frequency
 	}
@@ -52,10 +56,18 @@ func (w *WordFrequencyProvider) GetPosition(word string) int {
 			continue
 		}
 		wordWithoutEnding := word[0 : len(word)-len(commonWordEnding)]
-		frequency, ok = w.words[wordWithoutEnding]
+		frequency, ok = w.wordsToPositions[wordWithoutEnding]
 		if ok {
 			return frequency
 		}
 	}
 	return -1
+}
+
+func (w *WordFrequencyProvider) MaxPosition() int {
+	return len(w.wordsToPositions)
+}
+
+func (w *WordFrequencyProvider) GetWordAtPosition(position int) string {
+	return w.positionsToWords[position]
 }

@@ -6,6 +6,7 @@ import (
 	"kgeyst.com/sveta/pkg/sveta/domain/passes/bio"
 	"kgeyst.com/sveta/pkg/sveta/domain/passes/code"
 	"kgeyst.com/sveta/pkg/sveta/domain/passes/facts"
+	"kgeyst.com/sveta/pkg/sveta/domain/passes/inspire"
 	"kgeyst.com/sveta/pkg/sveta/domain/passes/news"
 	"kgeyst.com/sveta/pkg/sveta/domain/passes/remember"
 	"kgeyst.com/sveta/pkg/sveta/domain/passes/response"
@@ -96,6 +97,14 @@ func NewAPI(config *common.Config) (API, common.Stopper) {
 	newsProvider := rss.NewNewsProvider(
 		config.GetStringOrDefault("newsSourceURL", "http://www.independent.co.uk/rss"),
 	)
+	wordFrequencyProvider := filesystem.NewWordFrequencyProvider(config, logger)
+	inspirePass := inspire.NewPass(
+		aiContext,
+		memoryFactory,
+		roleplayResponseService,
+		wordFrequencyProvider,
+		logger,
+	)
 	workingMemoryPass := workingmemory.NewPass(
 		memoryRepository,
 		memoryFactory,
@@ -136,7 +145,6 @@ func NewAPI(config *common.Config) (API, common.Stopper) {
 		config,
 		logger,
 	)
-	wordFrequencyProvider := filesystem.NewWordFrequencyProvider(config, logger)
 	wikiPass := domainwiki.NewPass(
 		defaultResponseService,
 		memoryFactory,
@@ -187,6 +195,7 @@ func NewAPI(config *common.Config) (API, common.Stopper) {
 			summaryRepository,
 			aiContext,
 			[]domain.Pass{
+				inspirePass,
 				workingMemoryPass,
 				newsPass,
 				bioPass,
