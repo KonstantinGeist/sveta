@@ -15,7 +15,6 @@ import (
 )
 
 // TODO get file paths from the config
-// TODO add docker dependency to README
 // TODO use DI for launching in docker, for writing to file etc.
 // TODO try input and rewritteInpit one by one if rewrittenInput is not satisfied?
 // TODO files not created for some reason

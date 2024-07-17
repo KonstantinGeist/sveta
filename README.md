@@ -16,5 +16,6 @@ Abstractions are introduced only when actually needed.
 3. Install Python 3 and Embed4All (used for embeddings for now):
    - pip install gpt4all
 4. Download https://huggingface.co/mys/ggml_llava-v1.5-7b/resolve/main/ggml-model-q4_k.gguf and https://huggingface.co/mys/ggml_llava-v1.5-7b/resolve/main/mmproj-model-f16.gguf and copy into ./bin/llava.bin and ./bin/llava-proj.bin respectively.
+5. Make sure Docker is installed (for the code pass).
 
 With this set, you can run cmd/console/main.go or cmd/irc/main.go to interact with the AI agent. Tested on Nvidia RTX 3060.
