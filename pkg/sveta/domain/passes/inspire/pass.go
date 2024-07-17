@@ -12,10 +12,7 @@ import (
 
 const inspireCapability = "inspire"
 
-type WordFrequencyProvider interface {
-	MaxPosition() int
-	GetWordAtPosition(position int) string
-}
+const keywordCount = 3
 
 type pass struct {
 	aiContext             *domain.AIContext
@@ -79,7 +76,7 @@ func (p *pass) Apply(context *domain.PassContext, nextPassFunc domain.NextPassFu
 
 func (p *pass) getRandomWords() []string {
 	var words []string
-	for i := 0; i < 3; i++ {
+	for i := 0; i < keywordCount; i++ {
 		randomPosition := rand.Intn(p.wordFrequencyProvider.MaxPosition())
 		word := p.wordFrequencyProvider.GetWordAtPosition(randomPosition)
 		if word == "" {
