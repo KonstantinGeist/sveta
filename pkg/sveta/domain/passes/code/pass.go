@@ -144,17 +144,19 @@ func (p *pass) runCodeInDocker() (string, error) {
 	cmd := exec.Command("docker", "run", "-v", fmt.Sprintf("%s/sandbox:/usr/src/app", os.Getenv("PWD")), "python:3-alpine", "python", "/usr/src/app/code.py") // Create a pipe to capture the output
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
-		return "", fmt.Errorf("error creating stdout pipe: %w", err)
+		return "", err
 	}
-	if err := cmd.Start(); err != nil {
-		return "", fmt.Errorf("error starting command: %w", err)
+	err = cmd.Start()
+	if err != nil {
+		return "", err
 	}
 	output, err := io.ReadAll(stdout)
 	if err != nil {
-		return "", fmt.Errorf("error reading stdout: %w", err)
+		return "", err
 	}
-	if err := cmd.Wait(); err != nil {
-		return "", fmt.Errorf("command failed: %w", err)
+	err = cmd.Wait()
+	if err != nil {
+		return "", err
 	}
 	return strings.TrimSpace(string(output)), nil
 }
