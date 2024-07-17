@@ -7,7 +7,12 @@ import (
 	llmscommon "kgeyst.com/sveta/pkg/sveta/infrastructure/llms/common"
 )
 
-func NewRoleplayLanguageModel(aiContext *domain.AIContext, config *common.Config, logger common.Logger) *llamacpp.LanguageModel {
+func NewRoleplayLanguageModel(
+	aiContext *domain.AIContext,
+	namedMutexAcquirer domain.NamedMutexAcquirer,
+	config *common.Config,
+	logger common.Logger,
+) *llamacpp.LanguageModel {
 	return llamacpp.NewLanguageModel(
 		"llama2-roleplay",
 		"llama2-roleplay.bin",
@@ -15,6 +20,7 @@ func NewRoleplayLanguageModel(aiContext *domain.AIContext, config *common.Config
 		llmscommon.NewAlpacaPromptFormatter(),
 		llmscommon.NewAlpacaStopCondition(aiContext),
 		llmscommon.NewAlpacaResponseCleaner(),
+		namedMutexAcquirer,
 		config,
 		logger,
 	)

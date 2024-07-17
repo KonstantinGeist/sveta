@@ -10,9 +10,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/juju/clock"
-	namedmutex "github.com/juju/mutex"
-
 	"kgeyst.com/sveta/pkg/common"
 	"kgeyst.com/sveta/pkg/sveta/domain"
 )
@@ -40,6 +37,7 @@ type LanguageModel struct {
 	promptFormatter    domain.PromptFormatter
 	stopCondition      domain.StopCondition
 	responseCleaner    domain.ResponseCleaner
+	namedMutexAcquirer domain.NamedMutexAcquirer
 	defaultTemperature float64
 	contextSize        int
 	gpuLayerCount      int
@@ -62,6 +60,7 @@ func NewLanguageModel(
 	promptFormatter domain.PromptFormatter,
 	stopCondition domain.StopCondition,
 	responseCleaner domain.ResponseCleaner,
+	namedMutexAcquirer domain.NamedMutexAcquirer,
 	config *common.Config,
 	logger common.Logger,
 ) *LanguageModel {
@@ -72,6 +71,7 @@ func NewLanguageModel(
 		promptFormatter:    promptFormatter,
 		stopCondition:      stopCondition,
 		responseCleaner:    responseCleaner,
+		namedMutexAcquirer: namedMutexAcquirer,
 		logger:             logger,
 		defaultTemperature: config.GetFloatOrDefault(ConfigKeyLLMDefaultTemperature, 0.7),
 		contextSize:        config.GetIntOrDefault(ConfigKeyLLMContextSize, 4096),
@@ -89,11 +89,11 @@ func (l *LanguageModel) ResponseModes() []domain.ResponseMode {
 func (l *LanguageModel) Complete(prompt string, options domain.CompleteOptions) (string, error) {
 	// Only 1 request can be processed at a time currently because we run Sveta on commodity hardware which can't
 	// usually process two requests simultaneously due to low amounts of VRAM.
-	mutexReleaser, err := acquireMutex()
+	namedMutex, err := l.namedMutexAcquirer.AcquireNamedMutex("llamaCPP", time.Minute)
 	if err != nil {
 		return "", err
 	}
-	defer mutexReleaser.Release()
+	defer namedMutex.Release()
 	command, err := l.buildInferCommand(options)
 	if err != nil {
 		return "", err
@@ -182,13 +182,4 @@ func runInferCommand(cmdstr, prompt string, responseTimeout time.Duration, proce
 	}
 	wg.Wait()
 	return cmd.Wait()
-}
-
-func acquireMutex() (namedmutex.Releaser, error) {
-	return namedmutex.Acquire(namedmutex.Spec{
-		Name:    "svetaLLMMutex",
-		Clock:   clock.WallClock,
-		Delay:   time.Second,
-		Timeout: time.Minute,
-	})
 }

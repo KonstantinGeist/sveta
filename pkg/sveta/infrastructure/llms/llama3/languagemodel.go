@@ -6,7 +6,11 @@ import (
 	"kgeyst.com/sveta/pkg/sveta/infrastructure/llamacpp"
 )
 
-func NewLanguageModel(config *common.Config, logger common.Logger) *llamacpp.LanguageModel {
+func NewLanguageModel(
+	namedMutexAcquirer domain.NamedMutexAcquirer,
+	config *common.Config,
+	logger common.Logger,
+) *llamacpp.LanguageModel {
 	return llamacpp.NewLanguageModel(
 		"llama3",
 		"llama3.bin",
@@ -14,6 +18,7 @@ func NewLanguageModel(config *common.Config, logger common.Logger) *llamacpp.Lan
 		newPromptFormatter(),
 		newStopCondition(),
 		newResponseCleaner(),
+		namedMutexAcquirer,
 		config,
 		logger,
 	)

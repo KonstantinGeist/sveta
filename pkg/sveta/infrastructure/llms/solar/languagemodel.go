@@ -7,7 +7,12 @@ import (
 	llmscommon "kgeyst.com/sveta/pkg/sveta/infrastructure/llms/common"
 )
 
-func NewGenericLanguageModel(aiContext *domain.AIContext, config *common.Config, logger common.Logger) *llamacpp.LanguageModel {
+func NewGenericLanguageModel(
+	aiContext *domain.AIContext,
+	namedMutexAcquirer domain.NamedMutexAcquirer,
+	config *common.Config,
+	logger common.Logger,
+) *llamacpp.LanguageModel {
 	return llamacpp.NewLanguageModel(
 		"solar-generic",
 		"solar-generic.bin",
@@ -15,6 +20,7 @@ func NewGenericLanguageModel(aiContext *domain.AIContext, config *common.Config,
 		llmscommon.NewAlpacaPromptFormatter(),
 		llmscommon.NewAlpacaStopCondition(aiContext),
 		llmscommon.NewAlpacaResponseCleaner(),
+		namedMutexAcquirer,
 		config,
 		logger,
 	)
