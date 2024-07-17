@@ -161,6 +161,7 @@ func NewAPI(config *common.Config) (API, common.Stopper) {
 		memoryFactory,
 		codeResponseService,
 		defaultResponseService,
+		namedMutexAcquirer,
 		logger,
 	)
 	responsePass := response.NewPass(

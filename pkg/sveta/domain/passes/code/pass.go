@@ -7,13 +7,13 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"time"
 
 	"kgeyst.com/sveta/pkg/common"
 	"kgeyst.com/sveta/pkg/sveta/domain"
 	"kgeyst.com/sveta/pkg/sveta/domain/passes/response"
 )
 
-// TODO a mutex
 // TODO get file paths from the config
 // TODO add docker dependency to README
 // TODO use DI for launching in docker, for writing to file etc.
@@ -33,6 +33,7 @@ type pass struct {
 	memoryFactory       domain.MemoryFactory
 	codeResponseService *domain.ResponseService
 	jsonResponseService *domain.ResponseService
+	namedMutexAcquirer  domain.NamedMutexAcquirer
 	logger              common.Logger
 }
 
@@ -41,6 +42,7 @@ func NewPass(
 	memoryFactory domain.MemoryFactory,
 	codeResponseService *domain.ResponseService,
 	jsonResponseService *domain.ResponseService,
+	namedMutexAcquirer domain.NamedMutexAcquirer,
 	logger common.Logger,
 ) domain.Pass {
 	return &pass{
@@ -48,6 +50,7 @@ func NewPass(
 		memoryFactory:       memoryFactory,
 		codeResponseService: codeResponseService,
 		jsonResponseService: jsonResponseService,
+		namedMutexAcquirer:  namedMutexAcquirer,
 		logger:              logger,
 	}
 }
@@ -134,6 +137,11 @@ func (p *pass) getEvaluatorResponseService() *domain.ResponseService {
 }
 
 func (p *pass) runCodeInDocker() (string, error) {
+	namedMutex, err := p.namedMutexAcquirer.AcquireNamedMutex("codePassDocker", time.Minute)
+	if err != nil {
+		return "", err
+	}
+	defer namedMutex.Release()
 	cmd := exec.Command("docker", "run", "-v", fmt.Sprintf("%s/sandbox:/usr/src/app", os.Getenv("PWD")), "python:3-alpine", "python", "/usr/src/app/code.py") // Create a pipe to capture the output
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
