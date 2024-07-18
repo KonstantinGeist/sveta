@@ -10,8 +10,6 @@ import (
 	"kgeyst.com/sveta/pkg/sveta/domain/passes/workingmemory"
 )
 
-const DataKeyOutput = "output"
-
 const responseCapability = "response"
 const episodicMemoryCapability = "episodicMemory"
 const rerankCapability = "rerank"
@@ -91,6 +89,11 @@ func (p *pass) Apply(context *domain.PassContext, nextPassFunc domain.NextPassFu
 	if !context.IsCapabilityEnabled(responseCapability) {
 		return nextPassFunc(context)
 	}
+	// ignore this pass if some previous pass already generated the output
+	outputMemory := context.Memory(domain.DataKeyOutput)
+	if outputMemory != nil {
+		return nextPassFunc(context)
+	}
 	rewrittenInputMemory := context.MemoryCoalesced([]string{rewrite.DataKeyRewrittenInput, domain.DataKeyInput})
 	if rewrittenInputMemory == nil {
 		return nextPassFunc(context)
@@ -109,7 +112,7 @@ func (p *pass) Apply(context *domain.PassContext, nextPassFunc domain.NextPassFu
 		return err
 	}
 	responseMemory := p.memoryFactory.NewMemory(domain.MemoryTypeDialog, p.aiContext.AgentName, response, inputMemory.Where)
-	return nextPassFunc(context.WithMemory(DataKeyOutput, responseMemory))
+	return nextPassFunc(context.WithMemory(domain.DataKeyOutput, responseMemory))
 }
 
 // recallFromEpisodicMemory finds memories in the so-called "episodic memory", or long-term memory which may contain memories from long ago

@@ -7,7 +7,6 @@ import (
 
 	"kgeyst.com/sveta/pkg/common"
 	"kgeyst.com/sveta/pkg/sveta/domain"
-	"kgeyst.com/sveta/pkg/sveta/domain/passes/response"
 )
 
 const inspireCapability = "inspire"
@@ -70,7 +69,7 @@ func (p *pass) Apply(context *domain.PassContext, nextPassFunc domain.NextPassFu
 		return nextPassFunc(context)
 	}
 	outputMemory := p.memoryFactory.NewMemory(domain.MemoryTypeDialog, p.aiContext.AgentName, quote, inputMemory.Where)
-	context.Data[response.DataKeyOutput] = outputMemory
+	context.Data[domain.DataKeyOutput] = outputMemory
 	return nil
 }
 

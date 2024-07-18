@@ -7,7 +7,6 @@ import (
 
 	"kgeyst.com/sveta/pkg/common"
 	"kgeyst.com/sveta/pkg/sveta/domain"
-	"kgeyst.com/sveta/pkg/sveta/domain/passes/response"
 )
 
 // TODO get file paths from the config
@@ -70,6 +69,7 @@ func (p *pass) Apply(context *domain.PassContext, nextPassFunc domain.NextPassFu
 		return nextPassFunc(context)
 	}
 	if code == "" {
+		p.logger.Log("CODE refused to answer\n")
 		return nextPassFunc(context)
 	}
 	result, err := p.runner.Run(code)
@@ -89,8 +89,8 @@ func (p *pass) Apply(context *domain.PassContext, nextPassFunc domain.NextPassFu
 		return nextPassFunc(context)
 	}
 	outputMemory := p.memoryFactory.NewMemory(domain.MemoryTypeDialog, p.aiContext.AgentName, result, inputMemory.Where)
-	context.Data[response.DataKeyOutput] = outputMemory
-	return nil
+	context.Data[domain.DataKeyOutput] = outputMemory
+	return nextPassFunc(context)
 }
 
 func (p *pass) generateCode(input string) (string, error) {
@@ -105,12 +105,13 @@ func (p *pass) satifies(input, result string) (bool, error) {
 		ReturnedValue string `json:"returnedValue"`
 	}
 	err := p.getEvaluatorResponseService().RespondToQueryWithJSON(
-		fmt.Sprintf("Question or task: \"%s\".\nAnswer: \"%s\".\n\nDoes the answer satisfy the question/task? Return only yes or no.\n", input, result),
+		fmt.Sprintf("Question or task: \"%s\".\nAnswer: \"%s\".\n\nDoes the answer appear to satisfy the question/task? Provide the reasoning and return only yes or no.\n", input, result),
 		&output,
 	)
 	if err != nil {
 		return false, err
 	}
+	p.logger.Log(fmt.Sprintf("\n\nCODE input: \"%s\", result: \"%s\", reasoning: \"%s\", returnedValue: \"%s\"\n\n", input, result, output.Reasoning, output.ReturnedValue))
 	returnedValue := strings.ToLower(strings.TrimSpace(output.ReturnedValue))
 	return returnedValue == "yes", nil
 }
