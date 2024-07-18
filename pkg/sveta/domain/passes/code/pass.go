@@ -22,29 +22,35 @@ import (
 const codeCapability = "code"
 
 type pass struct {
-	aiContext           *domain.AIContext
-	memoryFactory       domain.MemoryFactory
-	codeResponseService *domain.ResponseService
-	jsonResponseService *domain.ResponseService
-	runner              Runner
-	logger              common.Logger
+	aiContext             *domain.AIContext
+	memoryFactory         domain.MemoryFactory
+	summaryRepository     domain.SummaryRepository
+	codeResponseService   *domain.ResponseService
+	jsonResponseService   *domain.ResponseService
+	normalResponseService *domain.ResponseService
+	runner                Runner
+	logger                common.Logger
 }
 
 func NewPass(
 	aiContext *domain.AIContext,
 	memoryFactory domain.MemoryFactory,
+	summaryRepository domain.SummaryRepository,
 	codeResponseService *domain.ResponseService,
 	jsonResponseService *domain.ResponseService,
+	normalResponseService *domain.ResponseService,
 	runner Runner,
 	logger common.Logger,
 ) domain.Pass {
 	return &pass{
-		aiContext:           aiContext,
-		memoryFactory:       memoryFactory,
-		codeResponseService: codeResponseService,
-		jsonResponseService: jsonResponseService,
-		runner:              runner,
-		logger:              logger,
+		aiContext:             aiContext,
+		memoryFactory:         memoryFactory,
+		summaryRepository:     summaryRepository,
+		codeResponseService:   codeResponseService,
+		jsonResponseService:   jsonResponseService,
+		normalResponseService: normalResponseService,
+		runner:                runner,
+		logger:                logger,
 	}
 }
 
@@ -88,6 +94,19 @@ func (p *pass) Apply(context *domain.PassContext, nextPassFunc domain.NextPassFu
 	if !satisfies {
 		return nextPassFunc(context)
 	}
+	reformulatedResult, err := p.reformulate(input, result, inputMemory.Where)
+	if err != nil {
+		p.logger.Log("failed to reformulate the answer: " + err.Error())
+	} else {
+		if reformulatedResult != "" {
+			satisfies, err = p.satifies(input, reformulatedResult)
+			if err != nil {
+				p.logger.Log("failed to evaluate if the answer satisfies the question/task: " + err.Error())
+			} else {
+				result = reformulatedResult
+			}
+		}
+	}
 	outputMemory := p.memoryFactory.NewMemory(domain.MemoryTypeDialog, p.aiContext.AgentName, result, inputMemory.Where)
 	context.Data[domain.DataKeyOutput] = outputMemory
 	return nextPassFunc(context)
@@ -105,7 +124,7 @@ func (p *pass) satifies(input, result string) (bool, error) {
 		ReturnedValue string `json:"returnedValue"`
 	}
 	err := p.getEvaluatorResponseService().RespondToQueryWithJSON(
-		fmt.Sprintf("Question or task: \"%s\".\nAnswer: \"%s\".\n\nDoes the answer appear to satisfy the question/task? Provide the reasoning and return only yes or no.\n", input, result),
+		fmt.Sprintf("Question or task: \"%s\".\nAnswer: \"%s\".\n\nDoes the answer appear to satisfy the question/task? Provide the reasoning and return only yes or no. Answer yes even if the answer is not entirely accurate.\n", input, result),
 		&output,
 	)
 	if err != nil {
@@ -116,6 +135,28 @@ func (p *pass) satifies(input, result string) (bool, error) {
 	return returnedValue == "yes", nil
 }
 
+func (p *pass) reformulate(input, output, where string) (string, error) {
+	summary, err := p.summaryRepository.FindByWhere(where)
+	if err != nil {
+		return "", err
+	}
+	if summary == nil {
+		defaultSummary := "no summary"
+		summary = &defaultSummary
+	}
+	what := fmt.Sprintf("Chat summary: \"%s\". Persona: \"%s\". Question or task: \"%s\". Answer: \"%s\". Reformulate the answer in accordance with the provided persona and the chat summary. Output only the reformulated answer and nothing else. The reformulated answer must preserve the original meaning/answer.", *summary, p.aiContext.AgentDescription, input, output)
+	memoryToReformulate := p.memoryFactory.NewMemory(domain.MemoryTypeDialog, p.aiContext.AgentName, what, where)
+	reformulated, err := p.getPersonaResponseService().RespondToMemoriesWithText([]*domain.Memory{memoryToReformulate}, domain.ResponseModeNormal)
+	if err != nil {
+		return "", err
+	}
+	reformulated = strings.TrimSpace(reformulated)
+	if len(reformulated) > 2 && reformulated[0] == '"' && reformulated[len(reformulated)-1] == '"' {
+		reformulated = reformulated[1 : len(reformulated)-2]
+	}
+	return strings.TrimSpace(reformulated), nil
+}
+
 func (p *pass) getCodeResponseService() *domain.ResponseService {
 	rankerAIContext := domain.NewAIContext("CodeLLM", "You are an AI programming assistant, utilizing the DeepSeek Coder model, developed by DeepSeek Company, and you only answer by outputting Python code and nothing else.", "")
 	return p.codeResponseService.WithAIContext(rankerAIContext).WithRetryCount(1)
@@ -124,4 +165,9 @@ func (p *pass) getCodeResponseService() *domain.ResponseService {
 func (p *pass) getEvaluatorResponseService() *domain.ResponseService {
 	rankerAIContext := domain.NewAIContext("EvaluatorLLM", "You are EvaluatorLLM, an intelligent assistant which decides if the answer satisfies the question/task.", "")
 	return p.jsonResponseService.WithAIContext(rankerAIContext)
+}
+
+func (p *pass) getPersonaResponseService() *domain.ResponseService {
+	personaAIContext := domain.NewAIContext("PersonaLLM", "You are PersonaLLM, an intelligent assistant which reformulates text based on a given persona.", "")
+	return p.jsonResponseService.WithAIContext(personaAIContext)
 }

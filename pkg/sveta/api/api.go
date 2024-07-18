@@ -161,7 +161,9 @@ func NewAPI(config *common.Config) (API, common.Stopper) {
 	codePass := code.NewPass(
 		aiContext,
 		memoryFactory,
+		summaryRepository,
 		codeResponseService,
+		defaultResponseService,
 		defaultResponseService,
 		codeRunner,
 		logger,
