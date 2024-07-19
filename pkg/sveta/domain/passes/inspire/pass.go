@@ -11,7 +11,10 @@ import (
 
 const inspireCapability = "inspire"
 
+const triggerCommand = "inspire"
+
 const keywordCount = 3
+const maxFrequencyPosition = 4000
 
 type pass struct {
 	aiContext             *domain.AIContext
@@ -52,16 +55,22 @@ func (p *pass) Apply(context *domain.PassContext, nextPassFunc domain.NextPassFu
 	}
 	inputMemory := context.Memory(domain.DataKeyInput)
 	input := inputMemory.What
-	if input != "inspire" {
+	if !strings.HasPrefix(input, triggerCommand) {
 		return nextPassFunc(context)
 	}
-	randomWords := p.getRandomWords()
-	if len(randomWords) == 0 {
+	var keywords []string
+	if len(input) > len(triggerCommand) {
+		keywords = strings.Split(strings.TrimSpace(input[len(triggerCommand):]), " ")
+	}
+	if len(keywords) == 0 {
+		keywords = p.getRandomWords()
+	}
+	if len(keywords) == 0 {
 		p.logger.Log("failed to inspire: random words not found")
 		return nextPassFunc(context)
 	}
-	p.logger.Log(fmt.Sprintf("INSPIRATIONAL keywords: %s\n", strings.Join(randomWords, ", ")))
-	query := fmt.Sprintf("Create a demotivational quote and nothing else, based on the following keywords: %s. Output only the inspirational quote. The quote should be short, to put on a motivation poster. The quote must be thought-provoking.", strings.Join(randomWords, ", "))
+	p.logger.Log(fmt.Sprintf("INSPIRATIONAL keywords: %s\n", strings.Join(keywords, ", ")))
+	query := fmt.Sprintf("Create a demotivational quote and nothing else, based on the following keywords: %s. Output only the inspirational quote. The quote should be short, to put on a motivation poster. The quote must be thought-provoking.", strings.Join(keywords, ", "))
 	queryMemory := p.memoryFactory.NewMemory(domain.MemoryTypeDialog, "User", query, "")
 	quote, err := p.getInspireResponseService().RespondToMemoriesWithText([]*domain.Memory{queryMemory}, domain.ResponseModeNormal)
 	if err != nil {
@@ -76,7 +85,7 @@ func (p *pass) Apply(context *domain.PassContext, nextPassFunc domain.NextPassFu
 func (p *pass) getRandomWords() []string {
 	var words []string
 	for i := 0; i < keywordCount; i++ {
-		randomPosition := rand.Intn(p.wordFrequencyProvider.MaxPosition())
+		randomPosition := rand.Intn(p.wordFrequencyProvider.MaxPosition()) % maxFrequencyPosition
 		word := p.wordFrequencyProvider.GetWordAtPosition(randomPosition)
 		if word == "" {
 			continue
