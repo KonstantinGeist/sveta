@@ -80,6 +80,7 @@ func NewAPI(config *common.Config) (API, common.Stopper) {
 	roleplayLanguageModelSelector := domain.NewLanguageModelSelector([]domain.LanguageModel{roleplayLLama2Model, genericSolarModel})
 	rerankLanguageModelSelector := domain.NewLanguageModelSelector([]domain.LanguageModel{genericSolarModel})
 	codeLanguageModelSelector := domain.NewLanguageModelSelector([]domain.LanguageModel{deepSeekCoderModel})
+	rewriteLanguageModelSelector := domain.NewLanguageModelSelector([]domain.LanguageModel{genericSolarModel})
 	inMemoryMemoryRepository := inmemory.NewMemoryRepository()
 	memoryRepository := filesystem.NewMemoryRepository(inMemoryMemoryRepository, config, logger)
 	memoryFactory := inmemory.NewMemoryFactory(memoryRepository, embedder)
@@ -96,6 +97,7 @@ func NewAPI(config *common.Config) (API, common.Stopper) {
 	roleplayResponseService := defaultResponseService.WithLanguageModelSelector(roleplayLanguageModelSelector)
 	rerankResponseService := defaultResponseService.WithLanguageModelSelector(rerankLanguageModelSelector)
 	codeResponseService := defaultResponseService.WithLanguageModelSelector(codeLanguageModelSelector)
+	rewriteResponseService := defaultResponseService.WithLanguageModelSelector(rewriteLanguageModelSelector)
 	urlFinder := infraweb.NewURLFinder()
 	newsProvider := rss.NewNewsProvider(
 		config.GetStringOrDefault("newsSourceURL", "http://www.independent.co.uk/rss"),
@@ -116,7 +118,7 @@ func NewAPI(config *common.Config) (API, common.Stopper) {
 	)
 	rewritePass := rewrite.NewPass(
 		memoryFactory,
-		defaultResponseService,
+		rewriteResponseService,
 		logger,
 	)
 	newsPass := news.NewPass(

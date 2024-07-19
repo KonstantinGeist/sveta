@@ -68,8 +68,8 @@ func (p *pass) Apply(context *domain.PassContext, nextPassFunc domain.NextPassFu
 func (p *pass) getRewriteResponseService() *domain.ResponseService {
 	rankerAIContext := domain.NewAIContext(
 		"RewriteLLM",
-		"You're RewriteLLM, an intelligent assistant that rewrites a user query to be useful for vector-based search. You must replace pronouns and other ambiguouos words with exact nouns & verbs from the provided chat history. "+
-			"For example, if the user says \"I like them\", and previously cats were mentioned, then substitute \"it\" with \"cats\", etc. ",
+		"You're RewriteLLM, an intelligent assistant that rewrites a user query to be useful for vector-based search. You must replace pronouns and other ambiguous words with exact nouns & verbs from the provided chat history. "+
+			"For example, if the user says \"I like them\", and previously cats were mentioned, then substitute \"them\" with \"cats\", etc. Same with other pronouns. ",
 		"",
 	)
 	return p.responseService.WithAIContext(rankerAIContext)
@@ -85,6 +85,6 @@ func (p *pass) formatMemories(workingMemories []*domain.Memory, what string) str
 	buf.WriteString("Using the chat history above, rewrite the following user query to make it unambiguous: \"")
 	buf.WriteString(what)
 	buf.WriteString("\"")
-	buf.WriteString(" The rewritten query MUST consist of a single short sentence WITHOUT subordinate clauses.")
+	buf.WriteString(" The rewritten query MUST consist of a single short sentence WITHOUT subordinate clauses or pronouns. The rewritten query must be unambiguous, self-contained and capture the topic of the current conversation.")
 	return buf.String()
 }

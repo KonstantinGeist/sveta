@@ -16,7 +16,7 @@ func NewGenericLanguageModel(
 	return llamacpp.NewLanguageModel(
 		"solar-generic",
 		"solar-generic.bin",
-		[]domain.ResponseMode{domain.ResponseModeNormal, domain.ResponseModeRerank},
+		[]domain.ResponseMode{domain.ResponseModeNormal, domain.ResponseModeRerank, domain.ResponseModeJSON},
 		llmscommon.NewAlpacaPromptFormatter(),
 		llmscommon.NewAlpacaStopCondition(aiContext),
 		llmscommon.NewAlpacaResponseCleaner(),

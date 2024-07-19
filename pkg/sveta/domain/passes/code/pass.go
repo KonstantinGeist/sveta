@@ -7,6 +7,7 @@ import (
 
 	"kgeyst.com/sveta/pkg/common"
 	"kgeyst.com/sveta/pkg/sveta/domain"
+	"kgeyst.com/sveta/pkg/sveta/domain/passes/rewrite"
 )
 
 // TODO get file paths from the config
@@ -67,7 +68,10 @@ func (p *pass) Apply(context *domain.PassContext, nextPassFunc domain.NextPassFu
 	if !context.IsCapabilityEnabled(codeCapability) {
 		return nextPassFunc(context)
 	}
-	inputMemory := context.Memory(domain.DataKeyInput)
+	inputMemory := context.MemoryCoalesced([]string{rewrite.DataKeyRewrittenInput, domain.DataKeyInput})
+	if inputMemory == nil {
+		return nextPassFunc(context)
+	}
 	input := inputMemory.What
 	code, err := p.generateCode(input)
 	if err != nil && !errors.Is(err, domain.ErrFailedToResponse) {
