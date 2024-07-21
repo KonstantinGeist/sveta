@@ -11,6 +11,11 @@ import (
 	"kgeyst.com/sveta/pkg/sveta/domain"
 )
 
+const preamble = `
+import os
+os.chdir("/usr/src/app")
+`
+
 type CodeRunner struct {
 	namedMutexAcquirer domain.NamedMutexAcquirer
 }
@@ -24,6 +29,7 @@ func NewCodeRunner(
 }
 
 func (c *CodeRunner) Run(code string) (string, error) {
+	code = fmt.Sprintf("%s\n%s", preamble, code)
 	namedMutex, err := c.namedMutexAcquirer.AcquireNamedMutex("codePassDocker", time.Minute)
 	if err != nil {
 		return "", err

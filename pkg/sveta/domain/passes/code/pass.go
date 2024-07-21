@@ -7,7 +7,6 @@ import (
 
 	"kgeyst.com/sveta/pkg/common"
 	"kgeyst.com/sveta/pkg/sveta/domain"
-	"kgeyst.com/sveta/pkg/sveta/domain/passes/rewrite"
 )
 
 // TODO get file paths from the config
@@ -68,10 +67,7 @@ func (p *pass) Apply(context *domain.PassContext, nextPassFunc domain.NextPassFu
 	if !context.IsCapabilityEnabled(codeCapability) {
 		return nextPassFunc(context)
 	}
-	inputMemory := context.MemoryCoalesced([]string{rewrite.DataKeyRewrittenInput, domain.DataKeyInput})
-	if inputMemory == nil {
-		return nextPassFunc(context)
-	}
+	inputMemory := context.Memory(domain.DataKeyInput)
 	input := inputMemory.What
 	code, err := p.generateCode(input)
 	if err != nil && !errors.Is(err, domain.ErrFailedToResponse) {
@@ -148,7 +144,7 @@ func (p *pass) reformulate(input, output, where string) (string, error) {
 		defaultSummary := "no summary"
 		summary = &defaultSummary
 	}
-	what := fmt.Sprintf("Chat summary: \"%s\". Persona: \"%s\". Question or task: \"%s\". Answer: \"%s\". Reformulate the answer in accordance with the provided persona and the chat summary. Output only the reformulated answer and nothing else. The reformulated answer must preserve the original meaning/answer.", *summary, p.aiContext.AgentDescription, input, output)
+	what := fmt.Sprintf("Chat summary: \"%s\". Persona: \"%s\". Question or task: \"%s\". Answer: \"%s\". Reformulate the answer in accordance with the provided persona and the chat summary. Output only the reformulated answer and nothing else. The reformulated answer must preserve the original meaning/answer. Pay most attention to the user's LAST question/task.", *summary, p.aiContext.AgentDescription, input, output)
 	memoryToReformulate := p.memoryFactory.NewMemory(domain.MemoryTypeDialog, p.aiContext.AgentName, what, where)
 	reformulated, err := p.getPersonaResponseService().RespondToMemoriesWithText([]*domain.Memory{memoryToReformulate}, domain.ResponseModeNormal)
 	if err != nil {
