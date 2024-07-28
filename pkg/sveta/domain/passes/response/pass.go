@@ -21,7 +21,6 @@ type pass struct {
 	memoryFactory                     domain.MemoryFactory
 	memoryRepository                  domain.MemoryRepository
 	defaultResponseService            *domain.ResponseService
-	roleplayResponseService           *domain.ResponseService
 	rerankResponseService             *domain.ResponseService
 	embedder                          domain.Embedder
 	logger                            common.Logger
@@ -37,7 +36,6 @@ func NewPass(
 	memoryFactory domain.MemoryFactory,
 	memoryRepository domain.MemoryRepository,
 	defaultResponseService *domain.ResponseService,
-	roleplayResponseService *domain.ResponseService,
 	rerankResponseService *domain.ResponseService,
 	embedder domain.Embedder,
 	config *common.Config,
@@ -48,7 +46,6 @@ func NewPass(
 		memoryFactory:                     memoryFactory,
 		memoryRepository:                  memoryRepository,
 		defaultResponseService:            defaultResponseService,
-		roleplayResponseService:           roleplayResponseService,
 		rerankResponseService:             rerankResponseService,
 		embedder:                          embedder,
 		logger:                            logger,
@@ -78,10 +75,6 @@ func (p *pass) Capabilities() []*domain.Capability {
 			Name:        hydeCapability,
 			Description: "improves episodic memory recall by reformulating the user query in several different ways",
 		},
-		{
-			Name:        routerCapability,
-			Description: "routes responses to different models based on the query",
-		},
 	}
 }
 
@@ -100,14 +93,13 @@ func (p *pass) Apply(context *domain.PassContext, nextPassFunc domain.NextPassFu
 	}
 	inputMemory := context.Memory(domain.DataKeyInput)
 	workingMemories := context.Memories(workingmemory.DataKeyWorkingMemory)
-	episodicMemories, err := p.recallFromEpisodicMemory(context, workingMemories, rewrittenInputMemory)
+	episodicMemories, err := p.recallFromEpisodicMemory(context, workingMemories, inputMemory, rewrittenInputMemory)
 	if err != nil {
 		return err
 	}
 	memories := domain.MergeMemories(episodicMemories, workingMemories...)
 	memories = domain.MergeMemories(memories, inputMemory)
-	responseService := p.getResponseServiceWithRoutedLanguageModel(context, rewrittenInputMemory) // use rewritten queries for better routing
-	response, err := responseService.RespondToMemoriesWithText(memories, domain.ResponseModeNormal)
+	response, err := p.defaultResponseService.RespondToMemoriesWithText(memories, domain.ResponseModeNormal)
 	if err != nil {
 		return err
 	}
@@ -116,16 +108,23 @@ func (p *pass) Apply(context *domain.PassContext, nextPassFunc domain.NextPassFu
 }
 
 // recallFromEpisodicMemory finds memories in the so-called "episodic memory", or long-term memory which may contain memories from long ago
-func (p *pass) recallFromEpisodicMemory(context *domain.PassContext, workingMemories []*domain.Memory, inputMemory *domain.Memory) ([]*domain.Memory, error) {
+func (p *pass) recallFromEpisodicMemory(context *domain.PassContext, workingMemories []*domain.Memory, inputMemory, rewrittenInputMemory *domain.Memory) ([]*domain.Memory, error) {
 	if !context.IsCapabilityEnabled(responseCapability) {
 		return nil, nil
 	}
-	embeddingsToSearch := p.getHypotheticalEmbeddings(context, inputMemory)
+	var embeddingsToSearch []domain.Embedding
+	inputEmbeddingsToSearch := p.getHypotheticalEmbeddings(context, inputMemory)
+	rewrittenEmbeddingsToSearch := p.getHypotheticalEmbeddings(context, rewrittenInputMemory)
+	embeddingsToSearch = append(embeddingsToSearch, inputEmbeddingsToSearch...)
+	embeddingsToSearch = append(embeddingsToSearch, rewrittenEmbeddingsToSearch...)
 	if inputMemory.Embedding != nil {
 		embeddingsToSearch = append(embeddingsToSearch, *inputMemory.Embedding)
 	}
+	if rewrittenInputMemory.Embedding != nil {
+		embeddingsToSearch = append(embeddingsToSearch, *rewrittenInputMemory.Embedding)
+	}
 	episodicMemories, err := p.memoryRepository.FindByEmbeddings(domain.EmbeddingFilter{
-		Where:               inputMemory.Where,
+		Where:               rewrittenInputMemory.Where,
 		Embeddings:          embeddingsToSearch,
 		TopCount:            p.episodicMemoryFirstStageTopCount,
 		SurroundingCount:    p.episodicMemorySurroundingCount,
@@ -138,7 +137,7 @@ func (p *pass) recallFromEpisodicMemory(context *domain.PassContext, workingMemo
 	if len(episodicMemories) == 0 {
 		return nil, nil
 	}
-	episodicMemories = p.rankMemoriesAndGetTopN(context, episodicMemories, inputMemory.What, inputMemory.Where)
+	episodicMemories = p.rankMemoriesAndGetTopN(context, episodicMemories, rewrittenInputMemory.What, rewrittenInputMemory.Where)
 	if len(episodicMemories) == 0 {
 		return nil, nil
 	}

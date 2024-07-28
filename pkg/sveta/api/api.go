@@ -76,7 +76,7 @@ func NewAPI(config *common.Config) (API, common.Stopper) {
 	genericSolarModel := logging.NewLanguageModelDecorator(solar.NewGenericLanguageModel(aiContext, namedMutexAcquirer, config, logger), logger)
 	llama3Model := llama3.NewLanguageModel(namedMutexAcquirer, config, logger)
 	deepSeekCoderModel := deepseekcoder.NewLanguageModel(namedMutexAcquirer, config, logger)
-	defaultLanguageModelSelector := domain.NewLanguageModelSelector([]domain.LanguageModel{llama3Model})
+	defaultLanguageModelSelector := domain.NewLanguageModelSelector([]domain.LanguageModel{llama3Model, genericSolarModel, roleplayLLama2Model})
 	roleplayLanguageModelSelector := domain.NewLanguageModelSelector([]domain.LanguageModel{roleplayLLama2Model, genericSolarModel})
 	rerankLanguageModelSelector := domain.NewLanguageModelSelector([]domain.LanguageModel{genericSolarModel})
 	codeLanguageModelSelector := domain.NewLanguageModelSelector([]domain.LanguageModel{deepSeekCoderModel})
@@ -175,7 +175,6 @@ func NewAPI(config *common.Config) (API, common.Stopper) {
 		memoryFactory,
 		memoryRepository,
 		defaultResponseService,
-		roleplayResponseService,
 		rerankResponseService,
 		embedder,
 		config,
