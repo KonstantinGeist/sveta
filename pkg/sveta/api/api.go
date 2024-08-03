@@ -185,6 +185,7 @@ func NewAPI(config *common.Config) (API, common.Stopper) {
 		aiContext,
 		summaryRepository,
 		defaultResponseService,
+		wordFrequencyProvider,
 		languageModelJobQueue,
 		logger,
 	)

@@ -2,6 +2,7 @@ package summary
 
 import (
 	"fmt"
+	"math/rand"
 	"strings"
 
 	"kgeyst.com/sveta/pkg/common"
@@ -11,10 +12,19 @@ import (
 
 const summaryCapability = "summary"
 
+const maxSummaryCount = 3
+const maxRandomWordCount = 1
+
+type WordFrequencyProvider interface {
+	MaxPosition() int
+	GetWordAtPosition(position int) string
+}
+
 type pass struct {
 	aiContext             *domain.AIContext
 	summaryRepository     domain.SummaryRepository
 	responseService       *domain.ResponseService
+	wordFrequencyProvider WordFrequencyProvider
 	languageModelJobQueue *common.JobQueue
 	logger                common.Logger
 }
@@ -23,6 +33,7 @@ func NewPass(
 	aiContext *domain.AIContext,
 	summaryRepository domain.SummaryRepository,
 	responseService *domain.ResponseService,
+	wordFrequencyProvider WordFrequencyProvider,
 	languageModelJobQueue *common.JobQueue,
 	logger common.Logger,
 ) domain.Pass {
@@ -30,6 +41,7 @@ func NewPass(
 		aiContext:             aiContext,
 		summaryRepository:     summaryRepository,
 		responseService:       responseService,
+		wordFrequencyProvider: wordFrequencyProvider,
 		languageModelJobQueue: languageModelJobQueue,
 		logger:                logger,
 	}
@@ -42,6 +54,19 @@ func (p *pass) Capabilities() []*domain.Capability {
 			Description: "summarizes the current conversation to have a better understanding of a long conversation",
 		},
 	}
+}
+
+func (p *pass) getRandomWords() []string {
+	var words []string
+	for i := 0; i < maxRandomWordCount; i++ {
+		randomPosition := rand.Intn(p.wordFrequencyProvider.MaxPosition())
+		word := p.wordFrequencyProvider.GetWordAtPosition(randomPosition)
+		if word == "" {
+			continue
+		}
+		words = append(words, word)
+	}
+	return words
 }
 
 func (p *pass) Apply(context *domain.PassContext, nextPassFunc domain.NextPassFunc) error {
@@ -92,13 +117,32 @@ func (p *pass) Apply(context *domain.PassContext, nextPassFunc domain.NextPassFu
 		if output.Summary5 != "" {
 			summaries = append(summaries, output.Summary5)
 		}
+		summaries = randomElements(summaries, maxSummaryCount)
 		finalSummary := strings.TrimSpace(strings.Join(summaries, " "))
+		randomWords := p.getRandomWords()
+		finalSummary += fmt.Sprintf("\nPossible topic for discussion: \"%s\"\n", strings.Join(randomWords, " "))
 		if output.OpinionOnPeopleInChat != "" {
 			finalSummary += fmt.Sprintf("\n%s's opinion on people in the chat: \"%s\".", p.aiContext.AgentName, output.OpinionOnPeopleInChat)
 		}
 		return p.summaryRepository.Store(inputMemory.Where, finalSummary)
 	})
 	return nextPassFunc(context)
+}
+
+func randomElements(slice []string, n int) []string {
+	if n > len(slice) {
+		n = len(slice)
+	}
+	selected := make(map[int]bool)
+	result := make([]string, 0, n)
+	for len(result) < n {
+		index := rand.Intn(len(slice))
+		if !selected[index] {
+			selected[index] = true
+			result = append(result, slice[index])
+		}
+	}
+	return result
 }
 
 func (p *pass) getSummarizerResponseService() *domain.ResponseService {
